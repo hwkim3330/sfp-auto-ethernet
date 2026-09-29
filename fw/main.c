@@ -6,10 +6,16 @@
  *              Bytes 96..127 are writable: byte 96 bit 0 = T1 master.
  *   0x51  A2h: diagnostics page - not implemented, reads as 0x00
  *              (byte 92 = 0 tells the host there is none).
- *   0x56  the PHY, in the protocol Linux's mdio-i2c speaks: write 1 byte =
- *         register, then read 2 bytes big-endian; or write 3 bytes =
- *         register + value. Clause 22, PHY address 22 on the host side,
- *         strapped address 0 on the MDIO side.
+ *   0x56  the PHY, in the protocol Linux's mdio-i2c speaks
+ *         (drivers/net/mdio/mdio-i2c.c), both clauses:
+ *           C22 read   write [reg]                         then read 2 bytes BE
+ *           C22 write  write [reg, val_hi, val_lo]
+ *           C45 read   write [0x20|devad, reg_hi, reg_lo]  then read 2 bytes BE
+ *           C45 write  write [devad, reg_hi, reg_lo, val_hi, val_lo]   (no 0x20)
+ *         Byte 0 < 0x20 and a 1- or 3-byte message is C22; the host's PHY
+ *         address (22) is mapped onto the strapped one (PHYAD).
+ *         C45 reaches the PHY natively (MDIO_C45_NATIVE, the RTL8221B) or
+ *         through REGCR/ADDAR (the TI T1 parts, which are C22 devices).
  * One I2C peripheral answers all of them: OA2 = 0x50 with OA2MSK = 3 matches
  * 0x50..0x57 and ADDCODE says which was addressed. The unused addresses read
  * 0xFF.
@@ -120,9 +126,43 @@ static void mdio_write(uint8_t phy, uint8_t reg, uint16_t val)
     pa_set(MDIO);
 }
 
+#ifndef PHYAD
 #define PHYAD 0
+#endif
+#ifndef MDIO_C45_NATIVE
+#define MDIO_C45_NATIVE 0
+#endif
+
+/* Clause 45 frames: ST = 00, then an ADDRESS frame and a READ/WRITE frame */
+static void c45_frame(uint32_t op, uint8_t devad, uint16_t data)
+{
+    mdio_out(0xFFFFFFFFu, 32);
+    mdio_out((0x0u << 30) | (op << 28) | ((uint32_t)(PHYAD & 31u) << 23) |
+             ((uint32_t)(devad & 31u) << 18) | (0x2u << 16) | data, 32);
+    pa_set(MDIO);
+}
+
+static uint16_t c45_read(uint8_t devad, uint16_t reg)
+{
+    c45_frame(0x0u, devad, reg);                      /* address */
+    mdio_out(0xFFFFFFFFu, 32);
+    mdio_out((0x0u << 12) | (0x3u << 10) | ((PHYAD & 31u) << 5) | (devad & 31u), 14);
+    pa_set(MDIO);
+    mdc_pulse(); mdc_pulse();
+    uint16_t v = 0;
+    for (int i = 0; i < 16; i++) { v = (uint16_t)((v << 1) | (uint16_t)pa_get(MDIO)); mdc_pulse(); }
+    mdc_pulse();
+    return v;
+}
+
+static void c45_write(uint8_t devad, uint16_t reg, uint16_t val)
+{
+    c45_frame(0x0u, devad, reg);                      /* address */
+    c45_frame(0x1u, devad, val);                      /* write */
+}
 static void mmd_write(uint8_t devad, uint16_t reg, uint16_t val)
 {
+    if (MDIO_C45_NATIVE) { c45_write(devad, reg, val); return; }
     mdio_write(PHYAD, 0x0D, devad);
     mdio_write(PHYAD, 0x0E, reg);
     mdio_write(PHYAD, 0x0D, (uint16_t)(0x4000u | devad));
@@ -131,6 +171,7 @@ static void mmd_write(uint8_t devad, uint16_t reg, uint16_t val)
 
 static uint16_t mmd_read(uint8_t devad, uint16_t reg)
 {
+    if (MDIO_C45_NATIVE) return c45_read(devad, reg);
     mdio_write(PHYAD, 0x0D, devad);
     mdio_write(PHYAD, 0x0E, reg);
     mdio_write(PHYAD, 0x0D, (uint16_t)(0x4000u | devad));
@@ -212,7 +253,7 @@ static void phy_hold(int hold)
 
 /* ------------------------------------------------------------------ I2C slave */
 enum { DEV_A0 = 0x50, DEV_A2 = 0x51, DEV_PHY = 0x56 };
-static uint8_t dev, off, nwr, phy_reg, phy_buf[2], phy_wr[3];
+static uint8_t dev, off, nwr, phy_reg, phy_buf[2], phy_wr[5];
 static int nrd;
 
 static void i2c_init(void)
@@ -249,7 +290,9 @@ static void i2c_poll(void)
         dev = code;
         if (read) {
             if (dev == DEV_PHY) {                /* SCL is stretched while this runs */
-                uint16_t v = mdio_read(PHYAD, phy_reg);
+                uint16_t v = (nwr == 3 && (phy_wr[0] & 0x20))
+                    ? mmd_read(phy_wr[0] & 31u, (uint16_t)((phy_wr[1] << 8) | phy_wr[2]))
+                    : mdio_read(PHYAD, phy_reg);
                 phy_buf[0] = (uint8_t)(v >> 8); phy_buf[1] = (uint8_t)v; nrd = 0;
             }
             I2C1->ISR |= I2C_ISR_TXE;            /* flush, so TXIS asks for fresh data */
@@ -261,7 +304,7 @@ static void i2c_poll(void)
     if (isr & I2C_ISR_RXNE) {
         uint8_t b = (uint8_t)I2C1->RXDR;
         if (dev == DEV_PHY) {
-            if (nwr < 3) phy_wr[nwr] = b;
+            if (nwr < 5) phy_wr[nwr] = b;
             if (nwr == 0) phy_reg = b & 31u;
         } else if (nwr == 0) {
             off = b;
@@ -275,8 +318,11 @@ static void i2c_poll(void)
     if (isr & I2C_ISR_NACKF) I2C1->ICR = I2C_ICR_NACKCF;
     if (isr & I2C_ISR_STOPF) {
         I2C1->ICR = I2C_ICR_STOPCF;
-        if (dev == DEV_PHY && nwr == 3)
+        if (dev == DEV_PHY && nwr == 3 && phy_wr[0] < 0x20)          /* C22 write */
             mdio_write(PHYAD, phy_wr[0] & 31u, (uint16_t)((phy_wr[1] << 8) | phy_wr[2]));
+        else if (dev == DEV_PHY && nwr == 5)                          /* C45 write */
+            mmd_write(phy_wr[0] & 31u, (uint16_t)((phy_wr[1] << 8) | phy_wr[2]),
+                      (uint16_t)((phy_wr[3] << 8) | phy_wr[4]));
     }
 }
 
