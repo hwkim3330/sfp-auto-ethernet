@@ -66,7 +66,10 @@ part('C6', 'Device:C_Small', '100nF', C0201, {1: 'RD_N', 2: 'SG_RX_N'}, (5.2, -2
 
 # ---------------------------------------------------------------- PHY
 PHY = {1: 'MDC', 2: 'PHY_INT_N', 3: 'PHY_RST_N', 4: 'XO', 5: 'XI', 6: None,
-       7: 'VDDA', 8: None, 9: 'VDD1P0', 10: None, 11: 'VDDA', 12: 'TRD_P', 13: 'TRD_M',
+       # 12/13 cross over on purpose: pin 12 (TRD_P) drives the line's M side. They
+       # leave the package M-over-P and the CMC takes P-over-M; the PHY corrects
+       # MDI polarity itself and that cannot be turned off (datasheet 6.4.7.2)
+       7: 'VDDA', 8: None, 9: 'VDD1P0', 10: None, 11: 'VDDA', 12: 'TRD_M', 13: 'TRD_P',
        14: None, 15: None, 16: None, 17: None, 18: None, 19: None, 20: None,
        21: 'VDD1P0', 22: 'VDDIO', 23: 'SG_RX_N', 24: 'SG_RX_P', 25: None, 26: None,
        27: None, 28: None, 29: None, 30: None, 31: None, 32: 'SG_TX_P', 33: 'SG_TX_N',
@@ -109,9 +112,10 @@ for pin, net, vals in DECAP:
 
 # 25 MHz crystal, CL 8 pF -> 2 x 12 pF (less ~2 pF of strays each)
 part('Y1', 'Device:Crystal_GND24_Small', '25MHz CL8pF 2016', 'Crystal:Crystal_SMD_2016-4Pin_2.0x1.6mm',
-     {1: 'XI', 2: 'GND', 3: 'XO', 4: 'GND'}, (25.4, -0.4))
-part('C24', 'Device:C_Small', '12pF', C0201, {1: 'XI', 2: 'GND'}, (25.4, 1.6))
-part('C25', 'Device:C_Small', '12pF', C0201, {1: 'XO', 2: 'GND'}, (25.4, -2.4))
+     {1: 'XI', 2: 'GND', 3: 'XO', 4: 'GND'}, (25.4, -0.4), rot=180)   # 180: XI/XO face U1's pins 5/4 uncrossed
+# load caps underneath: on top they closed the lane MDC/INT/RST take past the crystal
+part('C24', 'Device:C_Small', '12pF', C0201, {1: 'XI', 2: 'GND'}, (26.3, -0.4), side='B', rot=90)
+part('C25', 'Device:C_Small', '12pF', C0201, {1: 'XO', 2: 'GND'}, (24.1, -0.4), side='B', rot=90)
 
 part('R1', 'Device:R_Small', '2.2k', R0201, {1: 'VDDIO', 2: 'MDIO'}, (23.8, -4.4))
 # LED_0 = link. Its path to ground is also the strap pull-down: MS = 0 (slave)
@@ -126,12 +130,14 @@ part('U3', 'Regulator_Switching:TPS62823DLC', 'TPS62822DLC',   # base symbol; TP
      (12.0, 1.2), mpn='TPS62822DLCR')
 part('L1', 'Device:L_Small', '470nH DFE201610E-R47M', 'Inductor_SMD:L_Murata_DFE201610P',
      {1: 'BUCK_SW', 2: 'V1P0_BUCK'}, (12.0, -1.6), mpn='DFE201610E-R47M')
-part('C26', 'Device:C_Small', '4.7uF', C0402, {1: '+3V3', 2: 'GND'}, (10.1, 1.2), rot=90)
-part('C27', 'Device:C_Small', '10uF', C0603, {1: 'V1P0_BUCK', 2: 'GND'}, (9.4, -1.6), rot=90)
+# input cap underneath, by VIN (pin 7): on top it sat on the EN/FB side, where the divider has to go
+part('C26', 'Device:C_Small', '4.7uF', C0402, {1: '+3V3', 2: 'GND'}, (14.1, 1.0), side='B', rot=90)
+part('C27', 'Device:C_Small', '10uF', C0603, {1: 'V1P0_BUCK', 2: 'GND'}, (9.4, -1.95), rot=90)
 part('C28', 'Device:C_Small', '10uF', C0603, {1: 'V1P0_BUCK', 2: 'GND'}, (12.0, -1.9), side='B')
-part('R3', 'Device:R_Small', '66.5k 1%', R0201, {1: 'V1P0_BUCK', 2: 'BUCK_FB'}, (14.3, 2.8))
-part('R4', 'Device:R_Small', '100k 1%', R0201, {1: 'BUCK_FB', 2: 'GND'}, (14.3, 2.0))
-part('C29', 'Device:C_Small', '120pF', C0201, {1: 'V1P0_BUCK', 2: 'BUCK_FB'}, (14.3, 1.2))
+# divider on the FB (pin 2) side
+part('R3', 'Device:R_Small', '66.5k 1%', R0201, {1: 'V1P0_BUCK', 2: 'BUCK_FB'}, (9.4, 0.2))
+part('R4', 'Device:R_Small', '100k 1%', R0201, {1: 'BUCK_FB', 2: 'GND'}, (9.4, 1.6), rot=180)   # FB end towards U3 pin 2
+part('C29', 'Device:C_Small', '120pF', C0201, {1: 'V1P0_BUCK', 2: 'BUCK_FB'}, (9.4, 0.9))
 
 # ---------------------------------------------------------------- MCU
 MCU = {1: 'SDA', 2: None, 3: None, 4: '+3V3', 5: 'GND', 6: 'NRST', 7: 'MDC', 8: 'MDIO',
@@ -146,8 +152,8 @@ part('C31', 'Device:C_Small', '1uF', C0402, {1: '+3V3', 2: 'GND'}, (27.2, -3.6),
 part('C32', 'Device:C_Small', '100nF', C0402, {1: 'NRST', 2: 'GND'}, (31.5, 0.0), side='B')
 # TX_DISABLE: 4.7..10k pull-up inside the module (INF-8074i)
 part('R5', 'Device:R_Small', '10k', R0402, {1: '+3V3', 2: 'TX_DISABLE'}, (35.9, 3.6), rot=90)
-for i, (net, xy) in enumerate([('+3V3', (26.0, 3.3)), ('SWDIO', (26.0, 1.1)), ('SWCLK', (26.0, -1.1)),
-                               ('NRST', (26.0, -3.3)), ('GND', (36.5, 0.0))]):
+for i, (net, xy) in enumerate([('+3V3', (27.9, 3.3)), ('SWDIO', (27.9, 1.1)), ('SWCLK', (27.9, -1.1)),
+                               ('NRST', (27.9, -3.3)), ('GND', (36.5, 0.0))]):
     part(f'TP{i + 1}', 'Connector:TestPoint', net, TP, {1: net}, xy, side='B')
 
 # ---------------------------------------------------------------- MDI, Figure 8-1 / Table 8-1
@@ -223,7 +229,7 @@ def _phy_symbol():
 
 
 SYMBOLS = [_phy_symbol()]
-SOLID_PADS = {('U1', '37')}
+SOLID_PADS = {('U1', '37'), ('J2', '3')}   # EP thermal vias, H-MTD shield pins
 
 SGMII = ['TD_P', 'TD_N', 'RD_P', 'RD_N', 'SG_TX_P', 'SG_TX_N', 'SG_RX_P', 'SG_RX_N']
 MDI = ['TRD_P', 'TRD_M', 'DCB_P', 'DCB_N', 'MDI_P', 'MDI_N']
@@ -233,6 +239,12 @@ PWR = ['+3V3', 'VDDA', 'VDDIO', 'VDD1P0', 'V1P0_BUCK', 'BUCK_SW', 'VCCT', 'VCCR'
 # single-ended = 6.2 mil = 0.157 mm on L1 over L2. The router does not couple
 # pairs, so SGMII/MDI legs are routed as 50 ohm each; the 100 ohm coupled pair
 # (4.5/6 mil) is the width to use when they are hand-routed as pairs.
+# pairs on the outer layers only: F over In1's ground, B over In2's +3V3
+# pour (JLC04101H-3313 is symmetric, so 0.157 mm is 50 ohm on both). Never
+# on In2: that is the reference B needs. F alone cannot work - SGMII TX has
+# to cross RX, and U1's TRD pins come out M-over-P while the CMC wants P-over-M.
+CLASS_LAYERS = {'SGMII': ['F.Cu', 'B.Cu'], 'MDI': ['F.Cu', 'B.Cu']}
+
 NETCLASSES = [
     dict(name='Default', clearance=0.15, track_width=0.127, via_diameter=0.45, via_drill=0.25),
     dict(name='SGMII', clearance=0.15, track_width=0.157,   # 0.15: the 0201 AC caps' own pads are 0.18 apart
@@ -250,6 +262,33 @@ PAIRS = [('TD_P', 'TD_N'), ('SG_TX_P', 'SG_TX_N'), ('RD_P', 'RD_N'), ('SG_RX_P',
          ('TRD_P', 'TRD_M'), ('DCB_P', 'DCB_N'), ('MDI_P', 'MDI_N')]
 
 HMTD_AT = (54.0, 0.0)
+
+# EN (pin 1) to VIN (pin 7) of U3: diagonal across the package with the
+# no-connect PG (pin 8) between them, and the router will not go round it.
+# Underneath instead, so the top stays open for FB (pin 2).
+PREROUTES = [('+3V3', 'F', [(11.275, 1.95), (10.45, 1.95)]),
+             ('+3V3', 'F', [(12.725, 1.45), (13.55, 1.45)]),
+             ('+3V3', 'B', [(10.45, 1.95), (13.55, 1.45)]),
+             ('GND', 'F', [(9.1, 1.6), (8.55, 1.6)]),     # R4's ground: boxed in once routed
+             # U1 pins 1-3 (MDC, INT, RST) to the MCU: the lane past the crystal
+             # holds one of them at most, a different one each routing run, so
+             # each drops to a staggered via at once
+             ('MDC', 'F', [(22.338, -2.0), (22.95, -2.0), (23.4, -2.45), (23.4, -2.95)]),
+             ('PHY_INT_N', 'F', [(22.338, -1.5), (23.05, -1.5), (23.95, -2.4)]),
+             ('PHY_RST_N', 'F', [(22.338, -1.0), (23.1, -1.0), (23.95, -1.85), (24.5, -1.85)]),
+             # C10/C16 under U1's VDDA/VDD1P0 pins: the router rings their ground pads
+             # with those rails, so they share one via between them, laid first
+             ('GND', 'B', [(23.02, 1.2), (23.45, 1.7), (23.02, 2.2)]),
+             # the pin 11/21 decap row: ground pads face U1's bottom EP pad, and
+             # the router's rails cut the pour between them, so each gets a spoke
+             ('GND', 'B', [(19.2, 2.92), (19.2, 1.0)]), ('GND', 'B', [(20.4, 2.88), (20.4, 1.0)]),
+             ('GND', 'B', [(21.4, 2.88), (20.7, 1.0)]), ('GND', 'B', [(17.6, 2.88), (18.4, 1.0)]),
+             ('GND', 'B', [(16.62, 2.2), (18.35, 0.6)])]
+PREVIAS = [('+3V3', (10.45, 1.95)), ('+3V3', (13.55, 1.45)), ('GND', (8.55, 1.6)),
+           ('MDC', (23.4, -2.95)), ('PHY_INT_N', (23.95, -2.4)), ('PHY_RST_N', (24.5, -1.85)), ('GND', (23.45, 1.7))]
+# the crystal's load caps sit right under its lanes to U1: a ground via there
+# closes XO off (it did). The bottom pour takes their ground instead.
+NO_DOGBONE = ('C24', 'C25', 'C21', 'C7', 'C8', 'C9', 'C19', 'C20')   # C21's sat on VDDIO's only way to U1 pin 34
 
 
 if __name__ == '__main__':

@@ -10,3 +10,5 @@ hw/t1/*.dsn
 logs/
 hw/t1/jlc/gerber/
 hw/t1/panel/*.svg
+hw/*/.*_placed.kicad_pcb
+hw/*/.*_placed.kicad_pro

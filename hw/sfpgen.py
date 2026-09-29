@@ -397,7 +397,7 @@ def build_pcb():
     MB.poly(board, pcbnew.Edge_Cuts, MB.outline_pts(D.LENGTH))
     MB.seg(board, pcbnew.Dwgs_User, (MB.CAGE_FRONT, 7.5), (MB.CAGE_FRONT, -7.5), 0.15)
     MB.text(board, pcbnew.Dwgs_User, 'cage front', MB.CAGE_FRONT, 8.4, 0.8)
-    MB.text(board, pcbnew.B_SilkS, D.TITLE, 30.0, 5.4, 0.8)
+    MB.text(board, pcbnew.B_SilkS, D.TITLE, 30.0, 4.7, 0.8)   # 5.4 sat 0.1 mm off the edge: clipped in the panel
     for p in D.P:
         fp = MB.edge_footprint() if p['ref'] == 'J1' else fp_load(p['fp'])
         fp.SetReference(p['ref'])
@@ -424,6 +424,10 @@ def build_pcb():
                 pad.SetZoneConnection(pcbnew.ZONE_CONNECTION_FULL)   # EP + thermal vias: solid
     path = os.path.join(D.HERE, D.NAME + '.kicad_pcb')
     board.Save(path)
+    board.Save(placed_path())            # routing always starts from this copy
+    for junk in (placed_path()[:-len('.kicad_pcb')] + ext for ext in ('.kicad_pro', '.kicad_prl')):
+        if os.path.exists(junk):
+            os.remove(junk)
     write_project()                      # Save() rewrites the .kicad_pro with defaults
     return board
 
@@ -458,12 +462,16 @@ def check_pcb(board):
 
 # ==========================================================================
 # routing: netclasses, planes, Freerouting, SES back in, fill, DRC
-def load_board(path):
+def placed_path():
+    return os.path.join(D.HERE, '.' + D.NAME + '_placed.kicad_pcb')
+
+
+def load_board(path, pro=None):
     """Open the board WITH its project, so the netclass patterns in the
     .kicad_pro apply. A bare LoadBoard leaves every net in Default, and the DSN
     export then resyncs nets to classes from those (absent) patterns - which
     is how the first routed boards got 0.127 mm SGMII instead of 50 ohm."""
-    pro = os.path.abspath(path[:-len('.kicad_pcb')] + '.kicad_pro')
+    pro = os.path.abspath(pro or (path[:-len('.kicad_pcb')] + '.kicad_pro'))
     sm = pcbnew.GetSettingsManager()
     sm.LoadProject(pro)
     board = pcbnew.LoadBoard(path)
@@ -473,6 +481,13 @@ def load_board(path):
 def apply_rules(board):
     """KiCad 7's standalone LoadBoard does not read the .kicad_pro, so the
     rules the DSN export and DRC need are set on the board in memory."""
+    # In1 is the GND plane. As a 'signal' layer the DSN handed it to the
+    # router, which ran traces through it and cut it into islands.
+    board.SetLayerType(pcbnew.In1_Cu, pcbnew.LT_POWER)
+    # In2 carries signals too (two signal layers left 16 pads unrouted on a
+    # 12.4 mm board); the +3V3 pour fills what the router leaves. In1 stays a
+    # solid GND plane: it is the reference right under the F.Cu SGMII traces.
+    board.SetLayerType(pcbnew.In2_Cu, pcbnew.LT_SIGNAL)
     ds = board.GetDesignSettings()
     ds.m_MinClearance = MB.MM(0.1)
     ds.m_TrackMinWidth = MB.MM(0.1)
@@ -542,6 +557,7 @@ def zone(board, net, layer, pts, clearance=0.2):
     z.SetPadConnection(pcbnew.ZONE_CONNECTION_THERMAL)
     z.SetLocalClearance(MB.MM(clearance))
     z.SetMinThickness(MB.MM(0.12))
+    z.SetIslandRemovalMode(pcbnew.ISLAND_REMOVAL_MODE_ALWAYS)   # a floating scrap is only an antenna
     z.SetThermalReliefGap(MB.MM(0.25))
     z.SetThermalReliefSpokeWidth(MB.MM(0.3))
     board.Add(z)
@@ -606,7 +622,8 @@ def add_planes(board):
     pts = [(x, y - inset if y > 0 else y + inset) for x, y in MB.outline_pts(D.LENGTH)]
     pts = [(max(inset, min(D.LENGTH - inset, x)), y) for x, y in pts]
     zone(board, 'GND', pcbnew.In1_Cu, pts, clearance=0.15)
-    zone(board, '+3V3', pcbnew.In2_Cu, pts, clearance=0.15)
+    # +3V3 on In2 comes after routing (add_outer_pours): In2 carries signals,
+    # and in the DSN a pour makes the router leave +3V3 to a plane they cut up
 
 
 def add_outer_pours(board):
@@ -617,6 +634,7 @@ def add_outer_pours(board):
     inset = 0.3
     pts = [(x, y - inset if y > 0 else y + inset) for x, y in MB.outline_pts(D.LENGTH)]
     pts = [(max(inset, min(D.LENGTH - inset, x)), y) for x, y in pts]
+    zone(board, '+3V3', pcbnew.In2_Cu, pts, clearance=0.15)
     for layer in (pcbnew.F_Cu, pcbnew.B_Cu):
         z = zone(board, 'GND', layer, pts, clearance=0.2)
         z.SetPadConnection(pcbnew.ZONE_CONNECTION_THT_THERMAL)
@@ -709,12 +727,447 @@ def length_report(board):
         print('  ' + o)
 
 
+def preroute_edge_gnd(board, x_via=4.55):
+    """The GND fingers sit where no pour may go, so each one gets a short
+    trace back to a GND via just behind the finger area, laid before routing
+    (the router keeps existing copper). A top and a bottom ground finger at
+    about the same height share one via. Vias at y = +3.6, +1.4, -0.8, -3.4."""
+    gnd = board.FindNet('GND')
+    groups = {3.6: [(20, 'F'), (1, 'B')], 1.4: [(17, 'F')], -0.8: [(14, 'F'), (6, 'B')],
+              -3.4: [(11, 'F'), (9, 'B'), (10, 'B')]}
+    for vy, pins in groups.items():
+        v = pcbnew.PCB_VIA(board)
+        v.SetPosition(MB.V(x_via, vy))
+        v.SetWidth(MB.MM(0.45)); v.SetDrill(MB.MM(0.25))
+        v.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu); v.SetNet(gnd)
+        v.SetLocked(True)
+        board.Add(v)
+        for pin, side in pins:
+            py = MB.pad_y(pin)
+            for a, b in (((MB.PAD_END - 0.3, py), (MB.PAD_END + 0.2, py)), ((MB.PAD_END + 0.2, py), (x_via, vy))):
+                t = pcbnew.PCB_TRACK(board)
+                t.SetStart(MB.V(*a)); t.SetEnd(MB.V(*b))
+                t.SetWidth(MB.MM(0.2))
+                t.SetLayer(pcbnew.F_Cu if side == 'F' else pcbnew.B_Cu)
+                t.SetNet(gnd); t.SetLocked(True)
+                board.Add(t)
+
+
+def prerouted(board):
+    """The design's hand-drawn tracks (D.PREROUTES: net, layer, module-frame
+    points), for the few links Freerouting cannot enter - e.g. a pin whose
+    only open side is blocked by a no-connect neighbour. Locked, so the router
+    keeps them."""
+    for net, layer, pts in getattr(D, 'PREROUTES', []):
+        n = board.FindNet(net)
+        for a, b in zip(pts, pts[1:]):
+            t = pcbnew.PCB_TRACK(board)
+            t.SetStart(MB.V(*a)); t.SetEnd(MB.V(*b))
+            t.SetWidth(MB.MM(0.2 if net in D.POWER_NETS else 0.15))
+            t.SetLayer(pcbnew.F_Cu if layer == 'F' else pcbnew.B_Cu)
+            t.SetNet(n); t.SetLocked(True)
+            board.Add(t)
+    for net, (x, y) in getattr(D, 'PREVIAS', []):
+        v = pcbnew.PCB_VIA(board)
+        v.SetPosition(MB.V(x, y))
+        v.SetWidth(MB.MM(0.45)); v.SetDrill(MB.MM(0.25))
+        v.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu); v.SetNet(board.FindNet(net)); v.SetLocked(True)
+        board.Add(v)
+
+
+def predogbone(board, net='GND'):
+    """Every capacitor's ground pad gets its own via to In1 before routing:
+    a decoupling cap is only as good as its ground return, and once the
+    router has boxed a small cap in, no via fits next to it any more (C31 on
+    T1 did exactly that). Beyond the pad along the part's axis first, then to
+    either side; the first spot DRC accepts is locked in."""
+    gnd = board.FindNet(net)
+    rpt = os.path.join(D.HERE, '.dogbone.rpt')
+    n0, _, _ = _drc(board, rpt)
+    done = 0
+    for f in list(board.GetFootprints()):
+        pads = list(f.Pads())
+        if not f.GetReference().startswith('C') or len(pads) != 2 \
+                or f.GetReference() in getattr(D, 'NO_DOGBONE', ()):
+            continue
+        g = [p for p in pads if p.GetNetname() == net]
+        if len(g) != 1:
+            continue
+        g = g[0]; o = pads[0] if pads[1] is g else pads[1]
+        gx, gy = pcbnew.ToMM(g.GetPosition().x), pcbnew.ToMM(g.GetPosition().y)
+        ox, oy = pcbnew.ToMM(o.GetPosition().x), pcbnew.ToMM(o.GetPosition().y)
+        L = math.hypot(gx - ox, gy - oy) or 1.0
+        ux, uy = (gx - ox) / L, (gy - oy) / L
+        layer = pcbnew.B_Cu if f.IsFlipped() else pcbnew.F_Cu
+        cands = [(gx + ux * d, gy + uy * d) for d in (0.55, 0.7, 0.9)]
+        cands += [(gx + s_ * uy * d, gy - s_ * ux * d) for d in (0.6, 0.8, 1.0) for s_ in (1, -1)]
+        for x, y in cands:
+            v = pcbnew.PCB_VIA(board)
+            v.SetPosition(pcbnew.VECTOR2I(MB.MM(x), MB.MM(y)))
+            v.SetWidth(MB.MM(0.45)); v.SetDrill(MB.MM(0.25))
+            v.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu); v.SetNet(gnd); v.SetLocked(True)
+            tr = pcbnew.PCB_TRACK(board)
+            tr.SetStart(g.GetPosition()); tr.SetEnd(v.GetPosition())
+            tr.SetWidth(MB.MM(0.2)); tr.SetLayer(layer); tr.SetNet(gnd); tr.SetLocked(True)
+            board.Add(v); board.Add(tr)
+            n, _, _ = _drc(board, rpt)
+            if n <= n0:
+                done += 1
+                break
+            board.Remove(tr); board.Remove(v)
+    os.remove(rpt)
+    print(f'  dogbones: {done} capacitor ground vias placed before routing')
+
+
+def stitch_gnd(board, pitch=1.6, dia=0.45, drill=0.25):
+    """GND stitching vias. On a 12.4 mm board the signal vias cut the outer
+    pours into islands that no longer reach In1; a via grid ties F, In1 and B
+    back together. Every candidate goes in, DRC names the ones that collide,
+    those come out, repeat until nothing collides."""
+    gnd = board.FindNet('GND')
+    # signal links the router left open get first pick of the space; the
+    # grid fills in around them (a stitching via sat right on VDDIO's only way)
+    rpt = os.path.join(D.HERE, '.stitch.rpt')
+    drop_dangling_vias(board, rpt)
+    early = join_fragments(board, rpt, nets=None)
+    if early:
+        print(f'  {early} open signal links joined before stitching')
+    x0, x1 = MB.PAD_END + 1.5, D.LENGTH - 1.0
+    cands = []
+    x = x0
+    while x < x1:
+        # 1.0 mm off the long edges: the panel's mouse-bite holes sit on them
+        y = -MB.BODY_PCB_W / 2 + 1.0
+        while y < MB.BODY_PCB_W / 2 - 1.0:
+            in_title = 27.4 < x < 32.6 and y > 3.6        # the bottom label at (30, 4.7)
+            if (x > MB.TAB_L + 1.5 or abs(y) < MB.TAB_W / 2 - 0.8) and not in_title:
+                cands.append((x, y))
+            y += pitch
+        x += pitch
+    vias = {}
+    for x, y in cands:
+        v = pcbnew.PCB_VIA(board)
+        v.SetPosition(MB.V(x, y))
+        v.SetWidth(MB.MM(dia)); v.SetDrill(MB.MM(drill))
+        v.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu)
+        v.SetNet(gnd)
+        board.Add(v)
+        vias[(round(pcbnew.ToMM(v.GetPosition().x), 3), round(pcbnew.ToMM(v.GetPosition().y), 3))] = v
+    rpt = os.path.join(D.HERE, '.stitch.rpt')
+    for _ in range(6):
+        pcbnew.ZONE_FILLER(board).Fill(board.Zones())
+        pcbnew.WriteDRCReport(board, rpt, pcbnew.EDA_UNITS_MILLIMETRES, False)
+        txt = open(rpt).read()
+        bad = set()
+        for block in txt.split('\n['):
+            if 'Via [GND]' not in block or not block.startswith(('clearance', 'hole_clearance', 'hole_near_hole',
+                                                                 'copper_edge_clearance', 'track_dangling',
+                                                                 'via_dangling', 'annular_width', 'drill_out',
+                                                                 'items_not_allowed', 'holes_co_located')):
+                continue
+            for m in re.finditer(r'@\((-?[\d.]+) mm, (-?[\d.]+) mm\): Via \[GND\]', block):
+                bad.add((round(float(m.group(1)), 3), round(float(m.group(2)), 3)))
+        bad &= set(vias)
+        if not bad:
+            break
+        for k in bad:
+            board.Remove(vias.pop(k))
+    pcbnew.ZONE_FILLER(board).Fill(board.Zones())
+    fixed = fanout_orphans(board, rpt)
+    joined = join_fragments(board, rpt)
+    joined += stitch_islands(board, rpt)
+    joined += join_fragments(board, rpt, nets=None)
+    os.remove(rpt)
+    if joined:
+        print(f'  {joined} plane-net fragments joined by a direct trace')
+    print(f'  stitching: {len(vias)} GND vias kept of {len(cands)} candidates; '
+          f'{fixed} stranded GND pads fanned out')
+
+
+def drop_dangling_vias(board, rpt):
+    """An escape via the router ended up not needing (it took the net on the
+    top layer instead) is copper on one layer only: out it goes. Its locked
+    stub is cut back to where the router's track met it (a track end in the
+    middle of a segment is no connection to KiCad), or removed if none did."""
+    _, _, t = _drc(board, rpt)
+    spots = {(round(float(x), 3), round(float(y), 3)) for x, y in
+             re.findall(r'\[via_dangling\][^\[]*?@\((-?[\d.]+) mm, (-?[\d.]+) mm\): Via', t)}
+    key = lambda q: (round(pcbnew.ToMM(q.x), 3), round(pcbnew.ToMM(q.y), 3))
+    for v in [v for v in board.GetTracks() if v.GetClass() == 'PCB_VIA' and key(v.GetPosition()) in spots]:
+        net, p = v.GetNetCode(), v.GetPosition()
+        board.Remove(v)
+        for tr in [tr for tr in board.GetTracks() if tr.GetClass() == 'PCB_TRACK' and tr.IsLocked()
+                   and tr.GetNetCode() == net and p in (tr.GetStart(), tr.GetEnd())]:
+            far = tr.GetStart() if tr.GetEnd() == p else tr.GetEnd()
+            # already joined end to end at the via spot: nothing to cut
+            if sum(1 for o in board.GetTracks() if o.GetClass() == 'PCB_TRACK' and o.GetNetCode() == net
+                   and o.GetLayer() == tr.GetLayer() and p in (o.GetStart(), o.GetEnd())) > 1:
+                continue
+            ax, ay = pcbnew.ToMM(far.x), pcbnew.ToMM(far.y)
+            bx, by = pcbnew.ToMM(p.x), pcbnew.ToMM(p.y)
+            L2 = (bx - ax) ** 2 + (by - ay) ** 2
+            best = None
+            for o in board.GetTracks():
+                if o.GetClass() != 'PCB_TRACK' or o.GetNetCode() != net or o is tr or o.GetLayer() != tr.GetLayer():
+                    continue
+                for q in (o.GetStart(), o.GetEnd()):
+                    if q == p or q == far:          # the stub itself (SWIG proxies defeat `is`)
+                        continue
+                    qx, qy = pcbnew.ToMM(q.x), pcbnew.ToMM(q.y)
+                    s = ((qx - ax) * (bx - ax) + (qy - ay) * (by - ay)) / L2 if L2 else 0
+                    d = math.hypot(ax + s * (bx - ax) - qx, ay + s * (by - ay) - qy)
+                    if 0 < s <= 1 and d < 0.01 and (best is None or s > best[0]):
+                        best = (s, q)
+            if best:
+                if tr.GetEnd() == p:
+                    tr.SetEnd(best[1])
+                else:
+                    tr.SetStart(best[1])
+            else:
+                board.Remove(tr)
+    if spots:
+        print(f'  {len(spots)} unused escape vias removed')
+
+
+def _drc(board, rpt):
+    pcbnew.ZONE_FILLER(board).Fill(board.Zones())
+    pcbnew.WriteDRCReport(board, rpt, pcbnew.EDA_UNITS_MILLIMETRES, True)
+    t = open(rpt).read()
+    n = int(re.search(r'Found (\d+) DRC violations', t).group(1))
+    u = int(re.search(r'Found (\d+) unconnected', t).group(1))
+    return n, u, t
+
+
+def fanout_orphans(board, rpt, rings=(0.8, 1.1, 1.5, 2.0), steps=16, nets=('GND', '+3V3')):
+    """A plane-net pad the pours cannot reach gets its own via: for every such
+    pad, try positions on rings around it with a short trace, and keep the
+    first that leaves DRC no worse and the unconnected count lower. Pads that
+    cannot be helped are skipped, not allowed to stop the others."""
+    fixed, tried = 0, set()
+    n0, u0, t = _drc(board, rpt)
+    while u0:
+        pads = []
+        for block in t.split('\n[unconnected_items]')[1:]:
+            for m in re.finditer(r'@\((-?[\d.]+) mm, (-?[\d.]+) mm\): Pad (\S+) \[([^\]]+)\] of (\S+) on (\S)\.Cu', block):
+                key = (m.group(5), m.group(3))
+                if m.group(4) in nets and key not in tried:
+                    pads.append((float(m.group(1)), float(m.group(2)), m.group(4), m.group(6), key))
+        if not pads:
+            break
+        px, py, netname, side, key = pads[0]
+        tried.add(key)
+        net = board.FindNet(netname)
+        layer = pcbnew.F_Cu if side == 'F' else pcbnew.B_Cu
+        done = False
+        for r in rings:
+            for k in range(steps):
+                a = 2 * math.pi * k / steps
+                vx, vy = px + r * math.cos(a), py + r * math.sin(a)
+                v = pcbnew.PCB_VIA(board)
+                v.SetPosition(pcbnew.VECTOR2I(MB.MM(vx), MB.MM(vy)))
+                v.SetWidth(MB.MM(0.45)); v.SetDrill(MB.MM(0.25))
+                v.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu); v.SetNet(net)
+                tr = pcbnew.PCB_TRACK(board)
+                tr.SetStart(pcbnew.VECTOR2I(MB.MM(px), MB.MM(py)))
+                tr.SetEnd(pcbnew.VECTOR2I(MB.MM(vx), MB.MM(vy)))
+                tr.SetWidth(MB.MM(0.2)); tr.SetLayer(layer); tr.SetNet(net)
+                board.Add(v); board.Add(tr)
+                n, u, t2 = _drc(board, rpt)
+                if n <= n0 and u < u0:
+                    fixed += 1; done = True; n0, u0, t = n, u, t2
+                    break
+                board.Remove(tr); board.Remove(v)
+            if done:
+                break
+    return fixed
+
+
+def stitch_islands(board, rpt, step=0.3, net='GND'):
+    """A pour island on F or B that touches a pad but no via is not tied to
+    In1 - DRC reports it zone-to-zone. Each such island gets a via: first on a
+    grid inside it, else on a ring around one of its pads with a short trace
+    (for an island no bigger than the pad). The first DRC accepts is kept."""
+    gnd = board.FindNet(net)
+    n0, u0, t = _drc(board, rpt)
+    pads = [p for f in board.GetFootprints() for p in f.Pads() if p.GetNetname() == net]
+    # copy every island out first: each DRC refills and frees the fill polygons
+    islands = []
+    for zi in range(board.GetAreaCount()):
+        z = board.GetArea(zi)
+        if z.GetIsRuleArea() or z.GetNetname() != net:
+            continue
+        for layer in (pcbnew.F_Cu, pcbnew.B_Cu):
+            if not z.IsOnLayer(layer):
+                continue
+            fp = z.GetFilledPolysList(layer)
+            for i in sorted(range(fp.OutlineCount()), key=lambda i: -fp.Outline(i).Area())[1:]:
+                islands.append((layer, pcbnew.SHAPE_LINE_CHAIN(fp.Outline(i))))
+    vias = [t.GetPosition() for t in board.GetTracks() if t.GetClass() == 'PCB_VIA' and t.GetNetname() == net]
+    added = 0
+    for layer, ol in islands:
+        if not u0:
+            break
+        if any(ol.PointInside(v, 0) for v in vias):
+            continue
+        bb = ol.BBox()
+        x0, x1 = pcbnew.ToMM(bb.GetLeft()), pcbnew.ToMM(bb.GetRight())
+        y0, y1 = pcbnew.ToMM(bb.GetTop()), pcbnew.ToMM(bb.GetBottom())
+        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        cands = [((x, y), None) for x, y in sorted(
+                     ((x0 + i * step, y0 + j * step) for i in range(int((x1 - x0) / step) + 1)
+                      for j in range(int((y1 - y0) / step) + 1)),
+                     key=lambda p: (p[0] - cx) ** 2 + (p[1] - cy) ** 2)
+                 if ol.PointInside(pcbnew.VECTOR2I(MB.MM(x), MB.MM(y)), MB.MM(0.3))]
+        for p in pads:
+            if p.IsOnLayer(layer) and ol.PointInside(p.GetPosition(), 0):
+                px, py = pcbnew.ToMM(p.GetPosition().x), pcbnew.ToMM(p.GetPosition().y)
+                for r in (0.6, 0.8, 1.1, 1.5):
+                    for k in range(16):
+                        a = 2 * math.pi * k / 16
+                        cands.append(((px + r * math.cos(a), py + r * math.sin(a)), (px, py)))
+                # or a trace to a GND via already there (no new via: 'old')
+                near = sorted((math.hypot(pcbnew.ToMM(v.x) - px, pcbnew.ToMM(v.y) - py), v) for v in vias)
+                cands += [((pcbnew.ToMM(v.x), pcbnew.ToMM(v.y)), (px, py), 'old') for d, v in near if d < 5.0]
+        for c in cands:
+            (x, y), src = c[0], c[1]
+            new = []
+            if len(c) == 2:
+                v = pcbnew.PCB_VIA(board)
+                v.SetPosition(pcbnew.VECTOR2I(MB.MM(x), MB.MM(y)))
+                v.SetWidth(MB.MM(0.45)); v.SetDrill(MB.MM(0.25))
+                v.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu); v.SetNet(gnd)
+                new.append(v)
+            if src:
+                tr = pcbnew.PCB_TRACK(board)
+                tr.SetStart(pcbnew.VECTOR2I(MB.MM(src[0]), MB.MM(src[1])))
+                tr.SetEnd(pcbnew.VECTOR2I(MB.MM(x), MB.MM(y)))
+                tr.SetWidth(MB.MM(0.2)); tr.SetLayer(layer); tr.SetNet(gnd)
+                new.append(tr)
+            for it in new:
+                board.Add(it)
+            n, u, t2 = _drc(board, rpt)
+            if n <= n0 and u < u0:
+                added += 1; n0, u0, t = n, u, t2
+                break
+            for it in new:
+                board.Remove(it)
+    return added
+
+
+def join_fragments(board, rpt, nets=('GND', '+3V3'), max_len=8.0):
+    # nets=None: any net but a differential pair's
+    """What fanout cannot reach: two pieces of a plane net that DRC pairs as
+    unconnected (pad, track end or via) get a straight trace between the two
+    points it names, on F then B, kept only if DRC is no worse."""
+    item = r'@\((-?[\d.]+) mm, (-?[\d.]+) mm\): (?:Pad \S+|Track|Via) \[([^\]]+)\]'
+    joined, tried = 0, set()
+    diff = {n for a, b in getattr(D, 'PAIRS', []) for n in (a, b)}     # pairs are never patched
+    n0, u0, t = _drc(board, rpt)
+    while u0:
+        pair = None
+        for block in t.split('\n[unconnected_items]')[1:]:
+            block = block.split('\n[')[0]
+            m = re.findall(item, block)
+            if len(m) == 2 and m[0][2] == m[1][2] and (nets is None or m[0][2] in nets) \
+                    and m[0][2] not in diff:
+                a, b = (float(m[0][0]), float(m[0][1])), (float(m[1][0]), float(m[1][1]))
+                if (a, b) not in tried and math.dist(a, b) <= max_len:
+                    pair = (a, b, m[0][2]); break
+        if not pair:
+            break
+        a, b, netname = pair
+        tried.add((a, b))
+        net = board.FindNet(netname)
+        def seg(p, q, layer):
+            tr = pcbnew.PCB_TRACK(board)
+            tr.SetStart(pcbnew.VECTOR2I(MB.MM(p[0]), MB.MM(p[1])))
+            tr.SetEnd(pcbnew.VECTOR2I(MB.MM(q[0]), MB.MM(q[1])))
+            tr.SetWidth(MB.MM(0.2)); tr.SetLayer(layer); tr.SetNet(net)
+            return tr
+        def via(p):
+            v = pcbnew.PCB_VIA(board)
+            v.SetPosition(pcbnew.VECTOR2I(MB.MM(p[0]), MB.MM(p[1])))
+            v.SetWidth(MB.MM(0.45)); v.SetDrill(MB.MM(0.25))
+            v.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu); v.SetNet(net)
+            return v
+        # straight on F, straight on B, then down at both ends and across on B
+        # (the ends are F-side track ends or pads; a via may sit on either)
+        options = [[seg(a, b, pcbnew.F_Cu)], [seg(a, b, pcbnew.B_Cu)],
+                   # one via at either end, the trace on the other layer
+                   [via(a), seg(a, b, pcbnew.F_Cu)], [via(b), seg(a, b, pcbnew.F_Cu)],
+                   [via(a), seg(a, b, pcbnew.B_Cu)], [via(b), seg(a, b, pcbnew.B_Cu)]]
+        # a via beside either end (a pad cannot take one in it), a stub to it on
+        # that end's side, the run on the other layer
+        for (p, q) in ((a, b), (b, a)):
+            for r in (0.6, 0.8, 1.0):
+                for k in range(8):
+                    ang = math.pi * k / 4
+                    w = (p[0] + r * math.cos(ang), p[1] + r * math.sin(ang))
+                    for near_l, far_l in ((pcbnew.F_Cu, pcbnew.B_Cu), (pcbnew.B_Cu, pcbnew.F_Cu)):
+                        options.append([via(w), seg(p, w, near_l), seg(w, q, far_l)])
+        for off in ((0, 0), (0.5, 0), (-0.5, 0), (0, 0.5), (0, -0.5)):
+            pa = (a[0] + off[0], a[1] + off[1]); pb = (b[0] - off[0], b[1] - off[1])
+            opt = [via(pa), via(pb), seg(pa, pb, pcbnew.B_Cu)]
+            if off != (0, 0):
+                opt += [seg(a, pa, pcbnew.F_Cu), seg(b, pb, pcbnew.F_Cu)]
+            options.append(opt)
+        done = False
+        for opt in options:
+            for it in opt:
+                board.Add(it)
+            n, u, t2 = _drc(board, rpt)
+            if n <= n0 and u < u0:
+                joined += 1; n0, u0, t = n, u, t2; done = True
+                break
+            for it in opt:
+                board.Remove(it)
+        if done:
+            continue
+        # a T into a same-net track already there: split it at the foot of the
+        # perpendicular from either end, and run the stub to that point
+        segs = [s_ for s_ in board.GetTracks() if s_.GetClass() == 'PCB_TRACK' and s_.GetNetCode() == net.GetNetCode()]
+        for p in (a, b):
+            for s_ in segs:
+                sx, sy = pcbnew.ToMM(s_.GetStart().x), pcbnew.ToMM(s_.GetStart().y)
+                ex, ey = pcbnew.ToMM(s_.GetEnd().x), pcbnew.ToMM(s_.GetEnd().y)
+                L2 = (ex - sx) ** 2 + (ey - sy) ** 2
+                if L2 < 0.04:
+                    continue
+                k = max(0.05, min(0.95, ((p[0] - sx) * (ex - sx) + (p[1] - sy) * (ey - sy)) / L2))
+                foot = (sx + k * (ex - sx), sy + k * (ey - sy))
+                if math.dist(p, foot) > 3.0:
+                    continue
+                lay, w = s_.GetLayer(), s_.GetWidth()
+                parts = [seg((sx, sy), foot, lay), seg(foot, (ex, ey), lay), seg(p, foot, lay)]
+                for it in parts[:2]:
+                    it.SetWidth(w)
+                board.Remove(s_)
+                for it in parts:
+                    board.Add(it)
+                n, u, t2 = _drc(board, rpt)
+                if n <= n0 and u < u0:
+                    joined += 1; n0, u0, t = n, u, t2; done = True
+                    break
+                for it in parts:
+                    board.Remove(it)
+                board.Add(s_)
+            if done:
+                break
+    return joined
+
+
 def route(passes=20, reuse_ses=False):
     """Freerouting 1.9.0: 2.x ignores its pass limit on the command line and
     never ends on this board; 1.9.0 honours -mp but wants a display, so it
     gets a virtual one."""
     path = os.path.join(D.HERE, D.NAME + '.kicad_pcb')
-    board = load_board(path)
+    # always start from the placement-only copy build_pcb() left: a board
+    # saved by an earlier route still carries tracks and zones, and importing
+    # the session again would double every via
+    import shutil
+    placed_pro = placed_path()[:-len('.kicad_pcb')] + '.kicad_pro'
+    shutil.copy(path[:-len('.kicad_pcb')] + '.kicad_pro', placed_pro)   # KiCad pairs by file name
+    board = load_board(placed_path())
     apply_rules(board)
     add_edge_keepouts(board)
     add_connector_keepouts(board)
@@ -722,7 +1175,20 @@ def route(passes=20, reuse_ses=False):
     pcbnew.ZONE_FILLER(board).Fill(board.Zones())
     dsn = os.path.join(D.HERE, D.NAME + '.dsn')
     ses = os.path.join(D.HERE, D.NAME + '.ses')
+    preroute_edge_gnd(board)
+    prerouted(board)
+    predogbone(board)
     pcbnew.ExportSpecctraDSN(board, dsn)          # always: the class check below reads it
+    # high-speed classes stay on the layers the design names (D.CLASS_LAYERS):
+    # left free, the router split pairs P-on-B / N-on-In2, and In2 has no
+    # solid reference once signals cut its pour
+    t = open(dsn).read()
+    for cls, layers in getattr(D, 'CLASS_LAYERS', {}).items():
+        t, n = re.subn(r'(\(class ' + re.escape(cls) + r'\s[^(]*\(circuit)',
+                       r'\1\n        (use_layer ' + ' '.join(layers) + ')', t)
+        if n != 1:
+            raise RuntimeError(f'class {cls} not found in the DSN to restrict its layers')
+    open(dsn, 'w').write(t)
     if not (reuse_ses and os.path.exists(ses)):
         if os.path.exists(ses):
             os.remove(ses)
@@ -731,7 +1197,7 @@ def route(passes=20, reuse_ses=False):
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         env = dict(os.environ, DISPLAY=':98')
         subprocess.run(['java', '-jar', FREEROUTING, '-de', dsn, '-do', ses, '-mp', str(passes)],
-                       capture_output=True, text=True, timeout=1500, env=env)
+                       capture_output=True, text=True, timeout=5400, env=env)
         if not os.path.exists(ses):
             raise RuntimeError('Freerouting wrote no session file')
     classes = re.findall(r'\(class (\S+)((?:\s+[^\s()]+)*)', open(dsn).read()) if os.path.exists(dsn) else []
@@ -741,6 +1207,7 @@ def route(passes=20, reuse_ses=False):
     nw, nv = import_ses(board, ses)
     add_outer_pours(board)
     pcbnew.ZONE_FILLER(board).Fill(board.Zones())
+    stitch_gnd(board)
     board.Save(path)
     write_project()                      # Save() rewrites the .kicad_pro with defaults
     rpt = os.path.join(D.HERE, 'drc.rpt')
@@ -765,7 +1232,7 @@ def run(design):
     if '--route-stage' in sys.argv:
         # a fresh interpreter: inside the generating process LoadProject hands
         # back the in-memory default project and every net routes as Default
-        route(reuse_ses='--reuse-ses' in sys.argv)
+        route(passes=int(os.environ.get('SFP_PASSES', '20')), reuse_ses='--reuse-ses' in sys.argv)
         return 0
     write_symbols()
     write_footprints()

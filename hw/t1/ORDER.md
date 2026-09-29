@@ -7,7 +7,7 @@ Upload the files in `jlc/` as they are (`python3 panel_t1.py` makes them).
 | `jlc/t1-panel-gerbers.zip` | 5-board panel, **70.6 × 81.1 mm**. Gerbers (4 copper layers, masks, silks, paste, outline) + drill |
 | `jlc/bom.csv` | Comment / Designator / Footprint / LCSC Part #, 27 lines |
 | `jlc/cpl.csv` | Designator / Mid X / Mid Y / Layer / Rotation, **265 placements** (53 per board × 5, designators `R4_1…R4_5`) |
-| `jlc/panel-drc.rpt` | Panel DRC: **0 errors**. The 86 warnings are KiKit's mouse-bite holes having no library (81) and silkscreen clipped by mask (5) |
+| `jlc/panel-drc.rpt` | Panel DRC: **0 errors, 0 unconnected**. The 81 warnings are all "library not in this project" for the placed footprints and KiKit's mouse-bite holes; they don't reach the gerbers |
 | `jlc/panel-top.png` | Panel preview. The gold fingers sit on the left edge |
 
 ![panel](jlc/panel-top.png)
@@ -81,7 +81,7 @@ To get the gigabit run under 500k:
 
 ## Before you order
 
-- [ ] Check the SGMII/MDI widths again in JLC's impedance calculator: 50 Ω single-ended at 0.157 mm on 3313
+- [ ] Check the SGMII/MDI widths again in JLC's impedance calculator: 50 Ω single-ended at 0.157 mm on 3313, **outer layers** (the pairs never use In2)
 - [ ] H-MTD J2: the footprint is drawn from Rosenberger MB_633. Check the hole positions against the gerbers once more
 - [ ] Rotations in JLC's assembly preview
 - [ ] Flash the firmware (`fw/`) through SWD on TP1–TP5 after assembly

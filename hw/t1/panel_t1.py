@@ -28,7 +28,7 @@ def preset(n):
         # 2 tabs per long edge, away from the finger tab (x < 7) and the nose
         'tabs': {'type': 'fixed', 'hcount': 3, 'vcount': 1, 'hwidth': '2.5mm', 'vwidth': '3mm',
                  'mindistance': '6mm'},
-        'cuts': {'type': 'mousebites', 'drill': '0.5mm', 'spacing': '0.8mm', 'offset': '0.25mm',
+        'cuts': {'type': 'mousebites', 'drill': '0.5mm', 'spacing': '0.8mm', 'offset': '0.1mm',   # 0.25 reached In2's TRD_M (0.16 mm)
                  'prolong': '0mm'},     # prolonged cuts met at the right-end corners (holes 0 mm apart)
         'framing': {'type': 'plugin', 'code': os.path.join(HERE, '..', 'panel_rails.py') + '.ThreeSideRails',
                     'arg': '5,2,70,70'},

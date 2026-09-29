@@ -1,33 +1,9 @@
-** Drc report for /home/kim/sfp-auto-ethernet/hw/t1/t1.kicad_pcb **
-** Created on 2026-09-29 16:20:46 **
+** Drc report for /home/kim/sfp-auto-ethernet/hw/t1/.t1_placed.kicad_pcb **
+** Created on 2026-09-29 19:46:49 **
 
-** Found 4 DRC violations **
-[clearance]: Clearance violation (netclass 'SGMII' clearance 0.2000 mm; actual 0.1800 mm)
-    Rule: netclass 'SGMII'; Severity: error
-    @(104.8800 mm, 102.6000 mm): Pad 1 [RD_N] of C6 on F.Cu
-    @(105.5200 mm, 102.6000 mm): Pad 2 [SG_RX_N] of C6 on F.Cu
-[clearance]: Clearance violation (netclass 'SGMII' clearance 0.2000 mm; actual 0.1800 mm)
-    Rule: netclass 'SGMII'; Severity: error
-    @(104.8800 mm, 101.8000 mm): Pad 1 [RD_P] of C5 on F.Cu
-    @(105.5200 mm, 101.8000 mm): Pad 2 [SG_RX_P] of C5 on F.Cu
-[clearance]: Clearance violation (netclass 'SGMII' clearance 0.2000 mm; actual 0.1800 mm)
-    Rule: netclass 'SGMII'; Severity: error
-    @(104.8800 mm, 97.8000 mm): Pad 1 [TD_P] of C3 on F.Cu
-    @(105.5200 mm, 97.8000 mm): Pad 2 [SG_TX_P] of C3 on F.Cu
-[clearance]: Clearance violation (netclass 'SGMII' clearance 0.2000 mm; actual 0.1800 mm)
-    Rule: netclass 'SGMII'; Severity: error
-    @(104.8800 mm, 97.0000 mm): Pad 1 [TD_N] of C4 on F.Cu
-    @(105.5200 mm, 97.0000 mm): Pad 2 [SG_TX_N] of C4 on F.Cu
+** Found 0 DRC violations **
 
-** Found 2 unconnected pads **
-[unconnected_items]: Missing connection between items
-    Local override; Severity: error
-    @(112.7250 mm, 98.5500 mm): Pad 7 [+3V3] of U3 on F.Cu
-    @(111.2750 mm, 98.0500 mm): Track [+3V3] on F.Cu, length 0.8452 mm
-[unconnected_items]: Missing connection between items
-    Local override; Severity: error
-    @(120.0000 mm, 97.1625 mm): Pad 13 [TRD_M] of U1 on F.Cu
-    @(136.3200 mm, 101.0000 mm): Pad 1 [TRD_M] of C34 on F.Cu
+** Found 0 unconnected pads **
 
 ** Found 0 Footprint errors **
 

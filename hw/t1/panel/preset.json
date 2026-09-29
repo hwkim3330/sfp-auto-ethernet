@@ -19,7 +19,7 @@
     "type": "mousebites",
     "drill": "0.5mm",
     "spacing": "0.8mm",
-    "offset": "0.25mm",
+    "offset": "0.1mm",
     "prolong": "0mm"
   },
   "framing": {

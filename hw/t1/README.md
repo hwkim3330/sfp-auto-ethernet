@@ -42,8 +42,8 @@ Schematic, PCB (4 layers, routed), fab outputs and firmware are all in place.
   | Layer | Use |
   |---|---|
   | F | signals + GND pour |
-  | In1 | GND |
-  | In2 | +3V3 |
+  | In1 | GND (solid) |
+  | In2 | +3V3 pour + slow signals (MDIO, LEDs, straps); never a pair |
   | B | signals + GND pour |
 
 - No pour among the edge fingers.
@@ -58,8 +58,11 @@ Schematic, PCB (4 layers, routed), fab outputs and firmware are all in place.
   - Overhangs the board edge by 3.5 mm. The body sits entirely outside the cage, so the board is 63.5 mm long.
   - LCSC has no stock: hand-solder it.
 - **Stackup JLC04101H-3313.**
-  - JLC's own SI9000 backend puts 50 Ω single-ended at 0.157 mm. The router doesn't couple pairs, so each line is routed at 50 Ω.
-  - Pair skew is at most **2.0 mm (≈12 ps)** against an 800 ps UI ([lengths.txt](lengths.txt)).
+  - JLC's own SI9000 backend puts 50 Ω single-ended at 0.157 mm. The router doesn't couple pairs, so each line is routed at 50 Ω (checked: every SGMII/MDI segment on the board is 0.157 mm).
+  - The SGMII and MDI classes may use **F and B only** (`CLASS_LAYERS`): F sits over In1's ground and B over In2's +3V3 pour, and the stackup is symmetric. Left free, the router had put SG_TX_P on B and SG_TX_N on In2.
+  - Pair skew is at most **3.2 mm (≈21 ps)**, against an 800 ps SGMII UI and a 1.33 ns 1000BASE-T1 symbol ([lengths.txt](lengths.txt)).
+  - TRD_P runs mostly on B and TRD_M on F, so across its 20 mm that pair is two 50 Ω lines rather than a coupled pair.
+- **U1 pins 12/13 cross over on purpose.** They leave the package M-over-P and the CMC takes P-over-M, so on one layer they could not be routed. The DP83TG720 corrects MDI polarity itself, and that can't be disabled (datasheet 6.4.7.2), so pin 12 drives the line's M side. The SGMII pairs keep their true polarity. SGMII_CTRL_1 (0x608) bits 7/8 could invert them, but "RX bus" there is ambiguous, so the hardware doesn't rely on it.
 - **Buck is the TPS62822** (the TPS62821 is out of stock at LCSC; same package, pins and divider).
 - **Panel (`panel_t1.py`):**
   - 5 boards, mouse-bites, **rails on 3 sides only** so the gold-finger edge stays straight (`../panel_rails.py`).
@@ -80,6 +83,19 @@ python3 panel_t1.py 5         # 5-board panel + JLC order files -> jlc/ (KiKit 1
   - 2.x ignores the pass limit on the command line and never finishes on this board.
   - 1.9.0 needs a display, so it gets Xvfb `:98`.
 - Freerouting's result changes on every run. **`t1.ses` in this repo is the run that came out DRC-clean.**
+- Where the router kept failing, the design file lays copper before it runs, all locked:
+  - `PREROUTES` / `PREVIAS`, hand-drawn:
+    - EN→VIN of the buck, routed under U3 because the no-connect PG pin blocks the direct way;
+    - escape vias for U1's MDC/INT/RST, which share one lane past the crystal;
+    - spokes from the pin 11/21 decap row to U1's bottom EP pad;
+    - a shared ground via for C10/C16 and one for R4.
+  - A ground via beside every capacitor ("dogbone"), except where `NO_DOGBONE` says it blocks a lane: the crystal's load caps and C21.
+- After routing, `sfpgen` repairs what is left, keeping each change only if DRC is no worse:
+  - removes escape vias the router didn't use;
+  - joins open signal links (straight, via bridge, or a T into an existing track), before stitching so those links get the space first;
+  - lays the GND stitching grid, 1 mm off the long edges where the panel's mouse bites are;
+  - vias into ground islands.
+- The panel's mouse-bite holes sit 0.1 mm into the board (was 0.25): at 0.25 they came within 0.16 mm of an In2 trace.
 - KiCad 7 quirks, recorded in the code:
   - Standalone `LoadBoard` does not read `.kicad_pro`, so the rules are set in memory (`apply_rules`).
   - A footprint must be added to the board before `Flip`, or it segfaults.
