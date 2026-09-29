@@ -1,0 +1,51 @@
+{
+  "layout": {
+    "type": "grid",
+    "rows": 5,
+    "cols": 1,
+    "vspace": "2mm",
+    "hspace": "2mm",
+    "rotation": "0deg"
+  },
+  "tabs": {
+    "type": "fixed",
+    "hcount": 3,
+    "vcount": 1,
+    "hwidth": "2.5mm",
+    "vwidth": "3mm",
+    "mindistance": "6mm"
+  },
+  "cuts": {
+    "type": "mousebites",
+    "drill": "0.5mm",
+    "spacing": "0.8mm",
+    "offset": "0.25mm",
+    "prolong": "0mm"
+  },
+  "framing": {
+    "type": "plugin",
+    "code": "/home/kim/sfp-auto-ethernet/hw/t1/../panel_rails.py.ThreeSideRails",
+    "arg": "5,2,70,70"
+  },
+  "fiducials": {
+    "type": "3fid",
+    "hoffset": "5mm",
+    "voffset": "2.5mm",
+    "coppersize": "1mm",
+    "opening": "2mm"
+  },
+  "tooling": {
+    "type": "none"
+  },
+  "text": {
+    "type": "simple",
+    "text": "SFP-T1 x5 3313 ENIG bevel<-",
+    "anchor": "mt",
+    "voffset": "2.5mm",
+    "hjustify": "center",
+    "vjustify": "center"
+  },
+  "post": {
+    "millradius": "1mm"
+  }
+}

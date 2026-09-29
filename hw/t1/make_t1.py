@@ -80,10 +80,10 @@ part('C1', 'Device:C_Small', '10uF', C0603, {1: '+3V3', 2: 'GND'}, (8.9, 3.2))
 part('C2', 'Device:C_Small', '100nF', C0402, {1: '+3V3', 2: 'GND'}, (8.9, -3.2), side='B')
 
 # SGMII AC coupling, inside the module (MSA). TD = host -> module.
-part('C3', 'Device:C_Small', '100nF', C0201, {1: 'TD_P', 2: 'SG_TX_P'}, (5.2, 2.0))
-part('C4', 'Device:C_Small', '100nF', C0201, {1: 'TD_N', 2: 'SG_TX_N'}, (5.2, 1.2))
-part('C5', 'Device:C_Small', '100nF', C0201, {1: 'RD_P', 2: 'SG_RX_P'}, (5.2, -1.2))
-part('C6', 'Device:C_Small', '100nF', C0201, {1: 'RD_N', 2: 'SG_RX_N'}, (5.2, -2.0))
+part('C3', 'Device:C_Small', '100nF', C0201, {1: 'TD_P', 2: 'SG_TX_P'}, (5.2, 2.2))
+part('C4', 'Device:C_Small', '100nF', C0201, {1: 'TD_N', 2: 'SG_TX_N'}, (5.2, 3.0))
+part('C5', 'Device:C_Small', '100nF', C0201, {1: 'RD_P', 2: 'SG_RX_P'}, (5.2, -1.8))
+part('C6', 'Device:C_Small', '100nF', C0201, {1: 'RD_N', 2: 'SG_RX_N'}, (5.2, -2.6))
 
 # ---------------------------------------------------------------- PHY
 PHY = {1: 'MDC', 2: 'PHY_INT_N', 3: 'PHY_RST_N', 4: 'XO', 5: 'XI', 6: None,
@@ -136,15 +136,15 @@ part('C25', 'Device:C_Small', '12pF', C0201, {1: 'XO', 2: 'GND'}, (25.4, -2.4))
 
 part('R1', 'Device:R_Small', '2.2k', R0201, {1: 'VDDIO', 2: 'MDIO'}, (23.8, -4.4))
 # LED_0 = link. Its path to ground is also the strap pull-down: MS = 0 (slave)
-part('R2', 'Device:R_Small', '1k', R0402, {1: 'LED0', 2: 'LED0_K'}, (45.2, -4.0), side='B', rot=90)
-part('D1', 'Device:LED_Small', 'green', LED0402, {1: 'GND', 2: 'LED0_K'}, (46.1, -4.6), rot=90)
+part('R2', 'Device:R_Small', '1k', R0402, {1: 'LED0', 2: 'LED0_K'}, (49.3, -3.2), side='B', rot=90)
+part('D1', 'Device:LED_Small', 'green', LED0402, {1: 'GND', 2: 'LED0_K'}, (50.5, -3.2), side='B', rot=90)
 
 # ---------------------------------------------------------------- 1.0 V buck
-part('U3', 'Regulator_Switching:TPS62823DLC', 'TPS62821DLC',   # base symbol of the family; the value names the part
+part('U3', 'Regulator_Switching:TPS62823DLC', 'TPS62822DLC',   # base symbol; TPS62822 (2 A) because the 1 A TPS62821 is out of stock at LCSC - same package, pins, divider
     
      'Package_DFN_QFN:Texas_VSON-HR-8_1.5x2mm_P0.5mm',
      {1: '+3V3', 2: 'BUCK_FB', 3: 'GND', 4: None, 5: 'GND', 6: 'BUCK_SW', 7: '+3V3', 8: None},
-     (12.0, 1.2), mpn='TPS62821DLCR')
+     (12.0, 1.2), mpn='TPS62822DLCR')
 part('L1', 'Device:L_Small', '470nH DFE201610E-R47M', 'Inductor_SMD:L_Murata_DFE201610P',
      {1: 'BUCK_SW', 2: 'V1P0_BUCK'}, (12.0, -1.6), mpn='DFE201610E-R47M')
 part('C26', 'Device:C_Small', '4.7uF', C0402, {1: '+3V3', 2: 'GND'}, (10.1, 1.2), rot=90)
@@ -172,24 +172,50 @@ for i, (net, xy) in enumerate([('+3V3', (26.0, 3.3)), ('SWDIO', (26.0, 1.1)), ('
     part(f'TP{i + 1}', 'Connector:TestPoint', net, TP, {1: net}, xy, side='B')
 
 # ---------------------------------------------------------------- MDI, Figure 8-1 / Table 8-1
-part('C33', 'Device:C_Small', '100nF 1%', C0402, {1: 'TRD_P', 2: 'DCB_P'}, (38.3, 1.0))
-part('C34', 'Device:C_Small', '100nF 1%', C0402, {1: 'TRD_M', 2: 'DCB_N'}, (38.3, -1.0))
+part('C33', 'Device:C_Small', '100nF', C0402, {1: 'TRD_P', 2: 'DCB_P'}, (36.8, 1.0))
+part('C34', 'Device:C_Small', '100nF', C0402, {1: 'TRD_M', 2: 'DCB_N'}, (36.8, -1.0))
 # Murata DLW32MH101XT2 is the datasheet's CMC; land = the 3.2 x 2.5 TDK ACT1210
 # class footprint, windings 1-4 and 2-3
 part('L2', 'Device:L_Coupled_1423', 'DLW32MH101XT2', 'sfp:L_CommonMode_3225',
-     {1: 'DCB_P', 4: 'MDI_P', 2: 'DCB_N', 3: 'MDI_N'}, (41.3, 0.0), rot=90, mpn='DLW32MH101XT2')
-part('R6', 'Device:R_Small', '1k 1%', R0603, {1: 'MDI_P', 2: 'MDI_CT'}, (44.0, 3.4), rot=0)
-part('R7', 'Device:R_Small', '1k 1%', R0603, {1: 'MDI_N', 2: 'MDI_CT'}, (44.0, -3.4), rot=0)
-part('C35', 'Device:C_Small', '4.7nF', C0402, {1: 'MDI_CT', 2: 'GND'}, (41.3, 4.6), rot=0)
-part('R8', 'Device:R_Small', '100k', R0402, {1: 'MDI_CT', 2: 'GND'}, (41.3, -4.6), rot=0)
+     {1: 'DCB_P', 4: 'MDI_P', 2: 'DCB_N', 3: 'MDI_N'}, (39.8, 0.0), rot=90, mpn='DLW32MH101XT2')
+part('R6', 'Device:R_Small', '1k 1%', R0603, {1: 'MDI_P', 2: 'MDI_CT'}, (42.5, 3.4), rot=0)
+part('R7', 'Device:R_Small', '1k 1%', R0603, {1: 'MDI_N', 2: 'MDI_CT'}, (42.5, -3.4), rot=0)
+part('C35', 'Device:C_Small', '4.7nF', C0402, {1: 'MDI_CT', 2: 'GND'}, (39.8, 4.6), rot=0)
+part('R8', 'Device:R_Small', '100k', R0402, {1: 'MDI_CT', 2: 'GND'}, (39.8, -4.6), rot=0)
 part('D2', 'Device:D_TVS', 'ESD (DNP)', 'Diode_SMD:D_0402_1005Metric',
-     {1: 'MDI_P', 2: 'GND'}, (44.0, 1.4), dnp=True)
+     {1: 'MDI_P', 2: 'GND'}, (42.5, 1.4), dnp=True)
 part('D3', 'Device:D_TVS', 'ESD (DNP)', 'Diode_SMD:D_0402_1005Metric',
-     {1: 'MDI_N', 2: 'GND'}, (44.0, -1.4), dnp=True)
-part('J2', 'sfp:HMTD_1P', 'H-MTD 1-port PCB header - FOOTPRINT PLACEHOLDER', 'sfp:HMTD_1P_Placeholder',
-     {1: 'MDI_P', 2: 'MDI_N', 3: 'GND'}, (53.0, 0.0))
+     {1: 'MDI_N', 2: 'GND'}, (42.5, -1.4), dnp=True)
+part('J2', 'sfp:HMTD_1P', 'Rosenberger E6S20A-40MT5-Z (H-MTD, coding Z)', 'sfp:Rosenberger_HMTD_E6S20A_1P_RA',
+     {1: 'MDI_P', 2: 'MDI_N', 3: 'GND'}, (54.0, 0.0), mpn='E6S20A-40MT5-Z')   # = HMTD_AT
+# polarity of pins 1/2 is unverified - irrelevant: the PHY corrects MDI polarity itself (6.4.7.2)
 
-LENGTH = 59.5
+# LCSC part numbers (JLC assembly). Checked against the LCSC / JLC parts API
+# 2026-09-29; "ext" = extended part (loading fee), everything 0201 is extended.
+LCSC_BY_MPN = {
+    'DP83TG720SWRHARQ1': 'C2921292',   # only 3 in stock - see README (TC812 C3225813 has 18)
+    'STM32G031F6P6': 'C529333', 'TPS62822DLCR': 'C473385', 'DFE201610E-R47M': 'C269773',
+    'DLW32MH101XT2': 'C2935101', 'BLM18KG601SH1': 'C710379', 'BLM18HE102SN1': 'C85828',
+}
+LCSC_BY_VALUE = {   # (value, footprint) -> C-number
+    ('100nF', C0201): 'C76928', ('10nF', C0201): 'C285010', ('12pF', C0201): 'C50391',
+    ('120pF', C0201): 'C161406', ('2.2uF', C0402): 'C12530', ('4.7uF', C0402): 'C23733',
+    ('1uF', C0402): 'C52923', ('100nF', C0402): 'C1525', ('10uF', C0603): 'C19702',
+    ('4.7nF', C0402): 'C1538', ('2.2k', R0201): 'C142018', ('66.5k 1%', R0201): 'C62193',
+    ('100k 1%', R0201): 'C106224', ('1k', R0402): 'C11702', ('10k', R0402): 'C25744',
+    ('1k 1%', R0603): 'C21190', ('100k', R0402): 'C25741', ('green', LED0402): 'C965793',
+    ('25MHz CL8pF 2016', 'Crystal:Crystal_SMD_2016-4Pin_2.0x1.6mm'): 'C7301943',
+}
+
+
+def lcsc_for(p):
+    if p['dnp'] or p['ref'].startswith('TP') or p['ref'] in ('J1', 'J2'):
+        return ''                      # J2 (H-MTD) is hand-soldered: LCSC has none in stock
+    return LCSC_BY_MPN.get(p['mpn']) or LCSC_BY_VALUE.get((p['value'], p['fp']), '')
+
+
+LENGTH = 63.5      # H-MTD front ground row 9.5 from the edge -> 3.5 mm overhang;
+                   # its body then starts at 45.1, past the cage front (44.3)
 
 
 # ==========================================================================
@@ -297,16 +323,55 @@ def write_footprints():
     crt(fp, 2.0, 1.55)
     io.FootprintSave(FPLIB, fp)
 
-    # H-MTD: NOT a real land. Two signal pads and four shield pegs in a 10 x 12
-    # box so routing and the envelope check have something honest to work
-    # with; replace from the connector's drawing before ordering.
+    # H-MTD: Rosenberger E6S20A-40MT5-x, right angle, pin-in-paste THT.
+    # Layout drawing MB_633 sheet 1 / datasheet E6S20A-40MT5-Y p.1:
+    #   4 ground holes  finished 1.74, pad 2.5, 2 x 2 grid 7.0 across x 7.5 deep
+    #                   (9.3 is the outer width of the hatched areas, not the pitch -
+    #                    read off the drawing at 47.3 px/mm: centres 332 px apart)
+    #   2 signal holes  finished 0.7, 2.0 apart, 1.87 behind the front ground row
+    #   body 11 wide, 21.9 deep, 13.5 tall; front face 13 ahead of the front
+    #   ground row; board edge to front ground row <= 10
+    # Origin = centre of the front ground row, +x = towards the mating face.
+    def tht(fp, num, x, y, pad, drill):
+        p = pcbnew.PAD(fp)
+        p.SetNumber(num)
+        p.SetShape(pcbnew.PAD_SHAPE_CIRCLE)
+        p.SetAttribute(pcbnew.PAD_ATTRIB_PTH)
+        p.SetLayerSet(p.PTHMask())
+        p.SetSize(pcbnew.VECTOR2I(MB.MM(pad), MB.MM(pad)))
+        p.SetDrillSize(pcbnew.VECTOR2I(MB.MM(drill), MB.MM(drill)))
+        p.SetPosition(pcbnew.VECTOR2I(MB.MM(x), MB.MM(y)))
+        p.SetPos0(p.GetPosition())
+        fp.Add(p)
     fp = pcbnew.FOOTPRINT(None)
-    fp.SetFPID(pcbnew.LIB_ID('sfp', 'HMTD_1P_Placeholder'))
-    for num, x, y in (('1', -3.5, -1.0), ('2', -3.5, 1.0)):
-        smd(fp, num, x, y, 1.2, 0.7)
-    for x, y in ((-4.5, -4.2), (-4.5, 4.2), (4.5, -4.2), (4.5, 4.2)):
-        smd(fp, '3', x, y, 1.8, 1.4)
-    crt(fp, 6.0, 5.5)
+    fp.SetFPID(pcbnew.LIB_ID('sfp', 'Rosenberger_HMTD_E6S20A_1P_RA'))
+    tht(fp, '1', -1.87, -1.0, 1.1, 0.7)
+    tht(fp, '2', -1.87, 1.0, 1.1, 0.7)
+    for x in (0.0, -7.5):
+        for y in (-3.5, 3.5):
+            tht(fp, '3', x, y, 2.5, 1.74)
+    # "solder area" (hatched) on MB_633: exposed copper for the shield to wet,
+    # tied to ground. Rectangles, trimmed clear of the R2 relief near the pins.
+    for cx, cy, w, h in ((0.76, 0.0, 1.0, 2.9), (-2.76, 4.03, 2.18, 1.27), (-2.76, -4.03, 2.18, 1.27)):
+        p = pcbnew.PAD(fp)
+        p.SetNumber('3')
+        p.SetShape(pcbnew.PAD_SHAPE_RECT)
+        p.SetAttribute(pcbnew.PAD_ATTRIB_SMD)
+        p.SetLayerSet(p.SMDMask())
+        p.SetSize(pcbnew.VECTOR2I(MB.MM(w), MB.MM(h)))
+        p.SetPosition(pcbnew.VECTOR2I(MB.MM(cx), MB.MM(cy)))
+        p.SetPos0(p.GetPosition())
+        fp.Add(p)
+    front, depth, half = 13.0, 21.9, 5.5
+    for layer, g in ((pcbnew.F_CrtYd, 0.25), (pcbnew.F_Fab, 0.0)):
+        x0, x1, y0 = front - depth - g, front + g, half + g
+        for a, b in (((x0, -y0), (x1, -y0)), ((x1, -y0), (x1, y0)), ((x1, y0), (x0, y0)), ((x0, y0), (x0, -y0))):
+            sh = pcbnew.FP_SHAPE(fp)
+            sh.SetShape(pcbnew.SHAPE_T_SEGMENT)
+            sh.SetStart0(pcbnew.VECTOR2I(MB.MM(a[0]), MB.MM(a[1])))
+            sh.SetEnd0(pcbnew.VECTOR2I(MB.MM(b[0]), MB.MM(b[1])))
+            sh.SetLayer(layer); sh.SetWidth(MB.MM(0.05 if layer == pcbnew.F_CrtYd else 0.1))
+            fp.Add(sh)
     io.FootprintSave(FPLIB, fp)
 
 
@@ -444,8 +509,9 @@ def write_schematic():
     used = sorted({p['lib_id'] for p in P} | {'power:GND', 'power:+3V3', 'power:PWR_FLAG'})
     for p in P:
         X, Y = p['sch']
+        props = tuple((k, v) for k, v in (('MPN', p['mpn']), ('LCSC', lcsc_for(p))) if v)
         symbol_inst(p['lib_id'], X, Y, p['ref'], p['value'], p['fp'], p['ref'], dnp=p['dnp'],
-                    props=(('MPN', p['mpn']),) if p['mpn'] else ())
+                    props=props)
         _, pins = sym_block(p['lib_id'])
         byn = {q['number']: q for q in pins}
         for num, q in byn.items():
@@ -523,12 +589,14 @@ def build_pcb():
     MB.poly(board, pcbnew.Edge_Cuts, MB.outline_pts(LENGTH))
     MB.seg(board, pcbnew.Dwgs_User, (MB.CAGE_FRONT, 7.5), (MB.CAGE_FRONT, -7.5), 0.15)
     MB.text(board, pcbnew.Dwgs_User, 'cage front', MB.CAGE_FRONT, 8.4, 0.8)
-    MB.text(board, pcbnew.F_SilkS, 'T1 SFP', 50.0, 5.4, 0.8)
+    MB.text(board, pcbnew.B_SilkS, 'T1 SFP', 30.0, 5.4, 0.8)
     for p in P:
         fp = MB.edge_footprint() if p['ref'] == 'J1' else fp_load(p['fp'])
         fp.SetReference(p['ref'])
         fp.SetValue(p['value'])
         fp.Value().SetVisible(False)
+        if lcsc_for(p):
+            fp.SetProperty('LCSC', lcsc_for(p))
         fp.Reference().SetVisible(False)       # 12 mm board: refs live on F.Fab
         fp.SetPosition(MB.V(*p['at']))
         fp.SetOrientationDegrees(p['rot'])
@@ -585,15 +653,17 @@ FREEROUTING = os.path.expanduser('~/.local/share/freerouting/freerouting-1.9.0.j
 SGMII = ['TD_P', 'TD_N', 'RD_P', 'RD_N', 'SG_TX_P', 'SG_TX_N', 'SG_RX_P', 'SG_RX_N']
 MDI = ['TRD_P', 'TRD_M', 'DCB_P', 'DCB_N', 'MDI_P', 'MDI_N']
 PWR = ['+3V3', 'VDDA', 'VDDIO', 'VDD1P0', 'V1P0_BUCK', 'BUCK_SW', 'VCCT', 'VCCR']
-# 4 layers: F signal / In1 GND / In2 +3V3 / B signal. Widths are for a thin
-# outer dielectric (~0.1 mm, 1.0 mm board) and MUST be re-derived from the
-# fab's own stackup and impedance calculator before ordering.
+# 4 layers: F signal / In1 GND / In2 +3V3 / B signal, on JLC04101H-3313 (1.0 mm;
+# L1-L2 3313 prepreg 0.0994 mm, Dk 4.1). JLC's own SI9000 backend: 50 ohm
+# single-ended = 6.2 mil = 0.157 mm on L1 over L2. The router does not couple
+# pairs, so SGMII/MDI legs are routed as 50 ohm each; the 100 ohm coupled pair
+# (4.5/6 mil) is the width to use when they are hand-routed as pairs.
 NETCLASSES = [
     dict(name='Default', clearance=0.15, track_width=0.127, via_diameter=0.45, via_drill=0.25),
-    dict(name='SGMII', clearance=0.15, track_width=0.12, via_diameter=0.45, via_drill=0.25,
-         dp_width=0.12, dp_gap=0.15, nets=SGMII),
-    dict(name='MDI', clearance=0.2, track_width=0.2, via_diameter=0.45, via_drill=0.25,
-         dp_width=0.2, dp_gap=0.2, nets=MDI),
+    dict(name='SGMII', clearance=0.2, track_width=0.157, via_diameter=0.45, via_drill=0.25,
+         dp_width=0.114, dp_gap=0.152, nets=SGMII),
+    dict(name='MDI', clearance=0.2, track_width=0.157, via_diameter=0.45, via_drill=0.25,
+         dp_width=0.114, dp_gap=0.152, nets=MDI),
     dict(name='Power', clearance=0.15, track_width=0.3, via_diameter=0.5, via_drill=0.3, nets=PWR),
 ]
 
@@ -701,6 +771,33 @@ def add_edge_keepouts(board, w=0.3):
         board.Add(z)
 
 
+HMTD_AT = (54.0, 0.0)
+# (x0, x1, y0, y1) relative to the connector's front ground row, +x to the mating face
+HMTD_KEEPOUT = [(-0.06, 1.27, 1.79, 4.37), (-0.06, 1.27, -4.37, -1.79),
+                (-6.77, -5.29, 2.30, 4.67), (-6.77, -5.29, -4.67, -2.30)]
+
+
+def add_connector_keepouts(board):
+    for x0, x1, y0, y1 in HMTD_KEEPOUT:
+        z = pcbnew.ZONE(board)
+        ls = pcbnew.LSET()
+        ls.addLayer(pcbnew.F_Cu)
+        z.SetLayerSet(ls)
+        ch = pcbnew.SHAPE_LINE_CHAIN()
+        X, Y = HMTD_AT
+        for x, y in ((X + x0, Y + y0), (X + x1, Y + y0), (X + x1, Y + y1), (X + x0, Y + y1)):
+            ch.Append(MB.V(x, y))
+        ch.SetClosed(True)
+        z.AddPolygon(ch)
+        z.SetIsRuleArea(True)
+        z.SetDoNotAllowTracks(True)
+        z.SetDoNotAllowVias(True)
+        z.SetDoNotAllowCopperPour(True)
+        z.SetDoNotAllowPads(False)
+        z.SetDoNotAllowFootprints(False)
+        board.Add(z)
+
+
 def add_planes(board):
     inset = 0.3
     pts = [(x, y - inset if y > 0 else y + inset) for x, y in MB.outline_pts(LENGTH)]
@@ -789,6 +886,30 @@ def import_ses(board, path):
     return len(wires), len(vias)
 
 
+PAIRS = [('TD_P', 'TD_N'), ('SG_TX_P', 'SG_TX_N'), ('RD_P', 'RD_N'), ('SG_RX_P', 'SG_RX_N'),
+         ('TRD_P', 'TRD_M'), ('DCB_P', 'DCB_N'), ('MDI_P', 'MDI_N')]
+
+
+def length_report(board):
+    """Routed length per pair member and the skew. At 1.25 Gbaud a UI is
+    800 ps; 1 mm of skew on FR-4 is ~6 ps, so the budget is generous, but it
+    is printed so nobody has to trust that."""
+    L, V = {}, {}
+    for t in board.GetTracks():
+        n = t.GetNetname()
+        if t.Type() == pcbnew.PCB_VIA_T:
+            V[n] = V.get(n, 0) + 1
+        else:
+            L[n] = L.get(n, 0.0) + pcbnew.ToMM(t.GetLength())
+    out = []
+    for a, b in PAIRS:
+        la, lb = L.get(a, 0.0), L.get(b, 0.0)
+        out.append(f'{a}/{b} {la:.2f}/{lb:.2f} mm skew {abs(la - lb):.2f} vias {V.get(a, 0)}/{V.get(b, 0)}')
+    open(os.path.join(HERE, 'lengths.txt'), 'w').write('\n'.join(out) + '\n')
+    for o in out:
+        print('  ' + o)
+
+
 def route(passes=20, reuse_ses=False):
     """Freerouting 1.9.0: 2.x ignores its pass limit on the command line and
     never ends on this board; 1.9.0 honours -mp but wants a display, so it
@@ -797,6 +918,7 @@ def route(passes=20, reuse_ses=False):
     board = pcbnew.LoadBoard(path)
     apply_rules(board)
     add_edge_keepouts(board)
+    add_connector_keepouts(board)
     add_planes(board)
     pcbnew.ZONE_FILLER(board).Fill(board.Zones())
     dsn = os.path.join(HERE, NAME + '.dsn')
@@ -821,6 +943,7 @@ def route(passes=20, reuse_ses=False):
     pcbnew.WriteDRCReport(board, rpt, pcbnew.EDA_UNITS_MILLIMETRES, True)
     txt = open(rpt).read()
     print(f'routed: {nw} wires, {nv} vias')
+    length_report(board)
     for line in txt.splitlines():
         if line.startswith('**'):
             print('  ' + line)

@@ -1,7 +1,7 @@
 # T1 SFP: 100/1000BASE-T1
 
 Schematic, PCB (4 layers, routed), fab outputs and firmware are all in place.
-**Two things must still be settled before ordering**: see "Before ordering" below.
+**Order files are in [`jlc/`](jlc/), and the order sheet is [ORDER.md](ORDER.md).** The only open choice is **which PHY to use** (TG720 stock problem).
 
 | Top | Bottom |
 |---|---|
@@ -49,19 +49,21 @@ Schematic, PCB (4 layers, routed), fab outputs and firmware are all in place.
 - No pour among the edge fingers.
 - The PHY's exposed pad gets 3 × 3 thermal vias to the planes.
 
-## Before ordering
+## Changes for ordering (2026-09-29)
 
-1. **H-MTD connector footprint (J2)**
-   - `HMTD_1P_Placeholder` is **not a real land pattern**. Its two signal pads and four shield pads sit inside a box sized for the part, only so the router had something to work with.
-   - Pick a single-port PCB header (Rosenberger H-MTD family), redraw the footprint from its drawing, then reroute.
-2. **Stackup and impedance**
-   - SGMII (SG_*/TD_*/RD_*) needs 100 Ω differential. The 0.12 mm wide / 0.15 mm gap in `make_t1.py` is a placeholder for a ~0.1 mm outer dielectric.
-   - Choose the fab's **1.0 mm 4-layer** stackup, get the numbers from its impedance calculator, and put them in `NETCLASSES`.
-   - The autorouter **routes the pairs uncoupled**. The runs are short (≈ 10 mm from finger to PHY), but they need **a hand re-route as coupled pairs**.
-3. **Order options**
-   - 1.0 mm, 4 layers, ENIG
-   - **Hard gold on the edge fingers + bevel**
-   - Impedance control
+- **H-MTD J2 = Rosenberger E6S20A-40MT5-Z**, drawn from the layout drawing MB_633.
+  - Ground holes Ø1.74 / pad 2.5, **7.0 × 7.5** apart. The research said 9.3, but that is the outer width of the hatched areas; I measured the drawing myself.
+  - Signal holes Ø0.7, 2.0 apart, 1.87 behind the front row.
+  - The hatched solder areas are GND pads, and the no-routing keep-outs are rule areas.
+  - Overhangs the board edge by 3.5 mm. The body sits entirely outside the cage, so the board is 63.5 mm long.
+  - LCSC has no stock: hand-solder it.
+- **Stackup JLC04101H-3313.**
+  - JLC's own SI9000 backend puts 50 Ω single-ended at 0.157 mm. The router doesn't couple pairs, so each line is routed at 50 Ω.
+  - Pair skew is at most **2.0 mm (≈12 ps)** against an 800 ps UI ([lengths.txt](lengths.txt)).
+- **Buck is the TPS62822** (the TPS62821 is out of stock at LCSC; same package, pins and divider).
+- **Panel (`panel_t1.py`):**
+  - 5 boards, mouse-bites, **rails on 3 sides only** so the gold-finger edge stays straight (`../panel_rails.py`).
+  - KiKit 1.6.0 is the version that works with KiCad 7; its `fab jlcpcb` can't drive this plotter, so the gerbers, BOM and CPL are written by our own code.
 
 ## Regenerating
 
@@ -70,7 +72,8 @@ python3 make_t1.py            # symbols, footprints, schematic, placed PCB (with
 sh run_erc.sh                 # eeschema ERC -> erc.rpt (headless, Xvfb)
 python3 make_t1.py --route    # + planes, Freerouting, SES in, pours, DRC -> drc.rpt
 python3 make_t1.py --reuse-ses  # reuse t1.ses (Freerouting results vary from run to run)
-python3 export_t1.py          # gerbers, drill, BOM, CPL, previews -> fab/
+python3 export_t1.py          # single-board gerbers, BOM, CPL, previews -> fab/
+python3 panel_t1.py 5         # 5-board panel + JLC order files -> jlc/ (KiKit 1.6.0)
 ```
 
 - The router is **Freerouting 1.9.0**, at `~/.local/share/freerouting/freerouting-1.9.0.jar`.

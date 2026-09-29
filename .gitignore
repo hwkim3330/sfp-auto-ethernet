@@ -8,3 +8,5 @@ hw/t1/fab/gerber/
 hw/t1/*.dsn
 *.lck
 logs/
+hw/t1/jlc/gerber/
+hw/t1/panel/*.svg
