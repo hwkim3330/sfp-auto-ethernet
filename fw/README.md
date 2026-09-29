@@ -24,6 +24,11 @@ A single I²C peripheral covers all three:
 
 To set master from Linux: write byte 96 = 1 into A0h. You can do this through `ethtool -m`'s EEPROM write, or with `i2cset`.
 
+## Builds per host
+
+- `make` (default, HOST=linux): advertises 1000BASE-T and serves the PHY bridge at 0x56. For Linux phylink hosts.
+- `make HOST=d10`: advertises 1000BASE-SX and turns SGMII auto-negotiation off. For switches like the **Kontron D10** that manage Cu SFPs by part number. Set the port to speed 1000 FDX by hand; see [../docs/D10.md](../docs/D10.md).
+
 ## Build and flash
 
 ```bash
