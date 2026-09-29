@@ -52,6 +52,17 @@
 #ifndef HOST_FIBER
 #define HOST_FIBER 0
 #endif
+/* VARIANT_RJ45: RTL8221B-VB-CG (100M/1G/2.5G). PHY address 1 (its LED
+ * straps default to 1), native Clause 45, EEPROM byte 36 = 0x1E (2.5GBASE-T)
+ * which makes Linux probe C45 at 0x56 and bind the realtek driver. */
+#ifndef VARIANT_RJ45
+#define VARIANT_RJ45 0
+#endif
+#if VARIANT_RJ45
+#undef PHYAD
+#define PHYAD 1
+#define MDIO_C45_NATIVE 1
+#endif
 #ifndef VARIANT_TEXT
 #define VARIANT_TEXT "100/1000BASE-T1 SGMII"
 #endif
@@ -205,6 +216,14 @@ static void a0_init(void)
      * 1000BASE-T makes Linux probe the PHY; 1000BASE-SX makes a switch treat
      * it as a plain 1000BASE-X lane */
     a0[6] = HOST_FIBER ? 0x01 : 0x08;
+#if VARIANT_RJ45
+    /* like FS SFP-2.5G-T on a switch (all codes 0, BR 2.5G); like a Linux
+     * 2.5GBASE-T module otherwise (byte 36 = 0x1E -> C45 PHY probe) */
+    a0[6] = HOST_FIBER ? 0x00 : 0x08;
+    a0[36] = HOST_FIBER ? 0x00 : 0x1E;
+    a0[12] = 25;             /* 2.5 GBd nominal */
+    a0[64] = 0x02;           /* power level 2 (up to 1.5 W): the PHY alone peaks near 1 W */
+#endif
     a0[11] = 0x01;           /* 8B/10B */
     a0[12] = 13;             /* 1.3 GBd nominal, units of 100 MBd */
     a0[18] = 15;             /* copper length, m */
@@ -223,8 +242,33 @@ static void a0_init(void)
 /* ------------------------------------------------------------------ PHY */
 static int master_applied = -1;
 
+#if VARIANT_RJ45
+/* RTL8221B SerDes (datasheet 8.6.1, MMD30 0x697A[5:0]): 0 = 2500BASE-X +
+ * SGMII switching with link speed, 2 = 2500BASE-X only (rate adaptor, pause).
+ * The part powers up in HiSGMII (3) and has no strap, so the MCU sets it.
+ * The four writes around it are the ones Linux's realtek driver makes in
+ * rtl822xb_config_init (drivers/net/phy/realtek/realtek_main.c), MMD30. */
+static void rtl8221b_serdes(uint16_t mode)
+{
+    mmd_write(30, 0x75F3, 0x0000);
+    uint16_t v = mmd_read(30, 0x697A);
+    mmd_write(30, 0x697A, (uint16_t)((v & ~0x003Fu) | mode));
+    mmd_write(30, 0x6A04, 0x0503);
+    mmd_write(30, 0x6F10, 0xD455);
+    mmd_write(30, 0x6F11, 0x8020);
+}
+#endif
+
 static void phy_apply_config(void)
 {
+#if VARIANT_RJ45
+    /* on a switch the host lane is fixed at 2500BASE-X (the D10 links FS's
+     * module only at speed 2500); on Linux, switch with speed and let the
+     * driver take over when it binds */
+    rtl8221b_serdes(HOST_FIBER ? 2 : 0);
+    master_applied = a0[96] & 1;
+    return;
+#endif
     int want = a0[96] & 1;
     if (HOST_FIBER) {                            /* SGMII_CTRL_1 (MMD1F 0x0608) bit 0 */
         uint16_t c = mmd_read(0x1F, 0x0608);
