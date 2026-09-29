@@ -36,6 +36,16 @@
 #ifndef VARIANT_PN
 #define VARIANT_PN   "T1-1000"
 #endif
+/* HOST_FIBER: present as a 1000BASE-X optical SFP (no PHY behind 0x56 is
+ * probed) and turn the PHY's SGMII auto-negotiation off, so the host sees a
+ * plain 1000BASE-X lane. For hosts whose firmware manages "Cu SFP" PHYs by
+ * part - Kontron's KSwitch D10 AN002 lists its 1000BASE-T modules as
+ * Finisar/Methode (Marvell 88E1111) - rather than by the generic mdio-i2c
+ * path Linux uses. On the D10 the port is then set to speed 1000 full
+ * duplex by hand, as for any 1000BASE-X SFP there. */
+#ifndef HOST_FIBER
+#define HOST_FIBER 0
+#endif
 #ifndef VARIANT_TEXT
 #define VARIANT_TEXT "100/1000BASE-T1 SGMII"
 #endif
@@ -150,8 +160,10 @@ static void a0_init(void)
     a0[0] = 0x03;            /* SFP */
     a0[1] = 0x04;            /* serial ID via two-wire */
     a0[2] = 0x80;            /* connector: vendor specific (H-MTD) */
-    a0[6] = 0x08;            /* 1000BASE-T: the bit that makes Linux probe the PHY
-                                (SFF-8024 has no code for 100/1000BASE-T1) */
+    /* SFF-8024 has no code for 100/1000BASE-T1, so the module borrows one:
+     * 1000BASE-T makes Linux probe the PHY; 1000BASE-SX makes a switch treat
+     * it as a plain 1000BASE-X lane */
+    a0[6] = HOST_FIBER ? 0x01 : 0x08;
     a0[11] = 0x01;           /* 8B/10B */
     a0[12] = 13;             /* 1.3 GBd nominal, units of 100 MBd */
     a0[18] = 15;             /* copper length, m */
@@ -173,6 +185,10 @@ static int master_applied = -1;
 static void phy_apply_config(void)
 {
     int want = a0[96] & 1;
+    if (HOST_FIBER) {                            /* SGMII_CTRL_1 (MMD1F 0x0608) bit 0 */
+        uint16_t c = mmd_read(0x1F, 0x0608);
+        mmd_write(0x1F, 0x0608, (uint16_t)(c & ~1u));
+    }
     uint16_t v = mmd_read(1, 0x0834);
     v = (uint16_t)(want ? (v | 0x4000u) : (v & ~0x4000u));
     mmd_write(1, 0x0834, v);

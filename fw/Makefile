@@ -2,6 +2,7 @@
 #
 #   make                 -> build/sfp_ctrl.elf / .bin
 #   make VARIANT=rj45    -> the RJ45 module's strings
+#   make HOST=d10        -> for Kontron KSwitch D10: 1000BASE-X personality
 #   make flash           -> openocd over SWD (TP1..TP5 on the board)
 #
 # Device and core headers come from ST's STM32CubeG0 and ARM's CMSIS; point
@@ -12,6 +13,7 @@ CROSS        ?= $(if $(ZGCC),$(ZGCC:gcc=),arm-none-eabi-)
 CMSIS_DEVICE ?= $(HOME)/zephyrproject/modules/hal/stm32/stm32cube/stm32g0xx/soc
 CMSIS_CORE   ?= $(HOME)/zephyrproject/modules/hal/cmsis/CMSIS/Core/Include
 VARIANT      ?= t1
+HOST         ?= linux      # linux: 1000BASE-T + PHY at 0x56 | d10: 1000BASE-X, SGMII AN off
 
 ifeq ($(VARIANT),rj45)
   DEFS = -DVARIANT_PN='"RJ45-1000"' -DVARIANT_TEXT='"1000BASE-T SGMII"'
@@ -19,6 +21,10 @@ else ifeq ($(VARIANT),t1s)
   DEFS = -DVARIANT_PN='"T1S-10"' -DVARIANT_TEXT='"10BASE-T1S SGMII"'
 else
   DEFS = -DVARIANT_PN='"T1-1000"' -DVARIANT_TEXT='"100/1000BASE-T1 SGMII"'
+endif
+
+ifeq ($(strip $(HOST)),d10)
+  DEFS += -DHOST_FIBER=1
 endif
 
 CFLAGS = -mcpu=cortex-m0plus -mthumb -Os -g -Wall -Wextra -ffunction-sections -fdata-sections -ffreestanding -fno-tree-loop-distribute-patterns \
