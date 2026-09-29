@@ -29,13 +29,13 @@ Schematic, PCB (4 layers, routed), fab outputs and firmware are all in place.
   - VDDA, VDDIO and VDD1P0 each get their own ferrite island.
   - Every power pin gets 10 nF + 100 nF; some also get 2.2 µF.
   - The decaps sit on the **bottom side**, in a ring under the PHY.
-  - 1.0 V comes from a **TPS62821 buck**: 470 nH, 66.5 k / 100 k divider, 120 pF Cff.
+  - 1.0 V comes from a **TPS62822 buck**: 470 nH, 66.5 k / 100 k divider, 120 pF Cff.
   - Estimated module power **~0.7 W**, inside the SFP's 1.0 W power-up limit.
 - **MCU:** STM32G031. It answers the host's I²C as the EEPROM (0x50) and the PHY bridge (0x56), and handles MDIO, TX_DISABLE and RX_LOS. See [`../../fw/`](../../fw/).
 
 ## Board
 
-- 59.5 × 12.4 mm. The tab is 9.2 mm wide.
+- 63.5 × 12.4 mm (the H-MTD overhangs a further 3.5 mm). The tab is 9.2 mm wide.
 - Edge connector is the INF-8074i pattern (`../fp/sfp.pretty/SFP_Module_Edge`).
 - 4 layers:
 
