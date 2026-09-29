@@ -3,3 +3,8 @@ __pycache__/
 *.kicad_prl
 *-backups/
 fp-info-cache
+fw/build/
+hw/t1/fab/gerber/
+hw/t1/*.dsn
+*.lck
+logs/

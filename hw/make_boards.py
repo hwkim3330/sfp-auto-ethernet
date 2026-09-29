@@ -101,6 +101,7 @@ def edge_footprint():
         p.SetAttribute(pcbnew.PAD_ATTRIB_CONN)       # edge connector: no paste
         p.SetSize(pcbnew.VECTOR2I(MM(PAD_END - x0), MM(PAD_W)))
         p.SetPosition(pcbnew.VECTOR2I(MM((x0 + PAD_END) / 2), MM(-pad_y(pin))))
+        p.SetPos0(p.GetPosition())             # footprint-relative, or it collapses to the origin
         ls = pcbnew.LSET()
         if top:
             ls.AddLayer(pcbnew.F_Cu); ls.AddLayer(pcbnew.F_Mask)
@@ -213,7 +214,7 @@ def text(board, layer, s, x, y, h=0.8):
     board.Add(t)
 
 
-def build(name, spec):
+def build(name, spec, out_dir=None):
     board = pcbnew.BOARD()
     board.SetCopperLayerCount(4)
     L = spec['length']
@@ -242,10 +243,10 @@ def build(name, spec):
             fp.Flip(fp.GetPosition(), False)
         board.Add(fp)
         if not lib:                                   # courtyard box stands in
-            w, l = NOSE_SIZE[name] if fpn == 'NOSE' else PLACEHOLDER[fpn]
+            w, l = NOSE_SIZE[name.replace('_v0', '')] if fpn == 'NOSE' else PLACEHOLDER[fpn]
             poly(board, pcbnew.F_CrtYd, [(x - l / 2, w / 2), (x + l / 2, w / 2),
                                          (x + l / 2, -w / 2), (x - l / 2, -w / 2)], 0.05)
-    out = os.path.join(HERE, name)
+    out = os.path.join(HERE, out_dir or name)
     os.makedirs(out, exist_ok=True)
     path = os.path.join(out, f'{name}.kicad_pcb')
     board.Save(path)
@@ -353,7 +354,12 @@ def main():
     ok_all = True
     meshes = []
     for i, (name, spec) in enumerate(VARIANTS.items()):
-        b = build(name, spec)
+        if os.path.exists(os.path.join(HERE, name, f'make_{name}.py')):
+            # this variant has its own schematic + PCB generator; only the
+            # v0 envelope check runs here, on a scratch board
+            b = build(name + '_v0', spec, out_dir=name)
+        else:
+            b = build(name, spec)
         ok, boxes = check(name, spec, b)
         ok_all &= ok
         m = envelope_mesh(name, spec, boxes)
