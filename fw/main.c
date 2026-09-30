@@ -27,9 +27,9 @@
  *   PB7 SDA   PB6 SCL   (AF6, open drain)
  *   PA0 MDC   PA1 MDIO  (bit-banged; MDIO open drain, 2.2k to VDDIO on the board)
  *   PA2 PHY_RST_N out   PA3 PHY_INT_N in
- *   PA4 TX_DISABLE in (pulled up on the board: high/open = disabled)
+ *   PA4 TX_DISABLE in (pulled up on the board: high/open = disabled; PC14 on T1S)
  *   PA5 RX_LOS out, open drain (high = no link)
- *   PA6 TX_FAULT out, open drain, held low (no fault)
+ *   PA6 TX_FAULT out, open drain, held low (no fault; PC15 on T1S)
  *
  * Register references: DP83TG720S-Q1 SNLS604G - BMSR (0x01) bit 2 link;
  * REGCR 0x0D / ADDAR 0x0E indirect access; PMA_PMD_CONTROL MMD1 0x0834
@@ -94,6 +94,19 @@ static void delay_ms(uint32_t n) { uint32_t t = ms; while (ms - t < n) { } }
 #define TX_DIS   4
 #define RX_LOS   5
 #define TX_FAULT 6
+/* where TX_DISABLE and TX_FAULT are: PA4 / PA6, or on T1S PC14 / PC15
+ * (pins 2/3, next to SDA: they share its route along the board's north edge) */
+#if VARIANT_T1S
+#define TXDIS_PORT  GPIOC
+#define TXDIS_PIN   14
+#define TXF_PORT    GPIOC
+#define TXF_PIN     15
+#else
+#define TXDIS_PORT  GPIOA
+#define TXDIS_PIN   TX_DIS
+#define TXF_PORT    GPIOA
+#define TXF_PIN     TX_FAULT
+#endif
 #if VARIANT_T1S                /* hw/t1s/make_t1s.py MCU map */
 #define FPGA_LINK 7            /* PA7 (pin 14) in: SGMII up, from the FPGA */
 #define FPGA_DONE 11           /* PA11 (pin 16) in: configuration done (4.7k pull-up) */
@@ -476,7 +489,7 @@ static void i2c_poll(void)
 /* ------------------------------------------------------------------ main */
 int main(void)
 {
-    RCC->IOPENR |= RCC_IOPENR_GPIOAEN | RCC_IOPENR_GPIOBEN;
+    RCC->IOPENR |= RCC_IOPENR_GPIOAEN | RCC_IOPENR_GPIOBEN | RCC_IOPENR_GPIOCEN;
     SysTick->LOAD = 16000 - 1;                   /* 1 ms */
     SysTick->VAL = 0;
     SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_TICKINT_Msk | SysTick_CTRL_ENABLE_Msk;
@@ -488,11 +501,11 @@ int main(void)
     pa_set(MDIO);
     gpio_mode(GPIOA, MDIO, 1, 1, 0);             /* open drain, board pull-up */
     gpio_mode(GPIOA, PHY_INT, 0, 0, 1);
-    gpio_mode(GPIOA, TX_DIS, 0, 0, 0);
+    gpio_mode(TXDIS_PORT, TXDIS_PIN, 0, 0, 0);
     pa_set(RX_LOS);
     gpio_mode(GPIOA, RX_LOS, 1, 1, 0);           /* released = LOS (no link yet) */
-    pa_clr(TX_FAULT);
-    gpio_mode(GPIOA, TX_FAULT, 1, 1, 0);         /* held low: no fault */
+    TXF_PORT->BRR = PIN(TXF_PIN);
+    gpio_mode(TXF_PORT, TXF_PIN, 1, 1, 0);       /* held low: no fault */
 #if VARIANT_T1S
     gpio_mode(GPIOA, FPGA_LINK, 0, 0, 2);        /* in, pulled down: no FPGA = no link */
     gpio_mode(GPIOA, FPGA_DONE, 0, 0, 0);
@@ -529,13 +542,13 @@ int main(void)
             cfg_start = ms;
             reloads++;
         }
-        phy_hold(pa_get(TX_DIS) || !done);
+        phy_hold((int)((TXDIS_PORT->IDR >> TXDIS_PIN) & 1) || !done);
         if (phy_held) { pa_set(RX_LOS); continue; }
         if (plca_changed()) plca_apply();
         if (pa_get(FPGA_LINK)) pa_clr(RX_LOS); else pa_set(RX_LOS);
         continue;
 #endif
-        phy_hold(pa_get(TX_DIS));                /* TX_DISABLE high/open: PHY in reset */
+        phy_hold((int)((TXDIS_PORT->IDR >> TXDIS_PIN) & 1));   /* TX_DISABLE high/open: PHY in reset */
         if (phy_held) { pa_set(RX_LOS); continue; }
         if ((a0[96] & 1) != master_applied) phy_apply_config();
         (void)mdio_read(PHYAD, 0x01);            /* BMSR link bit latches low: read twice */

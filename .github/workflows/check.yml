@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        board: [t1, rj45]    # t1s joins once it is routed
+        board: [t1, rj45, t1s]
     steps:
       - uses: actions/checkout@v4
       - name: DRC + schematic parity + ERC (KiCad 9)

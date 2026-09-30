@@ -23,3 +23,4 @@ hw/*/fab/gerber/
 hw/*/jlc/gerber/
 hw/*/panel/*.svg
 hw/*/panel/*_tabs.kicad_*
+hw/_sch_*/

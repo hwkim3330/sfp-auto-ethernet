@@ -411,25 +411,24 @@ def symbol_inst(lib_id, x, y, ref, value, fp, seed, dnp=False, hide=False, props
 
 
 def power(net, x, y, d, seed):
-    """Stub out from a pin and end it in a GND / +3V3 symbol."""
-    if net == 'GND':
-        ex, ey = x + d[0] * 2.54, y + d[1] * 2.54
-        wire((x, y), (ex, ey))
-        if d != (0, 1):
+    """Stub out from a pin and end it in a GND / +3V3 symbol. A side pin's
+    stub runs straight out and the symbol sits at its end: turned towards
+    the symbol, the stub landed on a neighbouring pin's label or on the
+    other rail's turned stub (RJ45: +3V3 on AVDD33; T1S: GND on TXCLK, then
+    GND on +3V3), merging nets."""
+    ex, ey = x + d[0] * 2.54, y + d[1] * 2.54
+    wire((x, y), (ex, ey))
+    if d[0] == 0:                        # top / bottom pins: the symbol hangs off the stub
+        if net == 'GND' and d != (0, 1):
             wire((ex, ey), (ex, ey + 2.54))
             ey += 2.54
-        _PWRN[0] += 1
-        symbol_inst('power:GND', ex, ey, '#PWR%03d' % _PWRN[0], 'GND', None, seed + 'G', hide=True)
-    else:
-        # a side pin's stub runs 5.08 out before turning up: at 2.54 the turn
-        # landed on the label of the pin above (RJ45: +3V3 on AVDD33)
-        k = 5.08 if d[1] == 0 else 2.54
-        ex, ey = x + d[0] * k, y + d[1] * k
-        wire((x, y), (ex, ey))
-        if d != (0, -1):
+        elif net != 'GND' and d != (0, -1):
             wire((ex, ey), (ex, ey - 2.54))
             ey -= 2.54
-        _PWRN[0] += 1
+    _PWRN[0] += 1
+    if net == 'GND':
+        symbol_inst('power:GND', ex, ey, '#PWR%03d' % _PWRN[0], 'GND', None, seed + 'G', hide=True)
+    else:
         symbol_inst('power:+3V3', ex, ey, '#PWR%03d' % _PWRN[0], '+3V3', None, seed + 'V', hide=True)
 
 
@@ -845,6 +844,17 @@ def add_planes(board):
             k.SetDoNotAllowTracks(True); k.SetDoNotAllowVias(False); k.SetDoNotAllowCopperPour(False)
             k.SetDoNotAllowPads(False); k.SetDoNotAllowFootprints(False)
             board.Add(k)
+        # D.ISLANDS: a rail's patch on a plane layer ('In4.Cu', net, rect), over
+        # that layer's GND. On a plane layer the router lays no tracks, so no
+        # keepout; the rail's pads reach it through their own vias
+        # (a rectangle, or an outline: overlapping patches of one net are a
+        # zones_intersect error in KiCad 9)
+        for lname, net, shape in getattr(D, 'ISLANDS', []):
+            if len(shape) == 4 and not isinstance(shape[0], (tuple, list)):
+                x0, y0, x1, y1 = shape
+                shape = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+            z = zone(board, net, CU[lname.split('.')[0]], list(shape), clearance=0.15)
+            z.SetAssignedPriority(1)
         return
     if getattr(D, 'IN2_GND', False) and not getattr(D, 'IN2_SIGNALS', False):
         zone(board, 'GND', pcbnew.In2_Cu, pts, clearance=0.15)
@@ -954,6 +964,31 @@ def import_ses(board, path):
         v.SetNet(board.FindNet(name))
         board.Add(v)
     return len(wires), len(vias)
+
+
+def drop_duplicate_plane_vias(board):
+    """Freerouting hands back a via of its own, a grid step off, beside some of
+    the plane dogbones it was given (T1S: four +3V3 pairs 0.13 mm apart, and
+    the copy broke clearance to its neighbours). A router via of a plane net
+    whose centre lies inside a locked via of the same net goes; its tracks
+    still end inside the locked one."""
+    planes = {n for _, n in getattr(D, 'PLANES', [])} | set(getattr(D, 'PLANE_DOGBONE', ()))
+    vias = [t for t in board.GetTracks() if t.GetClass() == 'PCB_VIA']
+    locked = [v for v in vias if v.IsLocked() and v.GetNetname() in planes]
+    drop = []
+    for v in vias:
+        if v.IsLocked() or v.GetNetname() not in planes:
+            continue
+        p = v.GetPosition()
+        for w in locked:
+            if w.GetNetname() == v.GetNetname() and \
+                    (w.GetPosition() - p).EuclideanNorm() < w.GetWidth() / 2:
+                drop.append(v)
+                break
+    for v in drop:
+        board.Remove(v)
+    if drop:
+        print(f'  dropped {len(drop)} router vias doubling a plane dogbone')
 
 
 def length_report(board):
@@ -1652,6 +1687,7 @@ def route(passes=20, reuse_ses=False):
         if name != 'kicad_default' and not members.split():
             raise RuntimeError(f'netclass {name} reached the DSN with no nets - the widths would be lost')
     nw, nv = import_ses(board, ses)
+    drop_duplicate_plane_vias(board)
     add_outer_pours(board)
     pcbnew.ZONE_FILLER(board).Fill(board.Zones())
     stitch_gnd(board)
@@ -1674,6 +1710,7 @@ def route(passes=20, reuse_ses=False):
                 board.Add(t); n += 1
         pcbnew.ZONE_FILLER(board).Fill(board.Zones())
         print(f'  {n} post-route items laid')
+    drop_duplicate_plane_vias(board)     # again: on T1S the copies were still there at the end
     board.Save(path)
     write_project()                      # Save() rewrites the .kicad_pro with defaults
     rpt = os.path.join(D.HERE, 'drc.rpt')

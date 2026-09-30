@@ -3,4 +3,4 @@ SRX_P/SRX_M 8.44/7.67 mm skew 0.77 vias 0/0
 RD_P/RD_N 2.33/2.33 mm skew 0.00 vias 0/0
 STX_P/STX_M 12.89/11.31 mm skew 1.58 vias 2/2
 REFCLK_P/REFCLK_M 5.07/6.19 mm skew 1.12 vias 0/0
-MDI_P/MDI_N 10.69/11.46 mm skew 0.78 vias 1/1
+MDI_P/MDI_N 14.88/10.62 mm skew 4.25 vias 1/1

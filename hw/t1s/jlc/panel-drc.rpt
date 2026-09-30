@@ -1,0 +1,583 @@
+** Drc report for /home/kim/sfp-auto-ethernet/hw/t1s/panel/t1s_panel.kicad_pcb **
+** Created on 2026-10-01 03:39:20 **
+
+** Found 191 DRC violations **
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(159.0000 mm, 40.9000 mm): Footprint KiKit_MB_8_4
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(128.7500 mm, 74.3000 mm): Footprint U1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(149.1000 mm, 80.1000 mm): Footprint KiKit_MB_25_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(118.5000 mm, 98.5000 mm): Footprint KiKit_FID_T_3
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(136.5000 mm, 43.1500 mm): Footprint X1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(159.0000 mm, 80.1000 mm): Footprint KiKit_MB_23_3
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(154.6000 mm, 71.0000 mm): Footprint L2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(149.1000 mm, 66.3000 mm): Footprint KiKit_MB_18_4
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(136.5000 mm, 70.7500 mm): Footprint X1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(171.8000 mm, 64.0000 mm): Footprint KiKit_MB_20_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(125.0000 mm, 66.3000 mm): Footprint KiKit_MB_21_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(168.0000 mm, 82.3000 mm): Footprint KiKit_MB_31_2
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(123.8500 mm, 76.7000 mm): Footprint TP12
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(123.8500 mm, 45.5000 mm): Footprint TP11
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(128.0000 mm, 93.9000 mm): Footprint KiKit_MB_35_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(171.8000 mm, 90.6000 mm): Footprint KiKit_MB_34_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(178.5000 mm, 22.5000 mm): Footprint KiKit_FID_T_2
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(123.8500 mm, 46.7000 mm): Footprint TP10
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(150.1000 mm, 93.9000 mm): Footprint KiKit_MB_32_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(127.0000 mm, 66.3000 mm): Footprint KiKit_MB_21_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(171.8000 mm, 36.4000 mm): Footprint KiKit_MB_6_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(125.0000 mm, 52.5000 mm): Footprint KiKit_MB_14_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(125.0000 mm, 38.7000 mm): Footprint KiKit_MB_7_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(170.0000 mm, 68.5000 mm): Footprint KiKit_MB_24_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(171.8000 mm, 76.8000 mm): Footprint KiKit_MB_27_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(158.0000 mm, 54.7000 mm): Footprint KiKit_MB_15_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(157.0000 mm, 54.7000 mm): Footprint KiKit_MB_15_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(160.0000 mm, 93.9000 mm): Footprint KiKit_MB_30_2
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(154.6000 mm, 29.6000 mm): Footprint L2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(157.0000 mm, 82.3000 mm): Footprint KiKit_MB_29_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(160.0000 mm, 66.3000 mm): Footprint KiKit_MB_16_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(159.0000 mm, 82.3000 mm): Footprint KiKit_MB_29_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(127.0000 mm, 80.1000 mm): Footprint KiKit_MB_28_2
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(154.6000 mm, 43.4000 mm): Footprint L2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(171.8000 mm, 89.6000 mm): Footprint KiKit_MB_34_1
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(128.7500 mm, 60.5000 mm): Footprint U1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(146.0000 mm, 54.7000 mm): Footprint KiKit_MB_19_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(158.0000 mm, 93.9000 mm): Footprint KiKit_MB_30_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(151.1000 mm, 93.9000 mm): Footprint KiKit_MB_32_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(158.0000 mm, 27.1000 mm): Footprint KiKit_MB_1_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(145.0000 mm, 82.3000 mm): Footprint KiKit_MB_33_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(126.0000 mm, 66.3000 mm): Footprint KiKit_MB_21_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(158.0000 mm, 40.9000 mm): Footprint KiKit_MB_8_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(128.0000 mm, 66.3000 mm): Footprint KiKit_MB_21_1
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(123.8500 mm, 74.3000 mm): Footprint TP10
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(171.8000 mm, 92.6000 mm): Footprint KiKit_MB_34_4
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(113.5000 mm, 60.5000 mm): Footprint J1
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(154.6000 mm, 84.8000 mm): Footprint L2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(156.0000 mm, 54.7000 mm): Footprint KiKit_MB_15_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(161.0000 mm, 66.3000 mm): Footprint KiKit_MB_16_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(118.5000 mm, 22.5000 mm): Footprint KiKit_FID_T_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(159.0000 mm, 66.3000 mm): Footprint KiKit_MB_16_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(170.0000 mm, 27.1000 mm): Footprint KiKit_MB_3_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(127.0000 mm, 93.9000 mm): Footprint KiKit_MB_35_2
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(113.5000 mm, 46.7000 mm): Footprint J1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(144.0000 mm, 54.7000 mm): Footprint KiKit_MB_19_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(152.1000 mm, 93.9000 mm): Footprint KiKit_MB_32_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(126.0000 mm, 52.5000 mm): Footprint KiKit_MB_14_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(151.1000 mm, 80.1000 mm): Footprint KiKit_MB_25_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(144.0000 mm, 68.5000 mm): Footprint KiKit_MB_26_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(151.1000 mm, 38.7000 mm): Footprint KiKit_MB_4_2
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(123.8500 mm, 86.9000 mm): Footprint TP11
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(160.0000 mm, 38.7000 mm): Footprint KiKit_MB_2_2
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(154.6000 mm, 57.2000 mm): Footprint L2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(149.1000 mm, 52.5000 mm): Footprint KiKit_MB_11_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(171.8000 mm, 63.0000 mm): Footprint KiKit_MB_20_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(127.0000 mm, 38.7000 mm): Footprint KiKit_MB_7_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(170.0000 mm, 54.7000 mm): Footprint KiKit_MB_17_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(149.1000 mm, 38.7000 mm): Footprint KiKit_MB_4_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(143.0000 mm, 40.9000 mm): Footprint KiKit_MB_12_1
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(113.5000 mm, 74.3000 mm): Footprint J1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(126.0000 mm, 38.7000 mm): Footprint KiKit_MB_7_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(171.8000 mm, 35.4000 mm): Footprint KiKit_MB_6_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(157.0000 mm, 27.1000 mm): Footprint KiKit_MB_1_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(161.0000 mm, 80.1000 mm): Footprint KiKit_MB_23_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(146.0000 mm, 40.9000 mm): Footprint KiKit_MB_12_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(168.0000 mm, 68.5000 mm): Footprint KiKit_MB_24_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(144.0000 mm, 82.3000 mm): Footprint KiKit_MB_33_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(143.0000 mm, 82.3000 mm): Footprint KiKit_MB_33_1
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(128.7500 mm, 46.7000 mm): Footprint U1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(171.8000 mm, 49.2000 mm): Footprint KiKit_MB_13_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(146.0000 mm, 82.3000 mm): Footprint KiKit_MB_33_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(156.0000 mm, 27.1000 mm): Footprint KiKit_MB_1_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(143.0000 mm, 54.7000 mm): Footprint KiKit_MB_19_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(171.8000 mm, 65.0000 mm): Footprint KiKit_MB_20_4
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(123.8500 mm, 89.3000 mm): Footprint TP13
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(150.1000 mm, 38.7000 mm): Footprint KiKit_MB_4_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(169.0000 mm, 27.1000 mm): Footprint KiKit_MB_3_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(126.0000 mm, 80.1000 mm): Footprint KiKit_MB_28_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(152.1000 mm, 38.7000 mm): Footprint KiKit_MB_4_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(126.0000 mm, 93.9000 mm): Footprint KiKit_MB_35_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(152.1000 mm, 52.5000 mm): Footprint KiKit_MB_11_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(128.0000 mm, 52.5000 mm): Footprint KiKit_MB_14_1
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(123.8500 mm, 75.5000 mm): Footprint TP13
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(125.0000 mm, 80.1000 mm): Footprint KiKit_MB_28_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(159.0000 mm, 68.5000 mm): Footprint KiKit_MB_22_4
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(123.8500 mm, 90.5000 mm): Footprint TP12
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(149.1000 mm, 93.9000 mm): Footprint KiKit_MB_32_4
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(128.7500 mm, 32.9000 mm): Footprint U1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(158.0000 mm, 52.5000 mm): Footprint KiKit_MB_9_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(145.0000 mm, 40.9000 mm): Footprint KiKit_MB_12_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(145.0000 mm, 27.1000 mm): Footprint KiKit_MB_5_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(159.0000 mm, 54.7000 mm): Footprint KiKit_MB_15_4
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(123.8500 mm, 49.1000 mm): Footprint TP12
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(158.0000 mm, 66.3000 mm): Footprint KiKit_MB_16_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(160.0000 mm, 52.5000 mm): Footprint KiKit_MB_9_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(171.8000 mm, 34.4000 mm): Footprint KiKit_MB_6_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(145.0000 mm, 68.5000 mm): Footprint KiKit_MB_26_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(167.0000 mm, 82.3000 mm): Footprint KiKit_MB_31_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(170.0000 mm, 40.9000 mm): Footprint KiKit_MB_10_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(128.0000 mm, 38.7000 mm): Footprint KiKit_MB_7_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(158.0000 mm, 82.3000 mm): Footprint KiKit_MB_29_3
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(136.5000 mm, 84.5500 mm): Footprint X1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(161.0000 mm, 38.7000 mm): Footprint KiKit_MB_2_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(146.0000 mm, 27.1000 mm): Footprint KiKit_MB_5_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(159.0000 mm, 52.5000 mm): Footprint KiKit_MB_9_3
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(123.8500 mm, 34.1000 mm): Footprint TP13
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(170.0000 mm, 82.3000 mm): Footprint KiKit_MB_31_4
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(123.8500 mm, 62.9000 mm): Footprint TP12
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(171.8000 mm, 78.8000 mm): Footprint KiKit_MB_27_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(158.0000 mm, 80.1000 mm): Footprint KiKit_MB_23_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(156.0000 mm, 40.9000 mm): Footprint KiKit_MB_8_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(167.0000 mm, 68.5000 mm): Footprint KiKit_MB_24_1
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(123.8500 mm, 60.5000 mm): Footprint TP10
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(171.8000 mm, 62.0000 mm): Footprint KiKit_MB_20_1
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(123.8500 mm, 73.1000 mm): Footprint TP11
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(171.8000 mm, 91.6000 mm): Footprint KiKit_MB_34_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(158.0000 mm, 68.5000 mm): Footprint KiKit_MB_22_3
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(123.8500 mm, 61.7000 mm): Footprint TP13
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(151.1000 mm, 52.5000 mm): Footprint KiKit_MB_11_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(161.0000 mm, 93.9000 mm): Footprint KiKit_MB_30_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(150.1000 mm, 80.1000 mm): Footprint KiKit_MB_25_3
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(128.7500 mm, 88.1000 mm): Footprint U1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(169.0000 mm, 54.7000 mm): Footprint KiKit_MB_17_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(169.0000 mm, 82.3000 mm): Footprint KiKit_MB_31_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(158.0000 mm, 38.7000 mm): Footprint KiKit_MB_2_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(143.0000 mm, 27.1000 mm): Footprint KiKit_MB_5_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(125.0000 mm, 93.9000 mm): Footprint KiKit_MB_35_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(169.0000 mm, 40.9000 mm): Footprint KiKit_MB_10_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(167.0000 mm, 54.7000 mm): Footprint KiKit_MB_17_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(159.0000 mm, 38.7000 mm): Footprint KiKit_MB_2_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(161.0000 mm, 52.5000 mm): Footprint KiKit_MB_9_1
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(123.8500 mm, 88.1000 mm): Footprint TP10
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(146.0000 mm, 68.5000 mm): Footprint KiKit_MB_26_4
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(123.8500 mm, 47.9000 mm): Footprint TP13
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(123.8500 mm, 35.3000 mm): Footprint TP12
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(171.8000 mm, 77.8000 mm): Footprint KiKit_MB_27_3
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(136.5000 mm, 56.9500 mm): Footprint X1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(145.0000 mm, 54.7000 mm): Footprint KiKit_MB_19_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(171.8000 mm, 75.8000 mm): Footprint KiKit_MB_27_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(168.0000 mm, 54.7000 mm): Footprint KiKit_MB_17_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(152.1000 mm, 80.1000 mm): Footprint KiKit_MB_25_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(171.8000 mm, 37.4000 mm): Footprint KiKit_MB_6_4
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(123.8500 mm, 59.3000 mm): Footprint TP11
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(113.5000 mm, 88.1000 mm): Footprint J1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(127.0000 mm, 52.5000 mm): Footprint KiKit_MB_14_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(168.0000 mm, 27.1000 mm): Footprint KiKit_MB_3_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(160.0000 mm, 80.1000 mm): Footprint KiKit_MB_23_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(143.0000 mm, 68.5000 mm): Footprint KiKit_MB_26_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(171.8000 mm, 50.2000 mm): Footprint KiKit_MB_13_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(157.0000 mm, 68.5000 mm): Footprint KiKit_MB_22_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(151.1000 mm, 66.3000 mm): Footprint KiKit_MB_18_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(167.0000 mm, 27.1000 mm): Footprint KiKit_MB_3_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(150.1000 mm, 52.5000 mm): Footprint KiKit_MB_11_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(168.0000 mm, 40.9000 mm): Footprint KiKit_MB_10_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(159.0000 mm, 27.1000 mm): Footprint KiKit_MB_1_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(144.0000 mm, 27.1000 mm): Footprint KiKit_MB_5_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(156.0000 mm, 82.3000 mm): Footprint KiKit_MB_29_1
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(123.8500 mm, 32.9000 mm): Footprint TP10
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(123.8500 mm, 31.7000 mm): Footprint TP11
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(150.1000 mm, 66.3000 mm): Footprint KiKit_MB_18_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(169.0000 mm, 68.5000 mm): Footprint KiKit_MB_24_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(156.0000 mm, 68.5000 mm): Footprint KiKit_MB_22_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(144.0000 mm, 40.9000 mm): Footprint KiKit_MB_12_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(171.8000 mm, 51.2000 mm): Footprint KiKit_MB_13_4
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(159.0000 mm, 93.9000 mm): Footprint KiKit_MB_30_3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(152.1000 mm, 66.3000 mm): Footprint KiKit_MB_18_1
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(136.5000 mm, 29.3500 mm): Footprint X1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(128.0000 mm, 80.1000 mm): Footprint KiKit_MB_28_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(157.0000 mm, 40.9000 mm): Footprint KiKit_MB_8_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(167.0000 mm, 40.9000 mm): Footprint KiKit_MB_10_1
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(171.8000 mm, 48.2000 mm): Footprint KiKit_MB_13_1
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(113.5000 mm, 32.9000 mm): Footprint J1
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(135.9000 mm, 31.2000 mm): Footprint U3
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(135.9000 mm, 86.4000 mm): Footprint U3
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(135.9000 mm, 72.6000 mm): Footprint U3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(118.5000 mm, 22.5000 mm): Footprint KiKit_FID_B_1
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(135.9000 mm, 45.0000 mm): Footprint U3
+[lib_footprint_issues]: The current configuration does not include the library 'sfp'.
+    Local override; Severity: warning
+    @(135.9000 mm, 58.8000 mm): Footprint U3
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(178.5000 mm, 22.5000 mm): Footprint KiKit_FID_B_2
+[lib_footprint_issues]: The current configuration does not include the library ''.
+    Local override; Severity: warning
+    @(118.5000 mm, 98.5000 mm): Footprint KiKit_FID_B_3
+
+** Found 0 unconnected pads **
+
+** Found 0 Footprint errors **
+
+** End of Report **
