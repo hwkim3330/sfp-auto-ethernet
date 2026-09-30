@@ -71,28 +71,43 @@ def jlc_files(panel_path, jlc, n):
         y = pcbnew.ToMM(fp.GetPosition().y)       # every part belongs to the board whose PHY is nearest
         i = min(range(len(centres)), key=lambda k: abs(centres[k] - y))
         return f'{fp.GetReference()}_{i + 1}'
-    with open(os.path.join(jlc, 'cpl.csv'), 'w', newline='') as f:
-        w = csv.writer(f)
-        w.writerow(['Designator', 'Mid X', 'Mid Y', 'Layer', 'Rotation'])
-        for fp in fps:
-            base = fp.GetReference()
-            ref = unique(fp)
-            lcsc = fp.GetProperties().get('LCSC', '') if hasattr(fp, 'GetProperties') else ''
-            if base in IGNORE or not lcsc:
-                continue
-            pos = fp.GetPosition()
-            w.writerow([ref, f'{pcbnew.ToMM(pos.x):.3f}mm', f'{-pcbnew.ToMM(pos.y):.3f}mm',
-                        'Bottom' if fp.IsFlipped() else 'Top', f'{fp.GetOrientationDegrees() % 360:.0f}'])
-            key = (fp.GetValue(), fp.GetFPID().GetLibItemName().wx_str(), lcsc)
-            groups.setdefault(key, []).append(ref)
-    with open(os.path.join(jlc, 'bom.csv'), 'w', newline='') as f:
-        w = csv.writer(f)
-        w.writerow(['Comment', 'Designator', 'Footprint', 'LCSC Part #'])
-        for (val, fpn, lcsc), refs in sorted(groups.items(), key=lambda kv: kv[0][2]):
-            w.writerow([val, ','.join(sorted(refs)), fpn, lcsc])
+    # two loadouts of the same board, so nobody edits a BOM by hand:
+    #   tg720  1000BASE-T1, DP83TG720 + FB3 (1.0 V from the buck to pins 9/21)
+    #   tc812  100BASE-T1, DP83TC812 (in stock at JLC), FB3 left off - the
+    #          TC812 regulates pin 21 itself (see README)
+    LOADOUTS = {'tg720': {}, 'tc812': {'U1': ('DP83TC812SRHARQ1', 'C3225813'), 'FB3': None}}
+    for old in ('cpl.csv', 'bom.csv'):
+        if os.path.exists(os.path.join(jlc, old)):
+            os.remove(os.path.join(jlc, old))
+    for name, change in LOADOUTS.items():
+        groups = {}
+        with open(os.path.join(jlc, f'cpl-{name}.csv'), 'w', newline='') as f:
+            w = csv.writer(f)
+            w.writerow(['Designator', 'Mid X', 'Mid Y', 'Layer', 'Rotation'])
+            for fp in fps:
+                base = fp.GetReference()
+                ref = unique(fp)
+                lcsc = fp.GetProperties().get('LCSC', '') if hasattr(fp, 'GetProperties') else ''
+                value = fp.GetValue()
+                if base in change:
+                    if change[base] is None:
+                        continue                          # not fitted in this loadout
+                    value, lcsc = change[base]
+                if base in IGNORE or not lcsc:
+                    continue
+                pos = fp.GetPosition()
+                w.writerow([ref, f'{pcbnew.ToMM(pos.x):.3f}mm', f'{-pcbnew.ToMM(pos.y):.3f}mm',
+                            'Bottom' if fp.IsFlipped() else 'Top', f'{fp.GetOrientationDegrees() % 360:.0f}'])
+                key = (value, fp.GetFPID().GetLibItemName().wx_str(), lcsc)
+                groups.setdefault(key, []).append(ref)
+        with open(os.path.join(jlc, f'bom-{name}.csv'), 'w', newline='') as f:
+            w = csv.writer(f)
+            w.writerow(['Comment', 'Designator', 'Footprint', 'LCSC Part #'])
+            for (val, fpn, lcsc), refs in sorted(groups.items(), key=lambda kv: kv[0][2]):
+                w.writerow([val, ','.join(sorted(refs)), fpn, lcsc])
+        print(f'  {name}: {len(groups)} BOM lines, {sum(len(r) for r in groups.values())} placements')
     print('  panel DRC: ' + ' / '.join(s.strip('* \n') for s in summary))
-    print(f'  {nfiles} gerber/drill files, {len(groups)} BOM lines, '
-          f'{sum(len(r) for r in groups.values())} placements')
+    print(f'  {nfiles} gerber/drill files')
 
 
 def main():

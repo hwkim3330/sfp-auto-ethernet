@@ -1,0 +1,70 @@
+name: check
+
+# Everything that can be checked without hardware, on every push:
+#   - each finished board opens clean in KiCad 9 (DRC, schematic parity, ERC)
+#   - the module firmware builds for every variant, without warnings
+#   - the T1S gateware testbenches pass
+on:
+  push:
+  pull_request:
+
+jobs:
+  kicad9:
+    runs-on: ubuntu-latest
+    container:
+      image: kicad/kicad:9.0
+      options: --user root
+    strategy:
+      fail-fast: false
+      matrix:
+        board: [t1]          # rj45 joins once it is routed
+    steps:
+      - uses: actions/checkout@v4
+      - name: DRC + schematic parity + ERC (KiCad 9)
+        run: KICAD9_NATIVE=1 HOME=/tmp sh hw/check_kicad9.sh ${{ matrix.board }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kicad9-${{ matrix.board }}
+          path: hw/${{ matrix.board }}/kicad9-*.rpt
+
+  firmware:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [t1, rj45]
+        host: [linux, d10]
+    steps:
+      - uses: actions/checkout@v4
+      - name: toolchain
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq gcc-arm-none-eabi make
+      - name: CMSIS headers (ST device + ARM core)
+        run: |
+          git clone -q --depth 1 https://github.com/STMicroelectronics/cmsis_device_g0.git /tmp/cmsis_device_g0
+          git clone -q --depth 1 --filter=blob:none --sparse https://github.com/ARM-software/CMSIS_5.git /tmp/CMSIS_5
+          git -C /tmp/CMSIS_5 sparse-checkout set CMSIS/Core/Include
+      - name: build
+        working-directory: fw
+        run: |
+          make VARIANT=${{ matrix.variant }} HOST=${{ matrix.host }} CROSS=arm-none-eabi- \
+               CMSIS_DEVICE=/tmp/cmsis_device_g0/Include CMSIS_CORE=/tmp/CMSIS_5/CMSIS/Core/Include 2>&1 | tee build.log
+          ! grep -i "warning" build.log
+
+  gateware:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: iverilog
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq iverilog
+      - name: testbenches
+        working-directory: hw/t1s/gw
+        run: |
+          set -e
+          iverilog -g2012 -o /tmp/t8 tb/tb_8b10b.v enc8b10b.v dec8b10b.v
+          vvp -n /tmp/t8 | tee /tmp/t8.log; grep -q PASS /tmp/t8.log
+          iverilog -g2012 -o /tmp/tp tb/tb_pcs.v sgmii_pcs_phy.v enc8b10b.v dec8b10b.v
+          vvp -n /tmp/tp | tee /tmp/tp.log; grep -q PASS /tmp/tp.log
+          iverilog -g2012 -o /tmp/tb tb/tb_bridge.v t1s_bridge.v sgmii_pcs_phy.v sgmii_rate10.v \
+                   frame_fifo.v mii_hd_mac.v enc8b10b.v dec8b10b.v
+          vvp -n /tmp/tb | tee /tmp/tb.log; grep -q PASS /tmp/tb.log

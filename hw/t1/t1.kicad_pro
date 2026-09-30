@@ -187,6 +187,10 @@
       {
         "netclass": "Power",
         "pattern": "VDDIO"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "VIN_RAW"
       }
     ]
   },

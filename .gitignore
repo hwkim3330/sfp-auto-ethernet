@@ -14,3 +14,4 @@ hw/*/.*_placed.kicad_pcb
 hw/*/.*_placed.kicad_pro
 hw/*/.*_placed.kicad_dru
 hw/*/*.dsn
+hw/_t1try*/

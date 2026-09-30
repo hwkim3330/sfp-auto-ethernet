@@ -115,6 +115,14 @@ def _half_width(x):
     return MB.TAB_W / 2 if x < MB.TAB_L + 1 else MB.BODY_PCB_W / 2
 
 
+# TPS22918 (DBV): KiCad's TPS22917DBV has the same pins but types QOD as open
+# collector, so the datasheet's QOD-to-VOUT tie reads as a pin conflict in
+# ERC. QOD is the discharge switch's own end: passive.
+TPS22918 = ('TPS22918', 'U',
+            [('1', 'VIN', 'power_in'), ('3', 'ON', 'input'), ('4', 'CT', 'passive')],
+            [('6', 'VOUT', 'power_out'), ('5', 'QOD', 'passive'), ('2', 'GND', 'power_in')], 15.24)
+
+
 def write_symbols():
     os.makedirs(os.path.dirname(SYMLIB), exist_ok=True)
     edge_l = [('16', 'VccT', 'passive'), ('15', 'VccR', 'passive'), ('', '', ''),
@@ -443,7 +451,10 @@ def write_schematic():
                 label(ex, ey, net, d)
     # PWR_FLAG on every rail fed only through passives or the edge connector
     fx = 40.0
-    for net in D.POWER_NETS + ('GND',):
+    driven = {n for p in D.P for q in sym_block(p['lib_id'])[1]
+              for n in [p['nets'].get(int(q['number'])) if q['number'].isdigit() else None]
+              if n and q['etype'] == 'power_out'}
+    for net in [n for n in D.POWER_NETS + ('GND',) if n not in driven]:
         _PWRN[0] += 1
         x, y = snap(fx), snap(30.0)
         symbol_inst('power:PWR_FLAG', x, y, '#FLG%02d' % _PWRN[0], 'PWR_FLAG', None, 'F' + net, hide=True)
@@ -616,7 +627,15 @@ def apply_rules(board):
     # In2 carries signals too (two signal layers left 16 pads unrouted on a
     # 11.8 mm board); the +3V3 pour fills what the router leaves. In1 stays a
     # solid GND plane: it is the reference right under the F.Cu SGMII traces.
-    board.SetLayerType(pcbnew.In2_Cu, pcbnew.LT_SIGNAL)
+    # D.IN2_GND: In2 is a second GND plane (F / GND / GND / B). Then B.Cu is
+    # GND-referenced like F.Cu, so a pair can change layers without its return
+    # path changing nets; +3V3 is routed as traces. Otherwise In2 carries
+    # signals and a +3V3 pour after routing (T1 before the design review).
+    # D.IN2_SIGNALS as well: In2 still takes low-speed traces and gets its GND
+    # pour after routing, but never under a bottom-side high-speed run
+    # (D.IN2_KEEPOUTS, no tracks there), so those keep a solid GND reference.
+    solid = getattr(D, 'IN2_GND', False) and not getattr(D, 'IN2_SIGNALS', False)
+    board.SetLayerType(pcbnew.In2_Cu, pcbnew.LT_POWER if solid else pcbnew.LT_SIGNAL)
     ds = board.GetDesignSettings()
     ds.m_MinClearance = MB.MM(0.1)
     ds.m_TrackMinWidth = MB.MM(0.1)
@@ -710,9 +729,11 @@ def zone(board, net, layer, pts, clearance=0.2):
     return z
 
 
-def add_edge_keepouts(board, w=0.3):
-    """Thin no-track/no-via strips along every outline edge: Freerouting keeps
-    only copper-to-copper clearance to the board edge, not the fab's 0.2 mm."""
+def add_edge_keepouts(board, w=0.6):
+    """No-track/no-via strips along every outline edge: Freerouting keeps
+    only copper-to-copper clearance to the board edge. 0.6, not the fab's 0.2:
+    the panel's mouse-bite holes reach 0.35 into the board (0.1 in, r 0.25)
+    and want 0.25 of hole clearance (an In2 MDIO trace at 0.22 failed it)."""
     pts = outline()
     for (x0, y0), (x1, y1) in zip(pts, pts[1:] + pts[:1]):
         L = math.hypot(x1 - x0, y1 - y0)
@@ -770,7 +791,26 @@ def add_planes(board):
     pts = [(x, y - inset if y > 0 else y + inset) for x, y in outline()]
     pts = [(max(inset, min(D.LENGTH - inset, x)), y) for x, y in pts]
     zone(board, 'GND', pcbnew.In1_Cu, pts, clearance=0.15)
-    # +3V3 on In2 comes after routing (add_outer_pours): In2 carries signals,
+    if getattr(D, 'IN2_GND', False) and not getattr(D, 'IN2_SIGNALS', False):
+        zone(board, 'GND', pcbnew.In2_Cu, pts, clearance=0.15)
+    for x0, y0, x1, y1 in getattr(D, 'IN2_KEEPOUTS', []):
+        k = pcbnew.ZONE(board)
+        ls = pcbnew.LSET()
+        ls.addLayer(pcbnew.In2_Cu)
+        k.SetLayerSet(ls)
+        ch = pcbnew.SHAPE_LINE_CHAIN()
+        for x, y in ((x0, y0), (x1, y0), (x1, y1), (x0, y1)):
+            ch.Append(MB.V(x, y))
+        ch.SetClosed(True)
+        k.AddPolygon(ch)
+        k.SetIsRuleArea(True)
+        k.SetDoNotAllowTracks(True)
+        k.SetDoNotAllowVias(False)
+        k.SetDoNotAllowCopperPour(False)
+        k.SetDoNotAllowPads(False)
+        k.SetDoNotAllowFootprints(False)
+        board.Add(k)
+    # otherwise +3V3 on In2 comes after routing (add_outer_pours): In2 carries signals,
     # and in the DSN a pour makes the router leave +3V3 to a plane they cut up
 
 
@@ -782,7 +822,10 @@ def add_outer_pours(board):
     inset = 0.3
     pts = [(x, y - inset if y > 0 else y + inset) for x, y in outline()]
     pts = [(max(inset, min(D.LENGTH - inset, x)), y) for x, y in pts]
-    zone(board, '+3V3', pcbnew.In2_Cu, pts, clearance=0.15)
+    if not getattr(D, 'IN2_GND', False):
+        zone(board, '+3V3', pcbnew.In2_Cu, pts, clearance=0.15)
+    elif getattr(D, 'IN2_SIGNALS', False):
+        zone(board, 'GND', pcbnew.In2_Cu, pts, clearance=0.15)
     for layer in (pcbnew.F_Cu, pcbnew.B_Cu):
         z = zone(board, 'GND', layer, pts, clearance=0.2)
         z.SetPadConnection(pcbnew.ZONE_CONNECTION_THT_THERMAL)
@@ -899,6 +942,31 @@ def preroute_edge_gnd(board, x_via=4.55):
                 t.SetLayer(pcbnew.F_Cu if side == 'F' else pcbnew.B_Cu)
                 t.SetNet(gnd); t.SetLocked(True)
                 board.Add(t)
+
+
+def pair_lines(centre, pitch):
+    """A coupled pair along a centreline: the left and right lines at
+    +/-pitch/2 (left = +90 degrees from the direction of travel, module frame),
+    corners mitred so the gap stays the same through every bend. 45-degree
+    bends keep the mitre short (1/cos 22.5 = 1.08)."""
+    import math as _m
+    h = pitch / 2
+    left, right = [], []
+    for i, (x, y) in enumerate(centre):
+        dirs = []
+        if i > 0:
+            dirs.append((x - centre[i - 1][0], y - centre[i - 1][1]))
+        if i < len(centre) - 1:
+            dirs.append((centre[i + 1][0] - x, centre[i + 1][1] - y))
+        ns = []
+        for dx, dy in dirs:
+            L = _m.hypot(dx, dy)
+            ns.append((-dy / L, dx / L))
+        nx, ny = (ns[0][0] + ns[-1][0]) / 2, (ns[0][1] + ns[-1][1]) / 2
+        k = h / (nx * ns[0][0] + ny * ns[0][1])            # mitre length along the bisector
+        left.append((round(x + nx * k, 4), round(y + ny * k, 4)))
+        right.append((round(x - nx * k, 4), round(y - ny * k, 4)))
+    return left, right
 
 
 def prerouted(board):

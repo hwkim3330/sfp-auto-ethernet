@@ -3,12 +3,12 @@
 
     python3 export_t1.py        after make_t1.py --route has left a clean DRC
 
-Order notes for the fab (also in README):
-  4 layers, 1.0 mm finished (the SFP MSA edge: 1.0 +/- 0.1 over the pads)
-  ENIG, plus HARD GOLD on the edge fingers, with a bevel (chamfer) on that edge
-  impedance control: 100 ohm differential on SG_*/TD_*/RD_* - the 0.12 / 0.15
-  widths in make_t1.py are a placeholder for a ~0.1 mm outer dielectric and
-  must be replaced by the fab's own calculator for the stackup chosen
+Order notes (the full sheet is ORDER.md):
+  4 layers, 1.0 mm finished (the SFP MSA edge: 1.0 +/- 0.1 over the pads),
+  JLC04101H-3313 stackup with impedance control; the pairs are 0.114 mm lines
+  with a 0.152 mm gap, about 100 ohm differential on that stackup.
+  ENIG with gold fingers and a 45 degree bevel. JLC plates no hard gold, so
+  the fingers are ENIG-grade, not the MSA's >= 0.38 um hard gold.
 """
 import csv
 import os
@@ -98,13 +98,27 @@ def previews():
                        capture_output=True)
 
 
+
+def print_1to1():
+    """A PDF to print at 100 % and lay the real parts on: top copper, fab
+    outlines and the board edge at 1:1 (the H-MTD's holes above all - its land
+    was drawn from Rosenberger's MB_633 by hand). The board is 63.5 mm long:
+    measure it on the print before trusting the rest."""
+    pdf = os.path.join(FAB, 't1-1to1.pdf')
+    subprocess.run(['kicad-cli', 'pcb', 'export', 'pdf', '--layers', 'F.Cu,F.Fab,Edge.Cuts,Dwgs.User',
+                    '--include-border-title', '--drill-shape-opt', '2', '-o', pdf, PCB], capture_output=True)
+    return pdf
+
+
 def main():
     os.makedirs(FAB, exist_ok=True)
     board = pcbnew.LoadBoard(PCB)
     z, n = gerbers(board)
     parts = bom_cpl(board)
     previews()
-    print(f'{os.path.relpath(z, HERE)}: {n} files;  BOM {parts} placements;  previews in fab/')
+    pdf = print_1to1()
+    print(f'{os.path.relpath(z, HERE)}: {n} files;  BOM {parts} placements;  previews in fab/; '
+          f'1:1 print {os.path.relpath(pdf, HERE)}')
 
 
 if __name__ == '__main__':

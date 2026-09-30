@@ -270,9 +270,17 @@ static void phy_apply_config(void)
     return;
 #endif
     int want = a0[96] & 1;
-    if (HOST_FIBER) {                            /* SGMII_CTRL_1 (MMD1F 0x0608) bit 0 */
+    /* SGMII_CTRL_1 (MMD1F 0x0608), same on the DP83TG720 and DP83TC812.
+     * Bits 7/8 invert the SGMII TX and RX lanes: the T1 board wires both lanes
+     * straight from the SFP edge, which inverts both (the PHY's pins come out
+     * mirrored against the edge; see hw/t1/make_t1.py). Setting both undoes it
+     * whichever lane the datasheet means by "RX". Bit 0 is SGMII AN, off for a
+     * fibre-personality host (HOST_FIBER). */
+    {
         uint16_t c = mmd_read(0x1F, 0x0608);
-        mmd_write(0x1F, 0x0608, (uint16_t)(c & ~1u));
+        c |= 0x0180u;
+        if (HOST_FIBER) c &= (uint16_t)~1u;
+        mmd_write(0x1F, 0x0608, c);
     }
     uint16_t v = mmd_read(1, 0x0834);
     v = (uint16_t)(want ? (v | 0x4000u) : (v & ~0x4000u));
