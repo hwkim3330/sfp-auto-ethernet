@@ -35,7 +35,7 @@ Schematic, PCB (4 layers, routed), fab outputs and firmware are all in place.
 
 ## Board
 
-- 63.5 × 12.4 mm (the H-MTD overhangs a further 3.5 mm). The tab is 9.2 mm wide.
+- 63.5 × 11.8 mm (the H-MTD overhangs a further 3.5 mm). The tab is 9.2 mm wide.
 - Edge connector is the INF-8074i pattern (`../fp/sfp.pretty/SFP_Module_Edge`).
 - 4 layers:
 

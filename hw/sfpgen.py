@@ -11,6 +11,12 @@ provides:
     SOLID_PADS   {(ref, pad)} that join the planes solidly (EP thermal vias)
     HMTD_AT      H-MTD position, or None                  lcsc_for(part)
 
+and optionally:
+
+    NOSE         (x, width): from x on, outside the cage, the board widens
+    FOOTPRINTS   f(io, smd, crt, tht, slot, npth) - the variant's own lands
+    HEIGHTS      {ref: mm} checked against the room inside the cage
+
 Everything else - the MSA edge, the H-MTD land, the CMC land, rules, planes,
 keep-outs, Freerouting, the SES import - is identical for every variant, so it
 lives here once.
@@ -82,6 +88,33 @@ def _symbol(name, ref, left, right, width=20.32, extra=''):
     return body
 
 
+def title_at():
+    return getattr(D, 'TITLE_AT', (30.0, 4.7))
+
+
+def outline():
+    """The board outline: the MSA body, plus a wider nose outside the cage
+    where the design has one (D.NOSE = (x, width); a 45 degree step)."""
+    pts = MB.outline_pts(D.LENGTH)
+    nose = getattr(D, 'NOSE', None)
+    if not nose:
+        return pts
+    x0, w = nose
+    b, h = MB.BODY_PCB_W / 2, w / 2
+    if x0 < MB.CAGE_FRONT:
+        raise ValueError(f'the nose starts at {x0}, inside the cage (front at {MB.CAGE_FRONT})')
+    top = [p for p in pts if p[1] > 0 and p[0] < D.LENGTH]
+    return (top + [(x0, b), (x0 + h - b, h), (D.LENGTH, h), (D.LENGTH, -h), (x0 + h - b, -h), (x0, -b)]
+            + [(x, -y) for x, y in reversed(top)])
+
+
+def _half_width(x):
+    nose = getattr(D, 'NOSE', None)
+    if nose and x >= nose[0]:
+        return min(nose[1] / 2, MB.BODY_PCB_W / 2 + (x - nose[0]))
+    return MB.TAB_W / 2 if x < MB.TAB_L + 1 else MB.BODY_PCB_W / 2
+
+
 def write_symbols():
     os.makedirs(os.path.dirname(SYMLIB), exist_ok=True)
     edge_l = [('16', 'VccT', 'passive'), ('15', 'VccR', 'passive'), ('', '', ''),
@@ -93,13 +126,41 @@ def write_symbols():
               ('9', 'VeeR/RS1', 'passive'), ('10', 'VeeR', 'passive'), ('11', 'VeeR', 'passive'),
               ('14', 'VeeR', 'passive')]
     hmtd = [('1', 'MDI+', 'passive'), ('2', 'MDI-', 'passive'), ('3', 'SHIELD', 'passive')]
+    # the library is shared by every variant: keep the others' symbols,
+    # replace this variant's and the common ones, in a stable (sorted) order
+    ours = {args[0]: _symbol(*args) for args in D.SYMBOLS}
+    ours['SFP_EDGE'] = _symbol('SFP_EDGE', 'J', edge_l, edge_r, width=17.78)
+    ours['HMTD_1P'] = _symbol('HMTD_1P', 'J', hmtd, [], width=10.16)
+    have = _lib_symbols(open(SYMLIB).read()) if os.path.exists(SYMLIB) else {}
+    have.update(ours)
     lib = '(kicad_symbol_lib (version 20220914) (generator sfpgen)\n'
-    for args in D.SYMBOLS:
-        lib += _symbol(*args)
-    lib += _symbol('SFP_EDGE', 'J', edge_l, edge_r, width=17.78)
-    lib += _symbol('HMTD_1P', 'J', hmtd, [], width=10.16)
+    lib += ''.join(have[k] for k in sorted(have))
     lib += ')\n'
     open(SYMLIB, 'w').write(lib)
+
+
+def _lib_symbols(text):
+    """Top-level (symbol "name" ...) blocks of a .kicad_sym, by name."""
+    out, i = {}, text.find('(', 1)
+    while i != -1:
+        depth, j = 0, i
+        while True:
+            c = text[j]
+            if c == '"':
+                j = text.index('"', j + 1)
+            elif c == '(':
+                depth += 1
+            elif c == ')':
+                depth -= 1
+                if depth == 0:
+                    break
+            j += 1
+        block = text[i:j + 1]
+        m = re.match(r'\(symbol "([^"]+)"', block)
+        if m:
+            out[m.group(1)] = block + '\n'
+        i = text.find('(', j + 1)
+    return out
 
 
 def write_footprints():
@@ -114,6 +175,44 @@ def write_footprints():
         p.SetAttribute(pcbnew.PAD_ATTRIB_SMD)
         p.SetLayerSet(p.SMDMask())
         p.SetSize(pcbnew.VECTOR2I(MB.MM(w), MB.MM(h)))
+        p.SetPosition(pcbnew.VECTOR2I(MB.MM(x), MB.MM(y)))
+        p.SetPos0(p.GetPosition())
+        fp.Add(p)
+
+    def tht(fp, num, x, y, pad, drill):
+        p = pcbnew.PAD(fp)
+        p.SetNumber(num)
+        p.SetShape(pcbnew.PAD_SHAPE_CIRCLE)
+        p.SetAttribute(pcbnew.PAD_ATTRIB_PTH)
+        p.SetLayerSet(p.PTHMask())
+        p.SetSize(pcbnew.VECTOR2I(MB.MM(pad), MB.MM(pad)))
+        p.SetDrillSize(pcbnew.VECTOR2I(MB.MM(drill), MB.MM(drill)))
+        p.SetPosition(pcbnew.VECTOR2I(MB.MM(x), MB.MM(y)))
+        p.SetPos0(p.GetPosition())
+        fp.Add(p)
+
+    def slot(fp, num, x, y, w, h, dw, dh):
+        """Plated oval slot: pad w x h, drill dw x dh (a shield tab)."""
+        p = pcbnew.PAD(fp)
+        p.SetNumber(num)
+        p.SetShape(pcbnew.PAD_SHAPE_OVAL)
+        p.SetAttribute(pcbnew.PAD_ATTRIB_PTH)
+        p.SetLayerSet(p.PTHMask())
+        p.SetSize(pcbnew.VECTOR2I(MB.MM(w), MB.MM(h)))
+        p.SetDrillShape(pcbnew.PAD_DRILL_SHAPE_OBLONG)
+        p.SetDrillSize(pcbnew.VECTOR2I(MB.MM(dw), MB.MM(dh)))
+        p.SetPosition(pcbnew.VECTOR2I(MB.MM(x), MB.MM(y)))
+        p.SetPos0(p.GetPosition())
+        fp.Add(p)
+
+    def npth(fp, x, y, drill):
+        p = pcbnew.PAD(fp)
+        p.SetNumber('')
+        p.SetShape(pcbnew.PAD_SHAPE_CIRCLE)
+        p.SetAttribute(pcbnew.PAD_ATTRIB_NPTH)
+        p.SetLayerSet(p.UnplatedHoleMask())
+        p.SetSize(pcbnew.VECTOR2I(MB.MM(drill), MB.MM(drill)))
+        p.SetDrillSize(pcbnew.VECTOR2I(MB.MM(drill), MB.MM(drill)))
         p.SetPosition(pcbnew.VECTOR2I(MB.MM(x), MB.MM(y)))
         p.SetPos0(p.GetPosition())
         fp.Add(p)
@@ -146,17 +245,6 @@ def write_footprints():
     #   body 11 wide, 21.9 deep, 13.5 tall; front face 13 ahead of the front
     #   ground row; board edge to front ground row <= 10
     # Origin = centre of the front ground row, +x = towards the mating face.
-    def tht(fp, num, x, y, pad, drill):
-        p = pcbnew.PAD(fp)
-        p.SetNumber(num)
-        p.SetShape(pcbnew.PAD_SHAPE_CIRCLE)
-        p.SetAttribute(pcbnew.PAD_ATTRIB_PTH)
-        p.SetLayerSet(p.PTHMask())
-        p.SetSize(pcbnew.VECTOR2I(MB.MM(pad), MB.MM(pad)))
-        p.SetDrillSize(pcbnew.VECTOR2I(MB.MM(drill), MB.MM(drill)))
-        p.SetPosition(pcbnew.VECTOR2I(MB.MM(x), MB.MM(y)))
-        p.SetPos0(p.GetPosition())
-        fp.Add(p)
     fp = pcbnew.FOOTPRINT(None)
     fp.SetFPID(pcbnew.LIB_ID('sfp', 'Rosenberger_HMTD_E6S20A_1P_RA'))
     tht(fp, '1', -1.87, -1.0, 1.1, 0.7)
@@ -187,6 +275,9 @@ def write_footprints():
             sh.SetLayer(layer); sh.SetWidth(MB.MM(0.05 if layer == pcbnew.F_CrtYd else 0.1))
             fp.Add(sh)
     io.FootprintSave(FPLIB, fp)
+
+    if hasattr(D, 'FOOTPRINTS'):
+        D.FOOTPRINTS(io, smd, crt, tht, slot, npth)
 
 
 # ==========================================================================
@@ -394,10 +485,10 @@ def build_pcb():
             board.Add(ni)
             nets[n] = ni
         return nets[n]
-    MB.poly(board, pcbnew.Edge_Cuts, MB.outline_pts(D.LENGTH))
+    MB.poly(board, pcbnew.Edge_Cuts, outline())
     MB.seg(board, pcbnew.Dwgs_User, (MB.CAGE_FRONT, 7.5), (MB.CAGE_FRONT, -7.5), 0.15)
     MB.text(board, pcbnew.Dwgs_User, 'cage front', MB.CAGE_FRONT, 8.4, 0.8)
-    MB.text(board, pcbnew.B_SilkS, D.TITLE, 30.0, 4.7, 0.8)   # 5.4 sat 0.1 mm off the edge: clipped in the panel
+    MB.text(board, pcbnew.B_SilkS, D.TITLE, *title_at(), 0.8)   # T1: 5.4 sat 0.1 mm off the edge, clipped in the panel
     for p in D.P:
         fp = MB.edge_footprint() if p['ref'] == 'J1' else fp_load(p['fp'])
         fp.SetReference(p['ref'])
@@ -448,15 +539,29 @@ def check_pcb(board):
             a, b = boxes[i], boxes[j]
             if a[1] != b[1] or 'J1' in (a[0], b[0]):
                 continue
+            # a decap at a fine-pitch pin sits inside the chip's courtyard margin
+            # on purpose; copper clearance is still DRC's to check
+            ok = getattr(D, 'COURTYARD_OK', {})
+            if b[0] in ok.get(a[0], ()) or a[0] in ok.get(b[0], ()):
+                continue
             ra, rb = a[2], b[2]
             if ra[0] < rb[2] - 1e-3 and rb[0] < ra[2] - 1e-3 and ra[1] < rb[3] - 1e-3 and rb[1] < ra[3] - 1e-3:
                 bad.append(f'{a[0]} x {b[0]} ({a[1]})')
     for ref, side, r in boxes:
-        lim = MB.TAB_W / 2 if r[0] < MB.TAB_L + 1 else MB.BODY_PCB_W / 2
-        if ref not in ('J1',) and max(abs(r[1]), abs(r[3])) > lim + 1e-3:
+        lim = min(_half_width(r[0]), _half_width(r[2]))
+        if ref not in ('J1',) and max(abs(r[1]), abs(r[3])) > lim + 1e-3 \
+                and ref not in getattr(D, 'OVERHANG', ()):
             bad.append(f'{ref} off the board edge')
         if ref != 'J1' and r[0] < MB.PAD_END + 0.1 and side == 'F':
             bad.append(f'{ref} on the edge fingers')
+    # heights inside the cage: 4.65 mm over the board, 1.65 under it
+    at = {p['ref']: p for p in D.P}
+    for ref, h in getattr(D, 'HEIGHTS', {}).items():
+        side = at[ref]['side']
+        box = next(b for r, s, b in boxes if r == ref)
+        room = MB.TOP_ROOM if side == 'F' else MB.BOT_ROOM
+        if box[0] < MB.CAGE_FRONT and h > room + 1e-6:
+            bad.append(f'{ref} is {h} mm tall on {side}, {room:.2f} mm of room inside the cage')
     return bad
 
 
@@ -485,7 +590,7 @@ def apply_rules(board):
     # router, which ran traces through it and cut it into islands.
     board.SetLayerType(pcbnew.In1_Cu, pcbnew.LT_POWER)
     # In2 carries signals too (two signal layers left 16 pads unrouted on a
-    # 12.4 mm board); the +3V3 pour fills what the router leaves. In1 stays a
+    # 11.8 mm board); the +3V3 pour fills what the router leaves. In1 stays a
     # solid GND plane: it is the reference right under the F.Cu SGMII traces.
     board.SetLayerType(pcbnew.In2_Cu, pcbnew.LT_SIGNAL)
     ds = board.GetDesignSettings()
@@ -541,6 +646,23 @@ def write_project():
            'schematic': {'legacy_lib_dir': '', 'legacy_lib_list': []},
            'sheets': [[D.SHEET, '']], 'text_variables': {}}
     json.dump(pro, open(os.path.join(D.HERE, D.NAME + '.kicad_pro'), 'w'), indent=2)
+    write_dru()
+
+
+def write_dru():
+    """Custom DRC rules next to the board: the design's COURTYARD_OK pairs (a
+    decap at a fine-pitch pin, inside the chip's courtyard margin on purpose)
+    get no courtyard clearance; copper clearances stay as they are."""
+    ok = getattr(D, 'COURTYARD_OK', {})
+    lines = ['(version 1)']
+    for chip, refs in sorted(ok.items()):
+        cond = ' || '.join(f"(A.Reference == '{chip}' && B.Reference == '{r}') || "
+                           f"(A.Reference == '{r}' && B.Reference == '{chip}')" for r in refs)
+        lines.append(f'(rule "decaps at {chip}"\n  (constraint courtyard_clearance (min -10mm))\n'
+                     f'  (condition "{cond}"))')
+    for path in (os.path.join(D.HERE, D.NAME + '.kicad_dru'),
+                 placed_path()[:-len('.kicad_pcb')] + '.kicad_dru'):
+        open(path, 'w').write('\n'.join(lines) + '\n')
 
 
 def zone(board, net, layer, pts, clearance=0.2):
@@ -567,7 +689,7 @@ def zone(board, net, layer, pts, clearance=0.2):
 def add_edge_keepouts(board, w=0.3):
     """Thin no-track/no-via strips along every outline edge: Freerouting keeps
     only copper-to-copper clearance to the board edge, not the fab's 0.2 mm."""
-    pts = MB.outline_pts(D.LENGTH)
+    pts = outline()
     for (x0, y0), (x1, y1) in zip(pts, pts[1:] + pts[:1]):
         L = math.hypot(x1 - x0, y1 - y0)
         nx, ny = -(y1 - y0) / L * w, (x1 - x0) / L * w     # a normal; which side does not matter,
@@ -597,6 +719,8 @@ HMTD_KEEPOUT = [(-0.06, 1.27, 1.79, 4.37), (-0.06, 1.27, -4.37, -1.79),
 
 
 def add_connector_keepouts(board):
+    if not D.HMTD_AT:
+        return
     for x0, x1, y0, y1 in HMTD_KEEPOUT:
         z = pcbnew.ZONE(board)
         ls = pcbnew.LSET()
@@ -619,7 +743,7 @@ def add_connector_keepouts(board):
 
 def add_planes(board):
     inset = 0.3
-    pts = [(x, y - inset if y > 0 else y + inset) for x, y in MB.outline_pts(D.LENGTH)]
+    pts = [(x, y - inset if y > 0 else y + inset) for x, y in outline()]
     pts = [(max(inset, min(D.LENGTH - inset, x)), y) for x, y in pts]
     zone(board, 'GND', pcbnew.In1_Cu, pts, clearance=0.15)
     # +3V3 on In2 comes after routing (add_outer_pours): In2 carries signals,
@@ -628,11 +752,11 @@ def add_planes(board):
 
 def add_outer_pours(board):
     """After routing, never before: in the DSN a pour on F/B reads as a solid
-    plane and the router finds no room on the signal layers. On a 12.4 mm board
+    plane and the router finds no room on the signal layers. On a 11.8 mm board
     the signal vias' antipads cut In1 into islands; these stitch them back.
     SMD pads join solidly (0201 thermals starve), THT keeps spokes."""
     inset = 0.3
-    pts = [(x, y - inset if y > 0 else y + inset) for x, y in MB.outline_pts(D.LENGTH)]
+    pts = [(x, y - inset if y > 0 else y + inset) for x, y in outline()]
     pts = [(max(inset, min(D.LENGTH - inset, x)), y) for x, y in pts]
     zone(board, '+3V3', pcbnew.In2_Cu, pts, clearance=0.15)
     for layer in (pcbnew.F_Cu, pcbnew.B_Cu):
@@ -758,12 +882,14 @@ def prerouted(board):
     points), for the few links Freerouting cannot enter - e.g. a pin whose
     only open side is blocked by a no-connect neighbour. Locked, so the router
     keeps them."""
-    for net, layer, pts in getattr(D, 'PREROUTES', []):
+    for item in getattr(D, 'PREROUTES', []):
+        net, layer, pts = item[:3]
+        width = item[3] if len(item) > 3 else (0.2 if net in D.POWER_NETS else 0.15)
         n = board.FindNet(net)
         for a, b in zip(pts, pts[1:]):
             t = pcbnew.PCB_TRACK(board)
             t.SetStart(MB.V(*a)); t.SetEnd(MB.V(*b))
-            t.SetWidth(MB.MM(0.2 if net in D.POWER_NETS else 0.15))
+            t.SetWidth(MB.MM(width))
             t.SetLayer(pcbnew.F_Cu if layer == 'F' else pcbnew.B_Cu)
             t.SetNet(n); t.SetLocked(True)
             board.Add(t)
@@ -787,7 +913,7 @@ def predogbone(board, net='GND'):
     done = 0
     for f in list(board.GetFootprints()):
         pads = list(f.Pads())
-        if not f.GetReference().startswith('C') or len(pads) != 2 \
+        if not f.GetReference().startswith(getattr(D, 'DOGBONE_PREFIXES', ('C',))) or len(pads) != 2 \
                 or f.GetReference() in getattr(D, 'NO_DOGBONE', ()):
             continue
         g = [p for p in pads if p.GetNetname() == net]
@@ -820,7 +946,7 @@ def predogbone(board, net='GND'):
 
 
 def stitch_gnd(board, pitch=1.6, dia=0.45, drill=0.25):
-    """GND stitching vias. On a 12.4 mm board the signal vias cut the outer
+    """GND stitching vias. On a 11.8 mm board the signal vias cut the outer
     pours into islands that no longer reach In1; a via grid ties F, In1 and B
     back together. Every candidate goes in, DRC names the ones that collide,
     those come out, repeat until nothing collides."""
@@ -829,7 +955,17 @@ def stitch_gnd(board, pitch=1.6, dia=0.45, drill=0.25):
     # grid fills in around them (a stitching via sat right on VDDIO's only way)
     rpt = os.path.join(D.HERE, '.stitch.rpt')
     drop_dangling_vias(board, rpt)
-    early = join_fragments(board, rpt, nets=None)
+    # the repairs are for a handful of open links; with many the router has
+    # failed and each DRC-scored try just burns minutes (the first RJ45 route
+    # left 22 and ran for half an hour) - fix the layout instead
+    limit = int(os.environ.get('SFP_REPAIR_MAX', '15'))
+    _, u_routed, t_routed = _drc(board, rpt)
+    repair = u_routed <= limit
+    if not repair:
+        print(f'  !! {u_routed} unconnected after routing (> {limit}): repairs skipped')
+        for blk in t_routed.split('\n[unconnected_items]')[1:]:
+            print('    ' + ' / '.join(re.findall(r'\): (.*)', blk.split('\n[')[0]))[:150])
+    early = join_fragments(board, rpt, nets=None) if repair else 0
     if early:
         print(f'  {early} open signal links joined before stitching')
     x0, x1 = MB.PAD_END + 1.5, D.LENGTH - 1.0
@@ -839,7 +975,8 @@ def stitch_gnd(board, pitch=1.6, dia=0.45, drill=0.25):
         # 1.0 mm off the long edges: the panel's mouse-bite holes sit on them
         y = -MB.BODY_PCB_W / 2 + 1.0
         while y < MB.BODY_PCB_W / 2 - 1.0:
-            in_title = 27.4 < x < 32.6 and y > 3.6        # the bottom label at (30, 4.7)
+            tx, ty = title_at()                             # the bottom label
+            in_title = abs(x - tx) < 0.33 * len(D.TITLE) + 0.6 and abs(y - ty) < 1.1
             if (x > MB.TAB_L + 1.5 or abs(y) < MB.TAB_W / 2 - 0.8) and not in_title:
                 cands.append((x, y))
             y += pitch
@@ -873,10 +1010,12 @@ def stitch_gnd(board, pitch=1.6, dia=0.45, drill=0.25):
         for k in bad:
             board.Remove(vias.pop(k))
     pcbnew.ZONE_FILLER(board).Fill(board.Zones())
-    fixed = fanout_orphans(board, rpt)
-    joined = join_fragments(board, rpt)
-    joined += stitch_islands(board, rpt)
-    joined += join_fragments(board, rpt, nets=None)
+    fixed = joined = 0
+    if repair:
+        fixed = fanout_orphans(board, rpt)
+        joined = join_fragments(board, rpt)
+        joined += stitch_islands(board, rpt)
+        joined += join_fragments(board, rpt, nets=None)
     os.remove(rpt)
     if joined:
         print(f'  {joined} plane-net fragments joined by a direct trace')
