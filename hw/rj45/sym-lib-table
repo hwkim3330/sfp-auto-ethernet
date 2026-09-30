@@ -1,0 +1,3 @@
+(sym_lib_table
+  (lib (name "sfp")(type "KiCad")(uri "${KIPRJMOD}/../sym/sfp.kicad_sym")(options "")(descr ""))
+)

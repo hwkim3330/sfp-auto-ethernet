@@ -68,3 +68,6 @@ jobs:
           iverilog -g2012 -o /tmp/tb tb/tb_bridge.v t1s_bridge.v sgmii_pcs_phy.v sgmii_rate10.v \
                    frame_fifo.v mii_hd_mac.v enc8b10b.v dec8b10b.v
           vvp -n /tmp/tb | tee /tmp/tb.log; grep -q PASS /tmp/tb.log
+          iverilog -g2012 -o /tmp/tt tb/tb_top.v t1s_top.v serdes_lane.v t1s_bridge.v sgmii_pcs_phy.v \
+                   sgmii_rate10.v frame_fifo.v mii_hd_mac.v enc8b10b.v dec8b10b.v
+          vvp -n /tmp/tt | tee /tmp/tt.log; grep -q PASS /tmp/tt.log

@@ -15,3 +15,6 @@ hw/*/.*_placed.kicad_pro
 hw/*/.*_placed.kicad_dru
 hw/*/*.dsn
 hw/_t1try*/
+hw/_rjtry*/
+hw/*/.dogbone.rpt
+hw/*/.stitch.rpt

@@ -1,0 +1,133 @@
+ball,pin_name,function,bank,adc,dqs,config_func,diff_pair,lvds,term_during_config
+A1,Q0_LN0_RXM_I,DIO,Q0,,none,,,none,
+A2,Q0_LN0_RXP_I,DIO,Q0,,none,,,none,
+A3,VDDAQ0,Power,N/A,,,,,,
+A4,Q0_LN1_RXP_I,DIO,Q0,,none,,,none,
+A5,Q0_LN1_RXM_I,DIO,Q0,,none,,,none,
+A6,VDDAQ0,Power,N/A,,,,,,
+A7,Q0_REFCLKM_0,DIO,Q0,,none,,,none,
+A8,Q0_REFCLKP_0,DIO,Q0,,none,,,none,
+A9,VDDAQ0,Power,N/A,,,,,,
+A10,Q0_LN2_RXP_I,DIO,Q0,,none,,,none,
+A11,Q0_LN2_RXM_I,DIO,Q0,,none,,,none,
+A12,VDDAQ0,Power,N/A,,,,,,
+A13,Q0_LN3_RXP_I,DIO,Q0,,none,,,none,
+A14,Q0_LN3_RXM_I,DIO,Q0,,none,,,none,
+B1,VSS,Ground,N/A,,,,,,
+B2,VCC,Power,N/A,,,,,,
+B3,Q0_LN0_TXP_O,DIO,Q0,,none,,,none,
+B4,VDDTQ0,Power,N/A,,,,,,
+B5,VSS,Ground,N/A,,,,,,
+B6,Q0_LN1_TXP_O,DIO,Q0,,none,,,none,
+B7,VSS,Ground,N/A,,,,,,
+B8,Q0_LN2_TXP_O,DIO,Q0,,none,,,none,
+B9,VSS,Ground,N/A,,,,,,
+B10,Q0_REFCLKM_1,DIO,Q0,,none,,,none,
+B11,VSS,Ground,N/A,,,,,,
+B12,Q0_LN3_TXM_O,DIO,Q0,,none,,,none,
+B13,VCC,Power,N/A,,,,,,
+B14,VSS,Ground,N/A,,,,,,
+C1,M1_D2A,DIO,MIPI,,none,,,none,
+C2,VDDXM,Power,N/A,,,,,,
+C3,Q0_LN0_TXM_O,DIO,Q0,,none,,,none,
+C4,VCCX,Power,N/A,,,,,,
+C5,VCC,Power,N/A,,,,,,
+C6,Q0_LN1_TXM_O,DIO,Q0,,none,,,none,
+C7,VDDHAQ0,Power,N/A,,,,,,
+C8,Q0_LN2_TXM_O,DIO,Q0,,none,,,none,
+C9,VCC,Power,N/A,,,,,,
+C10,Q0_REFCLKP_1,DIO,Q0,,none,,,none,
+C11,VDDHAQ0,Power,N/A,,,,,,
+C12,Q0_LN3_TXP_O,DIO,Q0,,none,,,none,
+C13,IOB36B,I/O,1,bus1,DQ1,,Comp_of_IOB36A,True,pull down
+C14,IOB39B/D10,I/O,1,bus1,DQ1,D10,Comp_of_IOB39A,True,pull down
+D1,M1_D2C,DIO,MIPI,,none,,,none,
+D2,M1_D2B,DIO,MIPI,,none,,,none,
+D3,VSS,Ground,N/A,,,,,,
+D12,VCCIO1,Power,N/A,,,,,,
+D13,IOB36A,I/O,1,bus1,DQ1,,True_of_IOB36B,True,pull down
+D14,IOB39A/D11,I/O,1,bus1,DQ1,D11,True_of_IOB39B,True,pull down
+E1,VCCX,Power,N/A,,,,,,
+E2,VDDAM,Power,N/A,,,,,,
+E3,VCC,Power,N/A,,,,,,
+E12,VSS,Ground,N/A,,,,,,
+E13,IOB34B/GCLKC_0,I/O,1,bus1,DQ1,GCLKC_0,Comp_of_IOB34A,True,pull down
+E14,IOB43B/D08,I/O,1,,DQ1,D08,Comp_of_IOB43A,True,pull down
+F1,M1_D0B,DIO,MIPI,,none,,,none,
+F2,M1_D0A,DIO,MIPI,,none,,,none,
+F3,VCCIO4,Power,N/A,,,,,,
+F12,VCCLDO,Power,N/A,,,,,,
+F13,IOB34A/GCLKT_0,I/O,1,bus1,DQ1,GCLKT_0,True_of_IOB34B,True,pull down
+F14,IOB43A/D09,I/O,1,,DQ1,D09,True_of_IOB43B,True,pull down
+G1,M1_D0C,DIO,MIPI,,none,,,none,
+G2,IOL20A/TCK,I/O,4,,none,TCK,True_of_IOL20B,True,pull-up
+G3,IOL20B/TMS,I/O,4,,none,TMS,Comp_of_IOL20A,True,pull-up
+G12,VCC,Power,N/A,,,,,,
+G13,IOB32B/GCLKC_1/BPLL_C_IN1/BPLL_C_FB0,I/O,1,bus1,DQ1,GCLKC_1/BPLL_C_IN1/BPLL_C_FB0,Comp_of_IOB32A,True,pull down
+G14,IOB45B/EMCCLK,I/O,1,bus1,DQ1,EMCCLK,Comp_of_IOB45A,True,pull down
+H1,VCC,Power,N/A,,,,,,
+H2,IOL22B/GCLKC_7/Q0REF_C_IN0/RDWR_B/SO/SSI1/PCIE_HOST_RSTN,I/O,4,bus0,none,GCLKC_7/Q0REF_C_IN0/RDWR_B/SO/SSI1/PCIE_HOST_RSTN,Comp_of_IOL22A,True,pull down
+H3,IOL22A/GCLKT_7/Q0REF_T_IN0/SSPI_CLK,I/O,4,bus0,none,GCLKT_7/Q0REF_T_IN0/SSPI_CLK,True_of_IOL22B,True,pull down
+H12,VCCX,Power,N/A,,,,,,
+H13,IOB32A/GCLKT_1/BPLL_T_IN1/BPLL_T_FB0,I/O,1,bus1,DQ1,GCLKT_1/BPLL_T_IN1/BPLL_T_FB0,True_of_IOB32B,True,pull down
+H14,IOB45A,I/O,1,bus1,DQ1,,True_of_IOB45B,True,pull down
+J1,M1_D1C,DIO,MIPI,,none,,,none,
+J2,IOL24B/TDO,I/O,4,bus0,none,TDO,Comp_of_IOL24A,True,pull-up
+J3,IOL24A/TDI,I/O,4,bus0,none,TDI,True_of_IOL24B,True,pull-up
+J12,IOB31A,I/O,1,bus1,DQ1,,,none,pull down
+J13,IOB41A,I/O,1,,DQS1,,True_of_IOB41B,True,pull down
+J14,IOB41B,I/O,1,,DQS1,,Comp_of_IOB41A,True,pull down
+K1,M1_D1B,DIO,MIPI,,none,,,none,
+K2,IOL26B/GCLKC_6/LPLL_C_IN0/LPLL_C_FB1/Q0REF_C_IN1/D07/SSPI_WPN/SSI2,I/O,4,bus0,none,GCLKC_6/LPLL_C_IN0/LPLL_C_FB1/Q0REF_C_IN1/D07/SSPI_WPN/SSI2,Comp_of_IOL26A,True,pull down
+K3,IOL26A/GCLKT_6/LPLL_T_IN0/LPLL_T_FB1/Q0REF_T_IN1/D06/CLKHOLD_N/SSI3,I/O,4,bus0,none,GCLKT_6/LPLL_T_IN0/LPLL_T_FB1/Q0REF_T_IN1/D06/CLKHOLD_N/SSI3,True_of_IOL26B,True,pull down
+K12,VCCIO2,Power,N/A,,,,,,
+K13,IOB3A/D02/MI2,I/O,2,bus1,none,D02/MI2,True_of_IOB3B,True,pull down
+K14,IOB3B/D01/DIN/MISO/MI1,I/O,2,bus1,none,D01/DIN/MISO/MI1,Comp_of_IOB3A,True,pull down
+L1,M1_D1A,DIO,MIPI,,none,,,none,
+L2,VSS,Ground,N/A,,,,,,
+L3,IOL29A/DONE,I/O,3,bus0,none,DONE,True_of_IOL29B,True,pull-up
+L12,VEFUSE,Power,N/A,,,,,,
+L13,IOB5B/MCS_N,I/O,2,bus1,none,MCS_N,Comp_of_IOB5A,True,pull down
+L14,IOB5A/CCLK,I/O,2,bus1,none,CCLK,True_of_IOB5B,True,pull down
+M1,IOL33B/GCLKC_4/LPLL_C_IN1/LPLL_C_FB0/CSI_B/SDA,I/O,3,bus0,none,GCLKC_4/LPLL_C_IN1/LPLL_C_FB0/CSI_B/SDA,Comp_of_IOL33A,True,pull down
+M2,IOL33A/GCLKT_4/LPLL_T_IN1/LPLL_T_FB0/CSO_B/DOUT/SCL,I/O,3,bus0,none,GCLKT_4/LPLL_T_IN1/LPLL_T_FB0/CSO_B/DOUT/SCL,True_of_IOL33B,True,pull down
+M3,IOL29B/RECONFIG_N,I/O,3,bus0,none,RECONFIG_N,Comp_of_IOL29A,True,pull-up
+M4,VCCIO3,Power,N/A,,,,,,
+M5,VDDAM,Power,N/A,,,,,,
+M6,VSS,Ground,N/A,,,,,,
+M7,VDD12M,Power,N/A,,,,,,
+M8,IOB11A,I/O,1,bus1,DQ2,,,none,pull down
+M9,VCCIO1,Power,N/A,,,,,,
+M10,VCC,Power,N/A,,,,,,
+M11,VSS,Ground,N/A,,,,,,
+M12,IOB9A/READY,I/O,2,bus1,none,READY,,none,pull-up
+M13,IOB7B/D00/MOSI/MI0,I/O,2,bus1,none,D00/MOSI/MI0,Comp_of_IOB7A,True,pull down
+M14,IOB7A/D03/MI3,I/O,2,bus1,none,D03/MI3,True_of_IOB7B,True,pull down
+N1,IOL31A/GCLKT_5/MODE1,I/O,3,,none,GCLKT_5/MODE1,True_of_IOL31B,True,pull-up
+N2,IOL31B/GCLKC_5/MODE0,I/O,3,,none,GCLKC_5/MODE0,Comp_of_IOL31A,True,pull-up
+N3,M0_D3P,DIO,MIPI,,none,,,none,
+N4,M0_D2P,DIO,MIPI,,none,,,none,
+N5,M0_CKP,DIO,MIPI,,none,,,none,
+N6,M0_D1P,DIO,MIPI,,none,,,none,
+N7,M0_D0P,DIO,MIPI,,none,,,none,
+N8,IOB20A,I/O,1,bus1,DQS2,,True_of_IOB20B,True,pull down
+N9,IOB24A/GCLKT_2/BPLL_T_IN0/BPLL_T_FB1,I/O,1,bus1,DQ2,GCLKT_2/BPLL_T_IN0/BPLL_T_FB1,True_of_IOB24B,True,pull down
+N10,IOB18B/D12,I/O,1,,DQ2,D12,Comp_of_IOB18A,True,pull down
+N11,IOB22A/GCLKT_3,I/O,1,bus1,DQ2,GCLKT_3,True_of_IOB22B,True,pull down
+N12,IOB16A,I/O,1,bus1,DQ2,,True_of_IOB16B,True,pull down
+N13,IOB14B/D14,I/O,1,bus1,DQ2,D14,Comp_of_IOB14A,True,pull down
+N14,IOB12B,I/O,1,bus1,DQ2,,Comp_of_IOB12A,True,pull down
+P1,IOL35B/D05/SSPI_CS_N,I/O,3,bus0,none,D05/SSPI_CS_N,Comp_of_IOL35A,True,pull down
+P2,IOL35A/D04/SI/SSI0,I/O,3,bus0,none,D04/SI/SSI0,True_of_IOL35B,True,pull down
+P3,M0_D3N,DIO,MIPI,,none,,,none,
+P4,M0_D2N,DIO,MIPI,,none,,,none,
+P5,M0_CKN,DIO,MIPI,,none,,,none,
+P6,M0_D1N,DIO,MIPI,,none,,,none,
+P7,M0_D0N,DIO,MIPI,,none,,,none,
+P8,IOB20B,I/O,1,bus1,DQS2,,Comp_of_IOB20A,True,pull down
+P9,IOB24B/GCLKC_2/BPLL_C_IN0/BPLL_C_FB1,I/O,1,bus1,DQ2,GCLKC_2/BPLL_C_IN0/BPLL_C_FB1,Comp_of_IOB24A,True,pull down
+P10,IOB18A/D13,I/O,1,,DQ2,D13,True_of_IOB18B,True,pull down
+P11,IOB22B/GCLKC_3,I/O,1,bus1,DQ2,GCLKC_3,Comp_of_IOB22A,True,pull down
+P12,IOB16B,I/O,1,bus1,DQ2,,Comp_of_IOB16A,True,pull down
+P13,IOB14A/D15,I/O,1,bus1,DQ2,D15,True_of_IOB14B,True,pull down
+P14,IOB12A,I/O,1,bus1,DQ2,,True_of_IOB12B,True,pull down
