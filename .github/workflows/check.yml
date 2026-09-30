@@ -33,8 +33,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        variant: [t1, rj45]
+        variant: [t1, rj45, t1s]
         host: [linux, d10]
+        exclude:
+          - variant: t1s      # SGMII at 10 Mb/s only: the build refuses HOST=d10
+            host: d10
     steps:
       - uses: actions/checkout@v4
       - name: toolchain

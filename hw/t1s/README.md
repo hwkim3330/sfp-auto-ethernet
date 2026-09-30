@@ -61,10 +61,7 @@ python3 panel_t1s.py           # 5-board panel + JLC files -> jlc/
 - **Refclk choice:** 125 MHz for 1.25 Gb/s is the usual choice, but it has not been checked in Gowin's IP generator.
 - **MIPI rails:** Gowin does not say whether they may stay unpowered, so they are powered (VDD12M 1.2 V, VDDAM on the core rail, VDDXM on 3.3 V).
 - **LAN8670 land:** the exposed pad uses KiCad's VQFN-32 5 × 5 land with a 3.1 mm EP. Check it against the LMX package drawing before ordering.
-- **Firmware:** the MCU firmware for this variant still needs:
-  - the LAN8670's PLCA setup over MDIO;
-  - RX_LOS from `FPGA_LINK`;
-  - FPGA reload through RECONFIG_N.
+- **Firmware** (`fw/`, `VARIANT=t1s`) builds but has never run: FPGA DONE / RECONFIG_N handling, the LAN8670's AN1699 set-up and PLCA over MDIO, RX_LOS from `FPGA_LINK` ([../../fw/README.md](../../fw/README.md)).
 - **Fab limits:**
   - via-in-pad 0.15 mm drill;
   - 0.1 mm lines between ball vias;

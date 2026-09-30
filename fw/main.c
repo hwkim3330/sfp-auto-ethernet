@@ -63,6 +63,18 @@
 #define PHYAD 1
 #define MDIO_C45_NATIVE 1
 #endif
+/* VARIANT_T1S: LAN8670 (10BASE-T1S) behind the FPGA's SGMII bridge
+ * (hw/t1s). PHY address 0 (strapped), a Clause 22 part with MMD access
+ * through REGCR/ADDAR. The MCU also minds the FPGA: it holds the PHY in
+ * reset until the FPGA reports DONE, retries the configuration through
+ * RECONFIG_N, and reports RX_LOS from the FPGA's FPGA_LINK (SGMII sync and
+ * auto-negotiation done; 10BASE-T1S itself has no link status). */
+#ifndef VARIANT_T1S
+#define VARIANT_T1S 0
+#endif
+#if VARIANT_T1S && HOST_FIBER
+#error "T1S: the host lane is SGMII at 10 Mb/s (the FPGA replicates each byte 100 times); it has no 1000BASE-X personality"
+#endif
 #ifndef VARIANT_TEXT
 #define VARIANT_TEXT "100/1000BASE-T1 SGMII"
 #endif
@@ -82,6 +94,12 @@ static void delay_ms(uint32_t n) { uint32_t t = ms; while (ms - t < n) { } }
 #define TX_DIS   4
 #define RX_LOS   5
 #define TX_FAULT 6
+#if VARIANT_T1S                /* hw/t1s/make_t1s.py MCU map */
+#define FPGA_LINK 7            /* PA7 (pin 14) in: SGMII up, from the FPGA */
+#define FPGA_DONE 11           /* PA11 (pin 16) in: configuration done (4.7k pull-up) */
+#define FPGA_RECONF 0          /* PB0 (pin 15) out, open drain: low = reload (4.7k pull-up).
+                                  PB1, PB2 and PA8 share the pin and stay analog */
+#endif
 
 static void gpio_mode(GPIO_TypeDef *g, int pin, uint32_t mode, int od, uint32_t pull)
 {
@@ -224,9 +242,13 @@ static void a0_init(void)
     a0[12] = 25;             /* 2.5 GBd nominal */
     a0[64] = 0x02;           /* power level 2 (up to 1.5 W): the PHY alone peaks near 1 W */
 #endif
+#if VARIANT_T1S
+    a0[2] = 0x80;            /* connector: vendor specific (2-pin JST PH) */
+    a0[18] = 25;             /* a 10BASE-T1S mixing segment: 25 m */
+#endif
     a0[11] = 0x01;           /* 8B/10B */
     a0[12] = 13;             /* 1.3 GBd nominal, units of 100 MBd */
-    a0[18] = 15;             /* copper length, m */
+    if (!VARIANT_T1S) a0[18] = 15;             /* copper length, m */
     put_str(20, 16, "SFP-AUTO-ETH");
     put_str(40, 16, VARIANT_PN);
     put_str(56, 4, "0.1");
@@ -235,7 +257,18 @@ static void a0_init(void)
     put_str(84, 8, "260929");
     a0[92] = 0x00;           /* no digital diagnostics: host leaves A2h alone */
     a0[96] = 0x00;           /* vendor area: bit 0 = T1 master */
+#if VARIANT_T1S
+    /* PLCA, in the vendor area the host may write (read at every 50 ms tick):
+     *   120 bit 0 = PLCA on (off: plain CSMA/CD, which works on any segment)
+     *   121 = local node ID (0 = the coordinator)   122 = node count
+     *   123 = max burst count (0 = one frame per transmit opportunity)
+     * Linux's microchip_t1s driver binds to the PHY behind 0x56 as well, and
+     * `ethtool --set-plca-cfg` there overrides these. */
+    put_str(97, 23, VARIANT_TEXT);
+    a0[120] = 0x00; a0[121] = 0; a0[122] = 8; a0[123] = 0;
+#else
     put_str(97, 31, VARIANT_TEXT);
+#endif
     a0_checksums();
 }
 
@@ -259,8 +292,70 @@ static void rtl8221b_serdes(uint16_t mode)
 }
 #endif
 
+#if VARIANT_T1S
+/* LAN8670/1/2 Rev C1/C2 configuration: Microchip AN1699 Rev E (and AN1760,
+ * whose first nine writes and SQI table it shares), in the order Linux's
+ * drivers/net/phy/microchip_t1s.c (lan867x_revc_config_init) makes them.
+ * All in MMD 31. Two of the values carry per-part trim offsets read back
+ * through the CFGPARAM window (0xD8 address, 0xDA control, 0xD9 data). */
+static int8_t cfg_offset(uint16_t addr)
+{
+    mmd_write(31, 0x00D8, addr);
+    mmd_write(31, 0x00DA, 0x0002);                  /* read enable */
+    uint16_t v = mmd_read(31, 0x00D9) & 0x1Fu;      /* 5-bit signed */
+    return (int8_t)((v & 0x10u) ? (v | 0xE0u) : v);
+}
+
+static void lan867x_init(void)
+{
+    static const uint16_t reg[9] = { 0x00D0, 0x00E0, 0x00E9, 0x00F5, 0x00F4, 0x00F8, 0x00F9, 0x0081, 0x0091 };
+    static const uint16_t val[9] = { 0x3F31, 0xC000, 0x9E50, 0x1CF8, 0xC020, 0xB900, 0x4E53, 0x0080, 0x9660 };
+    static const uint16_t sqi[12] = { 0x0103, 0x0910, 0x1D26, 0x002A, 0x0103, 0x070D,
+                                      0x1720, 0x0027, 0x0509, 0x0E13, 0x1C25, 0x002B };
+    for (int i = 0; i < 20 && !(mmd_read(31, 0x0019) & 0x0800u); i++) delay_ms(1);   /* STS2 reset complete */
+    int o0 = cfg_offset(0x0004), o1 = cfg_offset(0x0008);
+    for (int i = 0; i < 9; i++) {
+        mmd_write(31, reg[i], val[i]);
+        if (i == 1) {
+            mmd_write(31, 0x0084, (uint16_t)((((9 + o0) & 0x3F) << 10) | (((14 + o0) & 0x3F) << 4) | 0x03));
+            mmd_write(31, 0x008A, (uint16_t)(((40 + o1) & 0x3F) << 10));
+        }
+    }
+    mmd_write(31, 0x00AD, (uint16_t)((((5 + o0) & 0x3F) << 8) | ((9 + o0) & 0x3F)));
+    mmd_write(31, 0x00AE, (uint16_t)((((9 + o0) & 0x3F) << 8) | ((14 + o0) & 0x3F)));
+    mmd_write(31, 0x00AF, (uint16_t)((((17 + o0) & 0x3F) << 8) | ((22 + o0) & 0x3F)));
+    for (int i = 0; i < 12; i++) mmd_write(31, (uint16_t)(0x00B0 + i), sqi[i]);
+}
+
+/* OPEN Alliance TC14 PLCA registers, MMD 31: CTRL0 0xCA01 (bit 15 enable),
+ * CTRL1 0xCA02 (node count 15:8, local ID 7:0), BURST 0xCA05 (max burst
+ * count 15:8, burst timer 7:0 = 0x80 bit times, its reset value) */
+static uint8_t plca_applied[4] = { 0xFF, 0xFF, 0xFF, 0xFF };
+
+static void plca_apply(void)
+{
+    mmd_write(31, 0xCA01, 0x0000);                  /* off while it changes */
+    mmd_write(31, 0xCA02, (uint16_t)((a0[122] << 8) | a0[121]));
+    mmd_write(31, 0xCA05, (uint16_t)((a0[123] << 8) | 0x80u));
+    if (a0[120] & 1) mmd_write(31, 0xCA01, 0x8000);
+    for (int i = 0; i < 4; i++) plca_applied[i] = a0[120 + i];
+}
+
+static int plca_changed(void)
+{
+    for (int i = 0; i < 4; i++) if (plca_applied[i] != a0[120 + i]) return 1;
+    return 0;
+}
+#endif
+
 static void phy_apply_config(void)
 {
+#if VARIANT_T1S
+    lan867x_init();
+    plca_apply();
+    master_applied = a0[96] & 1;                    /* T1S has no master/slave */
+    return;
+#endif
 #if VARIANT_RJ45
     /* on a switch the host lane is fixed at 2500BASE-X (the D10 links FS's
      * module only at speed 2500); on Linux, switch with speed and let the
@@ -398,6 +493,12 @@ int main(void)
     gpio_mode(GPIOA, RX_LOS, 1, 1, 0);           /* released = LOS (no link yet) */
     pa_clr(TX_FAULT);
     gpio_mode(GPIOA, TX_FAULT, 1, 1, 0);         /* held low: no fault */
+#if VARIANT_T1S
+    gpio_mode(GPIOA, FPGA_LINK, 0, 0, 2);        /* in, pulled down: no FPGA = no link */
+    gpio_mode(GPIOA, FPGA_DONE, 0, 0, 0);
+    GPIOB->BSRR = PIN(FPGA_RECONF);
+    gpio_mode(GPIOB, FPGA_RECONF, 1, 1, 0);      /* released */
+#endif
     for (int p = 6; p <= 7; p++) {               /* PB6 SCL, PB7 SDA: AF6, open drain */
         gpio_mode(GPIOB, p, 2, 1, 0);
         GPIOB->AFR[0] = (GPIOB->AFR[0] & ~(0xFu << (4 * p))) | (6u << (4 * p));
@@ -407,10 +508,33 @@ int main(void)
     phy_held = 1;
 
     uint32_t last = 0;
+#if VARIANT_T1S
+    uint32_t cfg_start = 0;                      /* the FPGA loads from its flash at power-up */
+    int reloads = 0;
+#endif
     for (;;) {
         i2c_poll();
         if (ms - last < 50) continue;
         last = ms;
+#if VARIANT_T1S
+        /* the FPGA must be configured before the PHY's MII means anything.
+         * GW5AT MSPI boot takes well under a second; if DONE has not come
+         * after 1.5 s, pulse RECONFIG_N (Gowin: low >= 25 ns) and try again,
+         * three times at most - a blank flash never will */
+        int done = pa_get(FPGA_DONE);
+        if (!done && reloads < 3 && ms - cfg_start > 1500) {
+            GPIOB->BRR = PIN(FPGA_RECONF);
+            delay_ms(1);
+            GPIOB->BSRR = PIN(FPGA_RECONF);
+            cfg_start = ms;
+            reloads++;
+        }
+        phy_hold(pa_get(TX_DIS) || !done);
+        if (phy_held) { pa_set(RX_LOS); continue; }
+        if (plca_changed()) plca_apply();
+        if (pa_get(FPGA_LINK)) pa_clr(RX_LOS); else pa_set(RX_LOS);
+        continue;
+#endif
         phy_hold(pa_get(TX_DIS));                /* TX_DISABLE high/open: PHY in reset */
         if (phy_held) { pa_set(RX_LOS); continue; }
         if ((a0[96] & 1) != master_applied) phy_apply_config();

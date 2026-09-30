@@ -1,7 +1,8 @@
 # SFP module controller firmware (STM32G031F6P6).
 #
 #   make                 -> build/sfp_ctrl.elf / .bin
-#   make VARIANT=rj45    -> the RJ45 module's strings
+#   make VARIANT=rj45    -> the RJ45 module (RTL8221B)
+#   make VARIANT=t1s     -> the T1S module (LAN8670 behind the FPGA)
 #   make HOST=d10        -> for Kontron KSwitch D10: 1000BASE-X personality
 #   make flash           -> openocd over SWD (TP1..TP5 on the board)
 #
@@ -18,7 +19,7 @@ HOST         ?= linux      # linux: 1000BASE-T + PHY at 0x56 | d10: 1000BASE-X, 
 ifeq ($(VARIANT),rj45)
   DEFS = -DVARIANT_RJ45=1 -DVARIANT_PN='"RJ45-2500"' -DVARIANT_TEXT='"100M/1G/2.5GBASE-T 2500BASE-X"'
 else ifeq ($(VARIANT),t1s)
-  DEFS = -DVARIANT_PN='"T1S-10"' -DVARIANT_TEXT='"10BASE-T1S SGMII"'
+  DEFS = -DVARIANT_T1S=1 -DVARIANT_PN='"T1S-10"' -DVARIANT_TEXT='"10BASE-T1S SGMII"'
 else
   DEFS = -DVARIANT_PN='"T1-1000"' -DVARIANT_TEXT='"100/1000BASE-T1 SGMII"'
 endif
