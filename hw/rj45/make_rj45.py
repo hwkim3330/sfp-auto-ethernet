@@ -123,8 +123,8 @@ def u1_pin(n):
 # stub from the pin, its ground end dogboned to In1. At 0.4 mm pitch no via
 # fits between the pins, so a cap on the other side could not be reached.
 #   (ref, pin, net, (x, y), rot)
-DECAP = [('C7', 4, 'V0P95', (18.35, 4.25), 270), ('C8', 5, '+3V3', (19.1, 4.25), 270),   # 0.1 right: MDIO climbs past C7
-         ('C9', 7, 'AVDD33', (19.9, 4.25), 270), ('C10', 11, 'AVDD09', (21.6, 4.25), 270),
+DECAP = [('C7', 4, 'V0P95', (18.35, 4.75), 270), ('C8', 5, '+3V3', (19.1, 4.75), 270),   # 0.1 right: MDIO climbs past C7
+         ('C9', 7, 'AVDD33', (19.9, 4.75), 270), ('C10', 11, 'AVDD09', (21.6, 4.75), 270),   # 0.5 up: a via fits in each stub
          ('C15', 28, 'V0P95', (20.5, -4.25), 90), ('C16', 31, '+3V3', (19.3, -4.25), 90),
          ('C17', 36, 'V0P95', (17.3, -4.25), 90),
          ('C18', 42, '+3V3', (14.9, 0.05), 180), ('C19', 43, 'V0P95', (14.9, 0.95), 180)]
@@ -218,7 +218,7 @@ part('U2', 'MCU_ST_STM32G0:STM32G031F_4-6-8_Px', 'STM32G031F6P6', 'Package_SO:TS
      MCU, (59.2, 0.0), side='B', rot=270, mpn='STM32G031F6P6')   # 270: pin 1's silk mark clear of the jack's peg hole
 part('C41', 'Device:C_Small', '100nF', C0402, {1: '+3V3', 2: 'GND'}, (55.1, 1.15), side='B', rot=90)
 part('C42', 'Device:C_Small', '1uF', C0402, {1: '+3V3', 2: 'GND'}, (55.1, -1.15), side='B', rot=90)
-part('C43', 'Device:C_Small', '100nF', C0402, {1: 'NRST', 2: 'GND'}, (55.1, 3.1), side='B', rot=90)
+part('C43', 'Device:C_Small', '100nF', C0402, {1: 'NRST', 2: 'GND'}, (55.1, 3.1), side='B', rot=270)   # ground end up: a via fits there, not below
 part('R5', 'Device:R_Small', '10k', R0402, {1: '+3V3', 2: 'TX_DISABLE'}, (55.1, -3.1), side='B', rot=90)
 # SWD pads beside it (bottom), pogo-probed
 for i, (net, xy) in enumerate([('+3V3', (53.0, 3.0)), ('SWDIO', (53.0, 1.0)), ('SWCLK', (53.0, -1.0)),
@@ -279,15 +279,18 @@ SOLID_PADS = {('U1', '49')}
 HMTD_AT = None
 # Six layers (JLC06101H-3313: the same 3313 prepreg under F and B as the
 # four-layer stack, so the pairs keep their 0.114 / 0.152 geometry):
-#   F | In1 GND | In2 signals + the 0.95 V core as an island | In3 +3V3 | In4 GND | B
+#   F | In1 GND | In2 signals | In3 +3V3 | In4 GND | B
 # Every pair references GND (F over In1, B over In4). On four layers every
 # signal routed, but the PHY's power pins - 0.4 mm apart, their decaps right
 # above them - could not all reach their rails; here each power pad gets a
 # via into its plane and the router never routes power.
 LAYERS = 6
 PLANES = [('In3.Cu', '+3V3')]
-IN2_ISLANDS = [('V0P95', (8.4, -5.3, 22.3, 5.3))]           # the buck and U1
-PLANE_DOGBONE = ('+3V3', 'V0P95')
+# the core rail is routed, not an island: an island on In2 under the buck and
+# U1 left the host's control lines two thin corridors to the MCU (tried)
+PLANE_DOGBONE = ('+3V3',)
+MIN_VIA = (0.35, 0.2)
+HOLE_CLEARANCE = 0.2             # a 0.35 / 0.2 via next to a 0.15-clearance copper edge sits 0.225 off it
 
 
 def FOOTPRINTS(io, smd, crt, tht, slot, npth):
@@ -352,12 +355,12 @@ PWR = ['+3V3', 'V0P95', 'AVDD09', 'AVDD33', 'BUCK_SW', 'VCCT', 'VCCR', 'VIN_RAW'
 # JLC04101H-3313: 50 ohm single-ended = 0.157 mm on the outer layers
 NETCLASSES = [
     # 0.15: with the 0.1 via ring that is the board's 0.25 hole clearance (0.127 was not)
-    dict(name='Default', clearance=0.15, track_width=0.127, via_diameter=0.45, via_drill=0.25),
+    dict(name='Default', clearance=0.15, track_width=0.127, via_diameter=0.35, via_drill=0.2),   # 0.35 / 0.2: fits beside U1's 0.4 mm pins (no JLC surcharge at 0.2)
     dict(name='SGMII', clearance=0.15, track_width=0.157, via_diameter=0.45, via_drill=0.25,
          dp_width=0.114, dp_gap=0.152, nets=HS),
     dict(name='MDI', clearance=0.15, track_width=0.157, via_diameter=0.45, via_drill=0.25,
          dp_width=0.114, dp_gap=0.152, nets=MDI),
-    dict(name='Power', clearance=0.15, track_width=0.2, via_diameter=0.45, via_drill=0.25, nets=PWR),   # 0.5 vias did not fit between U1's decaps
+    dict(name='Power', clearance=0.15, track_width=0.2, via_diameter=0.35, via_drill=0.2, nets=PWR),   # 0.5 vias did not fit between U1's decaps
 ]
 CLASS_LAYERS = {'SGMII': ['F.Cu', 'B.Cu'], 'MDI': ['F.Cu', 'B.Cu']}
 PAIRS = [('TD_P', 'TD_N'), ('HSI_P', 'HSI_N'), ('RD_P', 'RD_N'), ('HSO_P', 'HSO_N')] + \
@@ -388,7 +391,7 @@ def _stub(pin, net, xy, rot, off=0.32, width=None):
 
 PREROUTES = [_stub(pin, net, xy, r) for ref, pin, net, xy, r in DECAP]
 PREVIAS = []
-PREROUTES += [_stub(8, 'AVDD33', (19.9, 4.25), 270),            # pin 8 shares C9 with pin 7
+PREROUTES += [_stub(8, 'AVDD33', (19.9, 4.75), 270),            # pin 8 shares C9 with pin 7
               _stub(38, 'HSO_P', (15.0, -1.8), 0, 0.48, 0.157),
               _stub(37, 'HSO_N', (15.0, -2.75), 0, 0.48, 0.157)]
 # right side fan (bottom): pin -> 0.6 out -> the fan's end; power pins on to a
@@ -590,6 +593,32 @@ def lcsc_for(p):
     if p['dnp'] or p['ref'].startswith('TP') or p['ref'] == 'J1':
         return ''
     return LCSC_BY_MPN.get(p['mpn']) or LCSC_BY_VALUE.get((p['value'], p['fp']), '')
+
+
+# U1's top-edge power pins: a via in the middle of each pin-to-decap stub (the
+# decaps moved up to make room), so +3V3 drops into its plane and the others
+# reach the free top side over U1. Pin 42 and the MCU's C42 likewise.
+PREVIAS += [('V0P95', (18.449, 3.85), MIN_VIA), ('+3V3', (18.968, 3.85), MIN_VIA),
+            ('AVDD33', (20.032, 3.85), MIN_VIA), ('AVDD09', (21.402, 3.85), MIN_VIA),
+            ('+3V3', (15.8, -0.2), MIN_VIA), ('+3V3', (55.1, 0.0), MIN_VIA)]
+PREROUTES += [('+3V3', 'B', [(15.95, -0.2), (15.8, -0.2)], 0.2),
+              ('+3V3', 'B', [(55.1, -0.67), (55.1, 0.0)], 0.2)]
+# X1's two +3V3 pins (OE, VDD) straight to each other: pin 1 sits at the edge
+# with no room for its own via
+PREROUTES += [('+3V3', 'F', [(24.95, 5.05), (24.95, 4.1)], 0.2)]   # (out of the edge strip)
+# R13's +3V3 end, boxed in by CFG1's route and C17: a via of its own
+PREROUTES += [('+3V3', 'B', [(17.88, -5.15), (16.0, -5.15), (16.0, -5.05)], 0.15)]
+PREVIAS += [('+3V3', (16.0, -5.05), MIN_VIA)]      # between C22's pads on top
+# the buck's output had no via of its own: the core rail's two halves (pins
+# 43 / C19 / the buck, and pins 4 / 28 / 36) stayed apart. One beside C33.
+PAD_DOGBONE = [('C33', '1'), ('C43', '2')]
+PREVIAS += [('GND', (28.6, 0.0), MIN_VIA)]           # the top pour before the magnetics had no via
+# pin 43 (core) and its C19 had no via either, boxed in on the left edge: one
+# in the unused pin 44's slot, on pin 43's own stub, tied on In2 under U1 to
+# pin 4's (0.7 mm clear of the thermal vias)
+PREVIAS += [('V0P95', (15.75, 0.6), MIN_VIA)]
+PREROUTES += [('V0P95', 'In2', [(15.75, 0.6), (17.6, 0.6), (17.6, 3.0), (18.449, 3.85)], 0.15)]
+PREROUTES += [('V0P95', 'B', [(15.95, 0.2), (15.75, 0.6)], 0.15)]   # joined end to end: overlap alone is not a connection
 
 
 if __name__ == '__main__':

@@ -1,0 +1,12 @@
+TD_P/TD_N 2.43/2.33 mm skew 0.10 vias 0/0
+HSI_P/HSI_N 14.07/14.07 mm skew 0.00 vias 1/1
+RD_P/RD_N 12.13/12.23 mm skew 0.10 vias 1/1
+HSO_P/HSO_N 1.07/1.32 mm skew 0.25 vias 0/0
+MDI0_P/MDI0_N 25.53/24.24 mm skew 1.30 vias 1/1
+MDI1_P/MDI1_N 20.40/19.13 mm skew 1.27 vias 1/1
+MDI2_P/MDI2_N 16.15/14.90 mm skew 1.25 vias 1/1
+MDI3_P/MDI3_N 12.72/11.48 mm skew 1.24 vias 1/1
+LINE0_P/LINE0_N 24.39/20.99 mm skew 3.40 vias 0/0
+LINE1_P/LINE1_N 19.86/15.56 mm skew 4.31 vias 0/0
+LINE2_P/LINE2_N 13.39/15.08 mm skew 1.68 vias 1/1
+LINE3_P/LINE3_N 10.91/8.35 mm skew 2.56 vias 0/0

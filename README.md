@@ -5,7 +5,7 @@ SFP 모듈 세 가지. 일반 SFP 슬롯에 꽂으면 호스트와 SerDes로 붙
 | 변형 | 바깥쪽 | PHY | 호스트 쪽 | 커넥터 | 상태 |
 |---|---|---|---|---|---|
 | [`t1`](hw/t1/) | **100/1000BASE-T1** | TI DP83TG720S (1000) / DP83TC812S (100): 핀 호환이라 PCB 하나로 둘 다 | SGMII 1.25 Gbaud | H-MTD (Rosenberger E6S20A) | **배선 완료, KiCad 9 검사 통과, 주문 파일 있음**. 실물은 아직 없음 |
-| [`rj45`](hw/rj45/) | 100M / 1G / **2.5GBASE-T** | Realtek RTL8221B-VB | 2500BASE-X 3.125 Gbaud 또는 SGMII | RJ45 (Kinghelm KH-RJ45-58, 차폐) | 부품·배치 확정, **배선 중**. 주문 불가 |
+| [`rj45`](hw/rj45/) | 100M / 1G / **2.5GBASE-T** | Realtek RTL8221B-VB | 2500BASE-X 3.125 Gbaud 또는 SGMII | RJ45 (Kinghelm KH-RJ45-58, 차폐) | **6층 배선 완료, KiCad 9 검사 통과, 주문 파일 있음**. 실물은 아직 없음 |
 | [`t1s`](hw/t1s/) | 10BASE-T1S | FPGA (SGMII PCS 브리지) + Microchip LAN8670 | SGMII 10 Mb/s | 2핀 | **게이트웨어만**: 시뮬레이션 통과. 보드 없음 |
 
 ![t1](hw/t1/fab/t1-top.png)
@@ -40,7 +40,7 @@ SFP 모듈 세 가지. 일반 SFP 슬롯에 꽂으면 호스트와 SerDes로 붙
 
 | 무엇 | 도구 | 어디서 |
 |---|---|---|
-| DRC, 회로도-PCB 일치(parity), ERC | KiCad 9 (공식 Docker 이미지). 검토자가 여는 그대로 | `sh hw/check_kicad9.sh t1` |
+| DRC, 회로도-PCB 일치(parity), ERC | KiCad 9 (공식 Docker 이미지). 검토자가 여는 그대로 | `sh hw/check_kicad9.sh t1`, `… rj45` |
 | 펌웨어 빌드: 4가지 변형, 경고 0 | arm-none-eabi-gcc | `fw/`, CI |
 | T1S 게이트웨어 | Icarus Verilog 테스트벤치 3개 | `hw/t1s/gw/`, CI |
 
@@ -65,9 +65,8 @@ SFP 모듈 세 가지. 일반 SFP 슬롯에 꽂으면 호스트와 SerDes로 붙
 
 ## 다음
 
-1. RJ45 배선 마무리 → KiCad 9 검사 → 패널 → 주문 파일
-2. T1S 보드: FPGA + LAN8670 + MCU
-3. 하우징: 래치와 베일
+1. T1S 보드 배선 마무리: FPGA + LAN8670 + MCU (6층)
+2. 하우징: 래치와 베일
 
 ## 참고
 

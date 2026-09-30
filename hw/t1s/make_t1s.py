@@ -52,7 +52,7 @@ TITLE = 'T1S SFP'
 SCH_TITLE = 'SFP 10BASE-T1S - GW5AT-15 + LAN8670'
 SHEET = '5e1f3a92-7b6c-4d8e-9f01-2a3b4c5d6e71'
 LAYERS = 6
-TITLE_AT = (33.0, -4.7)
+TITLE_AT = (49.2, -4.7)
 
 P = []
 
@@ -134,7 +134,7 @@ FPGA.update({
     'P14': 'CRS', 'P13': 'RXD0', 'P12': 'RXCLK', 'P11': 'RXD1', 'P10': 'RXDV', 'P9': 'RXD2', 'P8': 'RXD3',
     # MSPI configuration flash (bank 2)
     'L14': 'F_CLK', 'L13': 'F_CS_N', 'M13': 'F_MOSI', 'K14': 'F_MISO',
-    'N1': 'MODE1', 'N2': 'MODE0', 'M3': 'FPGA_RECONFIG_N', 'L3': 'FPGA_DONE', 'M12': 'FPGA_READY',
+    'N1': 'MODE1', 'M3': 'FPGA_RECONFIG_N',          # MODE0 (N2): its internal pull-up (MSPI = 11) 'L3': 'FPGA_DONE', 'M12': 'FPGA_READY',
     'G2': 'JTAG_TCK', 'G3': 'JTAG_TMS', 'J3': 'JTAG_TDI', 'J2': 'JTAG_TDO',
     'P1': 'FPGA_LINK',                                # SGMII link up -> MCU (RX_LOS)
 })
@@ -148,7 +148,7 @@ def needs_via(ball):
     net = FPGA.get(ball)
     if not net:
         return False
-    return ring(ball) > 1 or net in ('GND', '+3V3', 'VCC_CORE', 'V1P2', 'VDDAQ', 'VDDTQ', 'VDDHAQ')
+    return ring(ball) > 1 or net in ('GND', '+3V3', 'VCC_CORE', 'V1P2', 'VDDAQ', 'VDDTQ', 'VDDHAQ', 'F_MISO', 'F_CLK')
 
 
 # 125 MHz LVDS reference, AC coupled at the FPGA
@@ -164,10 +164,10 @@ part('C9', 'Device:C_Small', '100nF', C0201, {1: '+3V3', 2: 'GND'}, (25.2, 3.6),
 # configuration flash (MSPI), underneath beside the FPGA's bank-2 corner
 part('U2', 'Memory_Flash:W25Q32JVZP', 'GD25Q64CWIGR', 'Package_SON:WSON-8-1EP_6x5mm_P1.27mm_EP3.4x4.3mm',
      {1: 'F_CS_N', 2: 'F_MISO', 3: '+3V3', 4: 'GND', 5: 'F_MOSI', 6: 'F_CLK', 7: '+3V3', 8: '+3V3', 9: 'GND'},
-     (22.6, -2.6), side='B', mpn='GD25Q64CWIGR')      # WP#/HOLD# tied high: x1 SPI only
+     (23.6, -2.6), side='B', mpn='GD25Q64CWIGR')      # WP#/HOLD# tied high: x1 SPI only
 # straps and config pull-ups (UG984 3.5: 4.7k)
 # (R5 READY and R6 flash CS sit in the decap grid under the FPGA, below)
-for ref, net, at in (('R1', 'MODE1', (10.7, -2.7)), ('R2', 'MODE0', (10.7, -1.8)),
+for ref, net, at in (('R1', 'MODE1', (10.7, -2.7)),
                      ('R3', 'FPGA_RECONFIG_N', (10.7, -0.9)), ('R4', 'FPGA_DONE', (10.7, 0.0))):
     part(ref, 'Device:R_Small', '4.7k', R0201, {1: '+3V3', 2: net}, at, side='B')
 part('R7', 'Device:R_Small', '4.7k', R0201, {1: 'JTAG_TCK', 2: 'GND'}, (10.7, 0.9), side='B')
@@ -190,34 +190,34 @@ part('FB3', 'Device:FerriteBead_Small', 'BLM18KG601SH1', FB0603, {1: 'VCC_CORE',
 part('FB4', 'Device:FerriteBead_Small', 'BLM18KG601SH1', FB0603, {1: 'VCC_CORE', 2: 'VDDTQ'}, (12.0, 4.95), side='B', mpn='BLM18KG601SH1')
 # 1.8 V (VDDHAQ0) and 1.2 V (VDD12M, VCCLDO) LDOs from +3V3
 part('U6', 'Regulator_Linear:TLV75518PDBV', 'TLV75518PDBVR', 'Package_TO_SOT_SMD:SOT-23-5',
-     {1: '+3V3', 2: 'GND', 3: '+3V3', 4: None, 5: 'VDDHAQ'}, (43.4, 3.4), side='B', mpn='TLV75518PDBVR')
+     {1: '+3V3', 2: 'GND', 3: '+3V3', 4: None, 5: 'VDDHAQ'}, (45.6, 3.4), side='B', mpn='TLV75518PDBVR')
 part('U7', 'Regulator_Linear:TLV75512PDBV', 'TLV75512PDBVR', 'Package_TO_SOT_SMD:SOT-23-5',
-     {1: '+3V3', 2: 'GND', 3: '+3V3', 4: None, 5: 'V1P2'}, (43.4, -3.4), side='B', mpn='TLV75512PDBVR')
-part('C15', 'Device:C_Small', '1uF', C0402, {1: 'VDDHAQ', 2: 'GND'}, (12.2, -4.75), side='B')
-part('C16', 'Device:C_Small', '1uF', C0402, {1: 'V1P2', 2: 'GND'}, (14.2, -4.75), side='B')
-part('C17', 'Device:C_Small', '1uF', C0402, {1: '+3V3', 2: 'GND'}, (16.2, -4.75), side='B')
-part('C18', 'Device:C_Small', '4.7uF', C0402, {1: 'VDDAQ', 2: 'GND'}, (18.2, -4.75), side='B')
+     {1: '+3V3', 2: 'GND', 3: '+3V3', 4: None, 5: 'V1P2'}, (45.6, -3.4), side='B', mpn='TLV75512PDBVR')
+part('C15', 'Device:C_Small', '1uF', C0402, {1: 'VDDHAQ', 2: 'GND'}, (11.9, -4.75), side='B')
+part('C16', 'Device:C_Small', '1uF', C0402, {1: 'V1P2', 2: 'GND'}, (13.9, -4.75), side='B')
+part('C17', 'Device:C_Small', '1uF', C0402, {1: '+3V3', 2: 'GND'}, (15.9, -4.75), side='B')
+part('C18', 'Device:C_Small', '4.7uF', C0402, {1: 'VDDAQ', 2: 'GND'}, (13.8, 4.8))   # on top, over row A's VDDAQ balls
 
 # decoupling under the FPGA: a 3 x 4 grid of 0201s in the empty centre of the
 # ball ring (bottom), 0.23 mm clear of the ring's vias; the bulk caps along
 # the ring's outer edges. UG984 / the kit's sheet 9, scaled to one lane.
 _cx, _cy = U1_AT
-_GRID = [(_cx + dx, _cy + dy) for dy in (1.35, 0.45, -0.45, -1.35) for dx in (-1.4, 0.0, 1.4)]
+_GRID = [(_cx + dx, _cy + dy) for dy in (1.35, 0.45, -0.45, -1.35) for dx in (-1.05, 1.05)]   # a channel down the middle
 _dec = [('VCC_CORE', '+3V3'), ('VCC_CORE', '+3V3'), ('VCC_CORE', '+3V3'), ('VDDAQ', 'VDDHAQ'), ('V1P2', None)]
-_dec = ['VCC_CORE', 'VCC_CORE', 'VCC_CORE', '+3V3', '+3V3', '+3V3', 'VDDAQ', 'VDDHAQ', 'V1P2']
+_dec = ['VCC_CORE', '+3V3', 'VCC_CORE', '+3V3', 'VDDAQ', 'VDDHAQ', 'V1P2']
 for i, net in enumerate(_dec):
     part(f'C{50 + i}', 'Device:C_Small', '100nF', C0201, {1: net, 2: 'GND'}, _GRID[i], side='B')
-part('R5', 'Device:R_Small', '4.7k', R0201, {1: '+3V3', 2: 'FPGA_READY'}, _GRID[9], side='B')
-part('R6', 'Device:R_Small', '4.7k', R0201, {1: '+3V3', 2: 'F_CS_N'}, _GRID[10], side='B')
+part('R5', 'Device:R_Small', '4.7k', R0201, {1: '+3V3', 2: 'FPGA_READY'}, _GRID[7], side='B')
+part('R6', 'Device:R_Small', '4.7k', R0201, {1: '+3V3', 2: 'F_CS_N'}, (18.9, -5.0), side='B')
 part('C59', 'Device:C_Small', '100nF', C0201, {1: 'VDDTQ', 2: 'GND'}, (14.3, 4.95), side='B')
 
 # JTAG pads (TCK TMS TDI TDO), underneath at the front
-for i, (net, xy) in enumerate([('JTAG_TCK', (51.7, 3.15)), ('JTAG_TMS', (51.7, 1.05)),
-                               ('JTAG_TDI', (51.7, -1.05)), ('JTAG_TDO', (51.7, -3.15))]):
+for i, (net, xy) in enumerate([('JTAG_TCK', (56.9, 3.15)), ('JTAG_TMS', (56.9, 1.05)),
+                               ('JTAG_TDI', (56.9, -1.05)), ('JTAG_TDO', (56.9, -3.15))]):
     part(f'TP{10 + i}', 'Connector:TestPoint', net, TP, {1: net}, xy, side='B')
 
 # ---------------------------------------------------------------- PHY
-PHY_AT = (28.8, 0.0)
+PHY_AT = (31.0, 0.0)
 PHY = {1: None, 2: 'COL', 3: 'TXD3', 4: 'TXD2', 5: 'TXD1', 6: 'TXD0', 7: 'TXEN', 8: '+3V3',
        9: None, 10: 'PHY_RST_N', 11: 'GND', 12: 'TXCLK', 13: 'MDC', 14: 'MDIO', 15: 'CRS', 16: 'RXD0',
        17: 'RXCLK', 18: '+3V3', 19: 'RXD1', 20: 'RXDV', 21: 'RXER', 22: 'PHY_INT_N', 23: 'RXD2',
@@ -226,47 +226,47 @@ PHY = {1: None, 2: 'COL', 3: 'TXD3', 4: 'TXD2', 5: 'TXD1', 6: 'TXD0', 7: 'TXEN',
 part('U5', 'sfp:LAN8670', 'LAN8670C2-E/LMX', 'Package_DFN_QFN:VQFN-32-1EP_5x5mm_P0.5mm_EP3.1x3.1mm', PHY, PHY_AT,
      mpn='LAN8670C2-E/LMX')
 # straps (DS 3.5, no internal resistors): MII + crystal = MODE 01, PHY address 0
-for ref, net, up, at in (('R10', 'RXD2', True, (31.8, 1.95)), ('R11', 'RXD3', False, (31.8, 0.45)),
-                         ('R14', 'RXD1', False, (31.8, -1.05)), ('R15', 'RXDV', False, (31.8, -2.55)),
-                         ('R16', 'RXER', False, (31.8, -4.05)), ('R12', 'CRS', False, (32.7, -2.25)),
-                         ('R13', 'RXD0', False, (32.7, -3.75)), ('R17', 'TXEN', False, (26.7, -2.9))):
+for ref, net, up, at in (('R10', 'RXD2', True, (34.6, 1.95)), ('R11', 'RXD3', False, (34.6, 0.45)),
+                         ('R14', 'RXD1', False, (34.6, -1.05)), ('R15', 'RXDV', False, (34.6, -2.55)),
+                         ('R16', 'RXER', False, (34.6, -4.05)), ('R12', 'CRS', False, (35.5, -2.25)),
+                         ('R13', 'RXD0', False, (35.5, -3.75)), ('R17', 'TXEN', False, (28.6, -3.9))):
     part(ref, 'Device:R_Small', '10k', R0201, {1: '+3V3' if up else 'GND', 2: net}, at, side='B', rot=90)
-part('R18', 'Device:R_Small', '10k', R0201, {1: '+3V3', 2: 'MDIO'}, (32.7, 2.25), side='B', rot=90)
-part('R19', 'Device:R_Small', '10k', R0201, {1: '+3V3', 2: 'PHY_INT_N'}, (32.7, 0.75), side='B', rot=90)
-part('R20', 'Device:R_Small', '10k', R0201, {1: '+3V3', 2: 'PHY_RST_N'}, (32.7, -0.75), side='B', rot=90)
-part('R21', 'Device:R_Small', '12.4k 1%', R0402, {1: 'RBIAS', 2: 'GND'}, (25.9, 4.2), side='B', rot=90)
+part('R18', 'Device:R_Small', '10k', R0201, {1: '+3V3', 2: 'MDIO'}, (35.5, 2.25), side='B', rot=90)
+part('R19', 'Device:R_Small', '10k', R0201, {1: '+3V3', 2: 'PHY_INT_N'}, (35.5, 0.75), side='B', rot=90)
+part('R20', 'Device:R_Small', '10k', R0201, {1: '+3V3', 2: 'PHY_RST_N'}, (35.5, -0.75), side='B', rot=90)
+part('R21', 'Device:R_Small', '12.4k 1%', R0402, {1: 'RBIAS', 2: 'GND'}, (28.1, 4.2), side='B', rot=90)
 part('Y1', 'Device:Crystal_GND24_Small', '25MHz CL12pF 2016', 'Crystal:Crystal_SMD_2016-4Pin_2.0x1.6mm',
-     {1: 'XTI', 2: 'GND', 3: 'XTO', 4: 'GND'}, (29.2, 4.0), side='B')
-part('C30', 'Device:C_Small', '18pF', C0201, {1: 'XTI', 2: 'GND'}, (27.2, 4.0), side='B', rot=90)
-part('C31', 'Device:C_Small', '18pF', C0201, {1: 'XTO', 2: 'GND'}, (31.3, 4.0), side='B', rot=90)
-for i, (at, r) in enumerate((((27.5, 2.3), 0), ((30.1, 2.3), 0), ((26.8, -1.0), 90), ((32.7, 3.75), 90))):
+     {1: 'XTI', 2: 'GND', 3: 'XTO', 4: 'GND'}, (31.4, 4.0), side='B')
+part('C30', 'Device:C_Small', '18pF', C0201, {1: 'XTI', 2: 'GND'}, (29.4, 4.0), side='B', rot=90)
+part('C31', 'Device:C_Small', '18pF', C0201, {1: 'XTO', 2: 'GND'}, (33.5, 4.0), side='B', rot=90)
+for i, (at, r) in enumerate((((29.7, 2.3), 0), ((32.3, 2.3), 0), ((30.2, -1.45), 0), ((35.5, 3.75), 90))):
     part(f'C{32 + i}', 'Device:C_Small', '100nF', C0201, {1: '+3V3', 2: 'GND'}, at, side='B', rot=r)
-part('C36A', 'Device:C_Small', '10uF', C0603, {1: '+3V3', 2: 'GND'}, (28.8, -4.6), side='B')
+part('C36A', 'Device:C_Small', '10uF', C0603, {1: '+3V3', 2: 'GND'}, (31.0, -4.6), side='B')
 
 # MDI / BIN (AN1718 figure 1-3): 100 nF series caps, CMC, end-node termination
-part('C40', 'Device:C_Small', '100nF 100V', C0805, {1: 'TRXP', 2: 'MDI_CP'}, (33.8, 4.3))
-part('C41', 'Device:C_Small', '100nF 100V', C0805, {1: 'TRXN', 2: 'MDI_CN'}, (33.8, 2.3))
+part('C40', 'Device:C_Small', '100nF 100V', C0805, {1: 'TRXP', 2: 'MDI_CP'}, (37.2, 4.3))
+part('C41', 'Device:C_Small', '100nF 100V', C0805, {1: 'TRXN', 2: 'MDI_CN'}, (37.2, 2.3))
 part('L2', 'Device:L_Coupled_1423', 'ACT1210E-241-2P', 'sfp:L_CommonMode_3225',
-     {1: 'MDI_CP', 4: 'MDI_P', 2: 'MDI_CN', 3: 'MDI_N'}, (37.7, 3.3), mpn='ACT1210E-241-2P-TL00')
-part('R22', 'Device:R_Small', '49.9 1%', R1206, {1: 'MDI_P', 2: 'MDI_TERM'}, (42.1, 4.1))
-part('R23', 'Device:R_Small', '49.9 1%', R1206, {1: 'MDI_N', 2: 'MDI_TERM'}, (42.1, 1.85))
-part('C42', 'Device:C_Small', '100nF 50V', C0805, {1: 'MDI_TERM', 2: 'GND'}, (41.2, -1.2))
-part('R24', 'Device:R_Small', '100k', R0805, {1: 'MDI_TERM', 2: 'GND'}, (41.2, -3.4))
+     {1: 'MDI_CP', 4: 'MDI_P', 2: 'MDI_CN', 3: 'MDI_N'}, (41.1, 3.3), mpn='ACT1210E-241-2P-TL00')
+part('R22', 'Device:R_Small', '49.9 1%', R1206, {1: 'MDI_P', 2: 'MDI_TERM'}, (45.5, 4.1))
+part('R23', 'Device:R_Small', '49.9 1%', R1206, {1: 'MDI_N', 2: 'MDI_TERM'}, (45.5, 1.85))
+part('C42', 'Device:C_Small', '100nF 50V', C0805, {1: 'MDI_TERM', 2: 'GND'}, (45.5, -1.2))
+part('R24', 'Device:R_Small', '100k', R0805, {1: 'MDI_TERM', 2: 'GND'}, (45.5, -3.4))
 part('J2', 'Connector_Generic:Conn_01x02', 'S2B-PH-K-S', 'Connector_JST:JST_PH_S2B-PH-K_1x02_P2.00mm_Horizontal',
-     {1: 'MDI_P', 2: 'MDI_N'}, (46.4, 1.0), rot=90, mpn='S2B-PH-K-S(LF)(SN)')
+     {1: 'MDI_P', 2: 'MDI_N'}, (51.6, 1.0), rot=90, mpn='S2B-PH-K-S(LF)(SN)')
 
 # ---------------------------------------------------------------- MCU
 MCU = {1: 'SDA', 2: None, 3: None, 4: '+3V3', 5: 'GND', 6: 'NRST', 7: 'MDC', 8: 'MDIO',
        9: 'PHY_RST_N', 10: 'PHY_INT_N', 11: 'TX_DISABLE', 12: 'RX_LOS', 13: 'TX_FAULT',
        14: 'FPGA_LINK', 15: 'FPGA_RECONFIG_N', 16: 'FPGA_DONE', 17: None, 18: 'SWDIO', 19: 'SWCLK', 20: 'SCL'}
 part('U8', 'MCU_ST_STM32G0:STM32G031F_4-6-8_Px', 'STM32G031F6P6', 'Package_SO:TSSOP-20_4.4x6.5mm_P0.65mm', MCU,
-     (37.4, 0.0), side='B', rot=90, mpn='STM32G031F6P6')
-part('C43', 'Device:C_Small', '100nF', C0402, {1: '+3V3', 2: 'GND'}, (35.4, 4.7), side='B')
-part('C44', 'Device:C_Small', '1uF', C0402, {1: '+3V3', 2: 'GND'}, (37.4, 4.7), side='B')
-part('C45', 'Device:C_Small', '100nF', C0402, {1: 'NRST', 2: 'GND'}, (39.4, 4.7), side='B')
-part('R25', 'Device:R_Small', '10k', R0402, {1: '+3V3', 2: 'TX_DISABLE'}, (37.4, -4.7), side='B')
-for i, (net, xy) in enumerate([('+3V3', (49.6, 4.2)), ('SWDIO', (49.6, 2.1)), ('SWCLK', (49.6, 0.0)),
-                               ('NRST', (49.6, -2.1)), ('GND', (49.6, -4.2))]):
+     (39.6, 0.0), side='B', rot=90, mpn='STM32G031F6P6')
+part('C43', 'Device:C_Small', '100nF', C0402, {1: '+3V3', 2: 'GND'}, (37.6, 4.7), side='B')
+part('C44', 'Device:C_Small', '1uF', C0402, {1: '+3V3', 2: 'GND'}, (39.6, 4.7), side='B')
+part('C45', 'Device:C_Small', '100nF', C0402, {1: 'NRST', 2: 'GND'}, (41.6, 4.7), side='B')
+part('R25', 'Device:R_Small', '10k', R0402, {1: '+3V3', 2: 'TX_DISABLE'}, (39.6, -4.7), side='B')
+for i, (net, xy) in enumerate([('+3V3', (54.8, 4.2)), ('SWDIO', (54.8, 2.1)), ('SWCLK', (54.8, 0.0)),
+                               ('NRST', (54.8, -2.1)), ('GND', (54.8, -4.2))]):
     part(f'TP{i + 1}', 'Connector:TestPoint', net, TP, {1: net}, xy, side='B')
 
 # LCSC part numbers, JLC API 2026-09-30
@@ -294,7 +294,7 @@ def lcsc_for(p):
     return LCSC_BY_MPN.get(p['mpn']) or LCSC_BY_VALUE.get((p['value'], p['fp']), '')
 
 
-LENGTH = 53.0        # the JST housing starts past the cage front (44.3)
+LENGTH = 58.4        # the JST housing starts past the cage front (44.3)
 SCH_AT = {'J1': (40, 80), 'U1': (170, 150), 'U5': (300, 120), 'U8': (300, 230), 'U3': (60, 200),
           'J2': (380, 110), 'U2': (60, 280), 'X1': (110, 60), 'L2': (350, 110)}
 POWER_NETS = ('+3V3', 'VCC_CORE', 'VDDAQ', 'VDDTQ', 'VDDHAQ', 'V1P2', 'VCCT', 'VCCR', 'VIN_RAW')
@@ -378,11 +378,11 @@ SGMII = ['TD_P', 'TD_N', 'RD_P', 'RD_N', 'SRX_P', 'SRX_M', 'STX_P', 'STX_M', 'RE
 MDI = ['TRXP', 'TRXN', 'MDI_CP', 'MDI_CN', 'MDI_P', 'MDI_N']
 PWR = ['+3V3', 'VCC_CORE', 'VDDAQ', 'VDDTQ', 'VDDHAQ', 'V1P2', 'BUCK_SW', 'VCCT', 'VCCR', 'VIN_RAW']
 NETCLASSES = [
-    dict(name='Default', clearance=0.15, track_width=0.127, via_diameter=0.45, via_drill=0.25),
+    dict(name='Default', clearance=0.15, track_width=0.127, via_diameter=0.35, via_drill=0.2),   # 0.35 / 0.2: fits among 0.5 mm pins (no JLC surcharge at 0.2)
     dict(name='SGMII', clearance=0.15, track_width=0.114, via_diameter=0.45, via_drill=0.25,
          dp_width=0.114, dp_gap=0.152, nets=SGMII),
     dict(name='MDI', clearance=0.15, track_width=0.2, via_diameter=0.45, via_drill=0.25, nets=MDI),
-    dict(name='Power', clearance=0.15, track_width=0.2, via_diameter=0.45, via_drill=0.25, nets=PWR),
+    dict(name='Power', clearance=0.15, track_width=0.2, via_diameter=0.35, via_drill=0.2, nets=PWR),
 ]
 CLASS_LAYERS = {'SGMII': ['F.Cu', 'B.Cu']}
 PAIRS = [('TD_P', 'TD_N'), ('SRX_P', 'SRX_M'), ('RD_P', 'RD_N'), ('STX_P', 'STX_M'),
@@ -395,7 +395,9 @@ HOLE_CLEARANCE = 0.2
 # planes, so the router leaves these nets to them (every pad gets a via)
 PLANES = [('In3.Cu', '+3V3')]
 # In2 routes signals, with the core rail as an island under the FPGA and the buck
-IN2_ISLANDS = [('VCC_CORE', (10.9, -5.3, 26.0, 5.3))]
+# only as tall as the ball ring: In2 keeps a corridor along each long edge for
+# the lines leaving the FPGA's left side, and stays free under the flash
+IN2_ISLANDS = [('VCC_CORE', (10.9, -3.6, 18.8, 3.6)), ('VCC_CORE', (18.8, 0.4, 26.0, 3.6))]
 PLANE_DOGBONE = ('VCC_CORE', '+3V3')
 DP_W, DP_PITCH = 0.114, 0.266
 COURTYARD_OK = {}
@@ -445,6 +447,65 @@ PREROUTES += [('STX_P', 'B', [_b3, (_b3[0] - 0.5, _b3[1] + 0.5)], 0.1),     # 0.
               ('STX_P', 'F', [(6.2, -1.8), (5.52, -1.8)], DP_W),
               ('STX_M', 'F', [(6.2, -2.6), (5.52, -2.6)], DP_W)]
 PREVIAS += [('STX_P', (6.2, -1.8)), ('STX_M', (6.2, -2.6)), ('GND', (7.0, -1.0)), ('GND', (7.0, -3.3))]
+
+# MII, on top. TX: the FPGA's right column straight across to the PHY's left
+# side, each line one pitch down on the way. RX: the bottom row down into
+# seven lanes along the bottom edge, to the PHY's bottom pins and round its
+# corner up to its right side; TXCLK above them to pin 12. The PHY pins the
+# lanes pass (right side 18/21/22, bottom 10/11/13/14) take a via in the pad.
+_MW = 0.1                       # 0.25 mm pitch lanes: 0.1 lines, 0.15 gaps
+_px = lambda pin: [p for p in _PHY_PADS if p[0] == pin][0][1:]
+_PHY_PADS = [(k, round(PHY_AT[0] - 2.438, 3), round(1.75 - 0.5 * (k - 1), 3)) for k in range(1, 9)] + \
+            [(k, round(PHY_AT[0] - 1.75 + 0.5 * (k - 9), 3), -2.438) for k in range(9, 17)] + \
+            [(k, round(PHY_AT[0] + 2.438, 3), round(-1.75 + 0.5 * (k - 17), 3)) for k in range(17, 25)]
+for ball, pin in (('C14', 2), ('D14', 3), ('E14', 4), ('F14', 5), ('G14', 6), ('H14', 7)):
+    bx, by = ball_xy(ball)
+    px, py = _px(pin)
+    PREROUTES.append((FPGA[ball], 'F', [(bx, by), (bx + 0.7, by), (bx + 1.7, py), (px, py)], _MW))
+_j = ball_xy('J14')
+PREROUTES.append(('TXCLK', 'F', [_j, (_j[0] + 0.6, _j[1]), (_j[0] + 0.6, -3.35), (_px(12)[0], -3.35), _px(12)], _MW))
+_RX = [('P14', 'CRS', -3.6, 15, None), ('P13', 'RXD0', -3.85, 16, None), ('P12', 'RXCLK', -4.1, 17, 34.2),
+       ('P11', 'RXD1', -4.35, 19, 34.45), ('P10', 'RXDV', -4.6, 20, 34.7), ('P9', 'RXD2', -4.85, 23, 34.95),
+       ('P8', 'RXD3', -5.1, 24, 35.2)]
+for ball, net, lane, pin, up in _RX:
+    bx, by = ball_xy(ball)
+    px, py = _px(pin)
+    path = [(bx, by), (bx, lane)]
+    path += [(px, lane), (px, py)] if up is None else [(up, lane), (up, py), (px, py)]
+    PREROUTES.append((net, 'F', path, _MW))
+for pin in (18, 21, 22, 10, 11, 13, 14):
+    px, py = _px(pin)
+    at = (round(px + (0.21 if pin >= 17 else 0.0), 3), round(py - (0.21 if pin < 17 else 0.0), 3))
+    PREVIAS.append((PHY[pin], at, MIN_VIA))
+
+# the ball field underneath: only used balls carry a via, so the unused sites
+# and the outer ring's F-only balls are the way out. Each diagonal passes
+# between two ball vias 0.354 mm off each (0.1 lines: 0.15 to their pads,
+# 0.23 to their holes).
+_BW = 0.1
+_bxy = ball_xy
+# left side: JTAG, DONE, RECONFIG out to x 11.55, the router takes them on
+PREROUTES += [('JTAG_TCK', 'B', [_bxy('G2'), (11.55, _bxy('G2')[1])], _BW),
+              ('JTAG_TDO', 'B', [_bxy('J2'), (11.55, _bxy('J2')[1])], _BW),
+              ('JTAG_TMS', 'B', [_bxy('G3'), _bxy('F2'), (11.55, _bxy('F2')[1])], _BW),
+              ('JTAG_TDI', 'B', [_bxy('J3'), _bxy('K2'), (11.55, _bxy('K2')[1])], _BW),
+              ('FPGA_DONE', 'B', [_bxy('L3'), _bxy('M2'), (11.55, _bxy('M2')[1])], _BW),
+              ('FPGA_RECONFIG_N', 'B', [_bxy('M3'), _bxy('P3'), (13.0, -3.75), (11.55, -3.75)], _BW)]
+# the flash (bank 2 corner): CS and MISO straight to its near column; CLK and
+# MOSI down to In2 beside the ring, north past the flash's top, and back up
+# on two lanes over it to its far column
+_SV = MIN_VIA
+PREROUTES += [('F_CS_N', 'B', [_bxy('L13'), _bxy('M14'), (19.85, -2.25), (19.85, -4.2), (20.155, -4.505), (20.9, -4.505)], _BW),
+              ('F_MISO', 'B', [_bxy('K14'), (20.2, -1.25), (20.2, -2.95), (20.485, -3.235), (20.9, -3.235)], _BW),
+              ('F_CLK', 'B', [_bxy('L14'), (19.45, -1.75)], _BW),
+              ('F_MOSI', 'B', [_bxy('M13'), _bxy('N14'), (19.45, -2.75)], _BW),
+              # under the flash on In2 (TXCLK runs down x 19.1 on top: the vias keep 0.15)
+              ('F_CLK', 'In2', [(19.45, -1.75), (26.95, -1.75), (27.15, -1.95), (27.15, -1.965)], _BW),
+              ('F_MOSI', 'In2', [(19.45, -2.75), (27.6, -2.75), (27.6, -1.6)], _BW),   # below the TX lines on top
+              ('F_CLK', 'B', [(27.15, -1.965), (26.3, -1.965)], _BW),
+              ('F_MOSI', 'B', [(27.6, -1.6), (27.0, -1.0), (26.705, -0.695), (26.3, -0.695)], _BW)]
+PREVIAS += [('F_CLK', (19.45, -1.75), _SV), ('F_MOSI', (19.45, -2.75), _SV),
+            ('F_CLK', (27.15, -1.965), _SV), ('F_MOSI', (27.6, -1.6), _SV)]
 
 # the PHY's exposed pad: 2 x 2 thermal vias to the GND planes
 PREVIAS += [('GND', (round(PHY_AT[0] + dx, 3), dy)) for dx in (-0.7, 0.7) for dy in (-0.7, 0.7)]

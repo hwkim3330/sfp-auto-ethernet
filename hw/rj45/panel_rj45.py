@@ -26,8 +26,9 @@ def preset(n):
         'layout': {'type': 'grid', 'rows': n, 'cols': 1, 'vspace': '2mm', 'hspace': '2mm',
                    'rotation': '0deg'},
         # 2 tabs per long edge, away from the finger tab (x < 7) and the nose
-        'tabs': {'type': 'fixed', 'hcount': 3, 'vcount': 1, 'hwidth': '2.5mm', 'vwidth': '3mm',
-                 'mindistance': '6mm'},
+        # placed by hand (TABS): the body's edges are lined with parts, and
+        # evenly spaced tabs put mouse-bite holes through C36/C37, then X1/R12
+        'tabs': {'type': 'annotation', 'fillet': '0mm'},
         'cuts': {'type': 'mousebites', 'drill': '0.5mm', 'spacing': '0.8mm', 'offset': '0.1mm',   # 0.25 reached In2's TRD_M (0.16 mm)
                  'prolong': '0mm'},     # prolonged cuts met at the right-end corners (holes 0 mm apart)
         'framing': {'type': 'plugin', 'code': os.path.join(HERE, '..', 'panel_rails.py') + '.ThreeSideRails',
@@ -39,6 +40,43 @@ def preset(n):
                  'anchor': 'mt', 'voffset': '2.5mm', 'hjustify': 'center', 'vjustify': 'center'},
         'post': {'millradius': '1mm'},
     }
+
+
+# (x, y, direction) in board mm: a point 0.5 mm outside the edge, pointing
+# into the board (KiKit grows the tab from there to the board and back to the
+# partition line), where no pad, via or track comes near a mouse-bite hole
+TABS = [(14.0, 6.4, 'up'), (26.4, 6.4, 'up'),
+        (28.4, -6.4, 'down'), (46.5, -9.05, 'down'), (46.5, 9.05, 'up'),
+        (64.9, 0.0, 'left')]
+TAB_WIDTH = 2.5
+
+
+def tabbed_copy(src, dst):
+    """The board with a KiKit tab annotation at each TABS entry."""
+    import pcbnew
+    b = pcbnew.LoadBoard(src)
+    lib = os.path.join(os.path.dirname(pcbnew_kikit()), 'resources', 'kikit.pretty')
+    rot = {'left': 180, 'up': 90, 'down': 270}
+    for i, (x, y, d) in enumerate(TABS):
+        fp = pcbnew.FootprintLoad(lib, 'Tab')
+        fp.SetFPID(pcbnew.LIB_ID('kikit', 'Tab'))
+        fp.SetReference(f'KT{i + 1}')
+        for t in fp.GraphicalItems():
+            if isinstance(t, pcbnew.PCB_TEXT) and t.GetText().startswith('KIKIT:'):
+                t.SetText(f'KIKIT: width: {TAB_WIDTH}mm')
+        fp.SetPosition(pcbnew.VECTOR2I(pcbnew.FromMM(100 + x), pcbnew.FromMM(100 + y)))
+        fp.SetOrientationDegrees(rot[d])
+        b.Add(fp)
+    b.Save(dst)
+    # the rules and the accepted courtyard overlaps sit next to the board
+    import shutil
+    for ext in ('.kicad_pro', '.kicad_dru'):
+        shutil.copy(os.path.splitext(src)[0] + ext, os.path.splitext(dst)[0] + ext)
+
+
+def pcbnew_kikit():
+    import kikit
+    return kikit.__file__
 
 
 sys.path.insert(0, HERE)
@@ -58,6 +96,12 @@ def jlc_files(panel_path, jlc, n):
     import export_rj45 as E
     os.makedirs(jlc, exist_ok=True)
     board = pcbnew.LoadBoard(panel_path)
+    # KiKit's panel carries only the Default netclass at KiCad's 0.2 mm; the
+    # board is drawn to 0.15 mm, 0.2 mm hole clearance and 0.35 / 0.2 vias
+    sys.path.insert(0, os.path.dirname(HERE))
+    import sfpgen as G
+    G.D = _D
+    G.apply_rules(board)
     rpt = os.path.join(jlc, 'panel-drc.rpt')
     pcbnew.WriteDRCReport(board, rpt, pcbnew.EDA_UNITS_MILLIMETRES, True)
     summary = [l for l in open(rpt) if l.startswith('** Found')]
@@ -113,13 +157,21 @@ def main():
     pre = os.path.join(HERE, 'panel', 'preset.json')
     json.dump(preset(n), open(pre, 'w'), indent=2)
     out = os.path.join(HERE, 'panel', 'rj45_panel.kicad_pcb')
-    r = subprocess.run([KIKIT, 'panelize', '-p', pre, os.path.join(HERE, 'rj45.kicad_pcb'), out],
+    src = os.path.join(HERE, 'panel', 'rj45_tabs.kicad_pcb')
+    tabbed_copy(os.path.join(HERE, 'rj45.kicad_pcb'), src)
+    r = subprocess.run([KIKIT, 'panelize', '-p', pre, src, out],
                        capture_output=True, text=True)
     if r.returncode:
         print(r.stdout[-2000:], r.stderr[-3000:])
         raise SystemExit('panelize failed')
     jlc = os.path.join(HERE, 'jlc')
     jlc_files(out, jlc, n)
+    svg = os.path.join(jlc, 'panel-top.svg')
+    subprocess.run(['kicad-cli', 'pcb', 'export', 'svg', '--layers', 'F.Cu,F.Mask,F.SilkS,Edge.Cuts',
+                    '--page-size-mode', '2', '--exclude-drawing-sheet', '-o', svg, out], capture_output=True)
+    subprocess.run(['rsvg-convert', '-w', '1400', '-b', 'white', svg, '-o', svg[:-4] + '.png'],
+                   capture_output=True)
+    os.remove(svg)
     print(f'panel of {n}: {os.path.relpath(out, HERE)}; JLC files in jlc/: {sorted(os.listdir(jlc))}')
 
 

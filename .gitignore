@@ -18,3 +18,8 @@ hw/_t1try*/
 hw/_rjtry*/
 hw/*/.dogbone.rpt
 hw/*/.stitch.rpt
+hw/_t1stry*/
+hw/*/fab/gerber/
+hw/*/jlc/gerber/
+hw/*/panel/*.svg
+hw/*/panel/*_tabs.kicad_*
