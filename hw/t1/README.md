@@ -15,6 +15,7 @@ Schematic, PCB (4 layers, routed), fab outputs and firmware are all in place.
 | Schematic ↔ netlist | 175 pins, 0 mismatches | Netlist exported with `kicad-cli sch export netlist`, compared against the netlist in `make_t1.py` |
 | Placement | 62 parts, no overlaps; housing height limits met | `make_t1.py` |
 | Routing | **DRC 0 violations, 0 unconnected** ([drc.rpt](drc.rpt)) | Freerouting 1.9.0, then KiCad DRC |
+| KiCad 9 | **DRC 0 errors, schematic parity clean, ERC 0 errors** ([kicad9-drc.rpt](kicad9-drc.rpt), [kicad9-erc.rpt](kicad9-erc.rpt)) | `sh ../check_kicad9.sh t1`: the official KiCad 9 image, as a reviewer would open it. Only warnings are "differs from the library copy" (KiCad 9's libraries hold newer revisions of the same parts) |
 | Fab | Gerbers + drill ([fab/t1-gerbers.zip](fab/t1-gerbers.zip)), [BOM](fab/t1-bom.csv), [CPL](fab/t1-cpl.csv) | `export_t1.py` |
 | Firmware | Builds: 1.7 KB flash / 280 B RAM, 0 warnings ([../../fw](../../fw)) | `make` |
 

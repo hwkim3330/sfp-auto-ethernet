@@ -211,6 +211,8 @@ def text(board, layer, s, x, y, h=0.8):
     t.SetPosition(V(x, y))
     t.SetTextSize(pcbnew.VECTOR2I(MM(h), MM(h)))
     t.SetTextThickness(MM(h * 0.15))
+    if layer in (pcbnew.B_SilkS, pcbnew.B_Fab, pcbnew.B_Cu):
+        t.SetMirrored(True)                 # reads right way round from underneath
     board.Add(t)
 
 

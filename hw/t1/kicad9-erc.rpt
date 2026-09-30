@@ -1,0 +1,228 @@
+ERC report (2026-09-30T03:50:09+0000, Encoding UTF8)
+Report includes: Errors, Warnings, Exclusions
+
+***** Sheet /
+[lib_symbol_mismatch]: Symbol '+3V3' doesn't match copy in library 'power'
+    ; warning
+    @(44.45 mm, 30.48 mm): Symbol #PWR063 [+3V3]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(53.34 mm, 64.77 mm): Symbol #PWR002 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(53.34 mm, 67.31 mm): Symbol #PWR003 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(53.34 mm, 69.85 mm): Symbol #PWR004 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(53.34 mm, 72.39 mm): Symbol #PWR005 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(53.34 mm, 74.93 mm): Symbol #PWR006 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(53.34 mm, 77.47 mm): Symbol #PWR007 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(53.34 mm, 80.01 mm): Symbol #PWR008 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(25.40 mm, 97.79 mm): Symbol #PWR001 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(110.49 mm, 57.15 mm): Symbol #PWR034 [GND]
+[lib_symbol_mismatch]: Symbol 'Crystal_GND24_Small' doesn't match copy in library 'Device'
+    ; warning
+    @(110.49 mm, 59.69 mm): Symbol Y1 [Crystal_GND24_Small]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(110.49 mm, 64.77 mm): Symbol #PWR033 [GND]
+[lib_symbol_mismatch]: Symbol '+3V3' doesn't match copy in library 'power'
+    ; warning
+    @(46.99 mm, 180.34 mm): Symbol #PWR041 [+3V3]
+[lib_symbol_mismatch]: Symbol '+3V3' doesn't match copy in library 'power'
+    ; warning
+    @(46.99 mm, 182.88 mm): Symbol #PWR038 [+3V3]
+[lib_symbol_mismatch]: Symbol 'TPS62823DLC' doesn't match copy in library 'Regulator_Switching'
+    ; warning
+    @(59.69 mm, 190.50 mm): Symbol U3 [TPS62823DLC]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(57.15 mm, 203.20 mm): Symbol #PWR040 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(62.23 mm, 203.20 mm): Symbol #PWR039 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(222.25 mm, 30.48 mm): Symbol #PWR071 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(177.80 mm, 138.43 mm): Symbol #PWR015 [GND]
+[lib_symbol_mismatch]: Symbol '+3V3' doesn't match copy in library 'power'
+    ; warning
+    @(160.02 mm, 176.53 mm): Symbol #PWR047 [+3V3]
+[lib_symbol_mismatch]: Symbol 'STM32G031F_4-6-8_Px' doesn't match copy in library 'MCU_ST_STM32G0'
+    ; warning
+    @(160.02 mm, 199.39 mm): Symbol U2 [STM32G031F_4-6-8_Px]
+[lib_symbol_mismatch]: Symbol '+3V3' doesn't match copy in library 'power'
+    ; warning
+    @(39.37 mm, 252.73 mm): Symbol #PWR009 [+3V3]
+[lib_symbol_mismatch]: Symbol '+3V3' doesn't match copy in library 'power'
+    ; warning
+    @(85.09 mm, 245.11 mm): Symbol #PWR011 [+3V3]
+[lib_symbol_mismatch]: Symbol '+3V3' doesn't match copy in library 'power'
+    ; warning
+    @(62.23 mm, 252.73 mm): Symbol #PWR010 [+3V3]
+[lib_symbol_mismatch]: Symbol '+3V3' doesn't match copy in library 'power'
+    ; warning
+    @(107.95 mm, 245.11 mm): Symbol #PWR013 [+3V3]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(85.09 mm, 255.27 mm): Symbol #PWR012 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(160.02 mm, 222.25 mm): Symbol #PWR048 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(107.95 mm, 255.27 mm): Symbol #PWR014 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(39.37 mm, 278.13 mm): Symbol #PWR022 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(62.23 mm, 278.13 mm): Symbol #PWR023 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(85.09 mm, 278.13 mm): Symbol #PWR024 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(107.95 mm, 278.13 mm): Symbol #PWR025 [GND]
+[lib_symbol_mismatch]: Symbol 'LED_Small' doesn't match copy in library 'Device'
+    ; warning
+    @(39.37 mm, 295.91 mm): Symbol D1 [LED_Small]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(34.29 mm, 298.45 mm): Symbol #PWR037 [GND]
+[lib_symbol_mismatch]: Symbol '+3V3' doesn't match copy in library 'power'
+    ; warning
+    @(85.09 mm, 290.83 mm): Symbol #PWR042 [+3V3]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(130.81 mm, 278.13 mm): Symbol #PWR026 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(85.09 mm, 300.99 mm): Symbol #PWR043 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(153.67 mm, 278.13 mm): Symbol #PWR027 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(107.95 mm, 300.99 mm): Symbol #PWR044 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(62.23 mm, 321.31 mm): Symbol #PWR056 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(130.81 mm, 300.99 mm): Symbol #PWR045 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(176.53 mm, 278.13 mm): Symbol #PWR028 [GND]
+[lib_symbol_mismatch]: Symbol '+3V3' doesn't match copy in library 'power'
+    ; warning
+    @(222.25 mm, 245.11 mm): Symbol #PWR016 [+3V3]
+[lib_symbol_mismatch]: Symbol 'R_Small' doesn't match copy in library 'Device'
+    ; warning
+    @(153.67 mm, 295.91 mm): Symbol R3 [R_Small]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(320.04 mm, 115.57 mm): Symbol #PWR061 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(199.39 mm, 278.13 mm): Symbol #PWR029 [GND]
+[lib_symbol_mismatch]: Symbol 'R_Small' doesn't match copy in library 'Device'
+    ; warning
+    @(130.81 mm, 318.77 mm): Symbol R6 [R_Small]
+[lib_symbol_mismatch]: Symbol '+3V3' doesn't match copy in library 'power'
+    ; warning
+    @(245.11 mm, 245.11 mm): Symbol #PWR017 [+3V3]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(176.53 mm, 300.99 mm): Symbol #PWR046 [GND]
+[lib_symbol_mismatch]: Symbol 'R_Small' doesn't match copy in library 'Device'
+    ; warning
+    @(153.67 mm, 318.77 mm): Symbol R7 [R_Small]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(222.25 mm, 278.13 mm): Symbol #PWR030 [GND]
+[lib_symbol_mismatch]: Symbol '+3V3' doesn't match copy in library 'power'
+    ; warning
+    @(222.25 mm, 290.83 mm): Symbol #PWR049 [+3V3]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(176.53 mm, 323.85 mm): Symbol #PWR057 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(245.11 mm, 278.13 mm): Symbol #PWR031 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(222.25 mm, 300.99 mm): Symbol #PWR050 [GND]
+[lib_symbol_mismatch]: Symbol 'R_Small' doesn't match copy in library 'Device'
+    ; warning
+    @(199.39 mm, 318.77 mm): Symbol R8 [R_Small]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(199.39 mm, 323.85 mm): Symbol #PWR058 [GND]
+[lib_symbol_mismatch]: Symbol '+3V3' doesn't match copy in library 'power'
+    ; warning
+    @(245.11 mm, 290.83 mm): Symbol #PWR051 [+3V3]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(267.97 mm, 278.13 mm): Symbol #PWR032 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(290.83 mm, 255.27 mm): Symbol #PWR018 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(245.11 mm, 300.99 mm): Symbol #PWR052 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(228.60 mm, 321.31 mm): Symbol #PWR059 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(290.83 mm, 278.13 mm): Symbol #PWR035 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(267.97 mm, 300.99 mm): Symbol #PWR053 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(313.69 mm, 255.27 mm): Symbol #PWR019 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(251.46 mm, 321.31 mm): Symbol #PWR060 [GND]
+[lib_symbol_mismatch]: Symbol '+3V3' doesn't match copy in library 'power'
+    ; warning
+    @(290.83 mm, 290.83 mm): Symbol #PWR054 [+3V3]
+[lib_symbol_mismatch]: Symbol 'R_Small' doesn't match copy in library 'Device'
+    ; warning
+    @(290.83 mm, 295.91 mm): Symbol R5 [R_Small]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(313.69 mm, 278.13 mm): Symbol #PWR036 [GND]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(336.55 mm, 255.27 mm): Symbol #PWR020 [GND]
+[lib_symbol_mismatch]: Symbol '+3V3' doesn't match copy in library 'power'
+    ; warning
+    @(313.69 mm, 295.91 mm): Symbol #PWR055 [+3V3]
+[lib_symbol_mismatch]: Symbol 'R_Small' doesn't match copy in library 'Device'
+    ; warning
+    @(336.55 mm, 273.05 mm): Symbol R1 [R_Small]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(359.41 mm, 255.27 mm): Symbol #PWR021 [GND]
+[lib_symbol_mismatch]: Symbol 'R_Small' doesn't match copy in library 'Device'
+    ; warning
+    @(359.41 mm, 273.05 mm): Symbol R2 [R_Small]
+
+ ** ERC messages: 74  Errors 0  Warnings 74

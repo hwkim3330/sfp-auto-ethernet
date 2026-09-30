@@ -35,6 +35,7 @@ from sfpgen import (C0201, C0402, C0603, R0201, R0402, R0603, FB0603, LED0402,  
 
 NAME = 't1'
 TITLE = 'T1 SFP'
+SCH_TITLE = 'SFP 100/1000BASE-T1 - DP83TG720S / DP83TC812S'
 
 P = []
 
@@ -125,7 +126,7 @@ part('D1', 'Device:LED_Small', 'green', LED0402, {1: 'GND', 2: 'LED0_K'}, (50.5,
 # ---------------------------------------------------------------- 1.0 V buck
 part('U3', 'Regulator_Switching:TPS62823DLC', 'TPS62822DLC',   # base symbol; TPS62822 (2 A) because the 1 A TPS62821 is out of stock at LCSC - same package, pins, divider
     
-     'Package_DFN_QFN:Texas_VSON-HR-8_1.5x2mm_P0.5mm',
+     'sfp:Texas_VSON-HR-8_1.5x2mm_P0.5mm',
      {1: '+3V3', 2: 'BUCK_FB', 3: 'GND', 4: None, 5: 'GND', 6: 'BUCK_SW', 7: '+3V3', 8: None},
      (12.0, 1.2), mpn='TPS62822DLCR')
 part('L1', 'Device:L_Small', '470nH DFE201610E-R47M', 'Inductor_SMD:L_Murata_DFE201610P',

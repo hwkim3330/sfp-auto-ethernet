@@ -58,6 +58,7 @@ from sfpgen import (C0201, C0402, C0603, R0201, R0402, R0603, FB0603, LED0402,  
 
 NAME = 'rj45'
 TITLE = 'RJ45 SFP'
+SCH_TITLE = 'SFP 100M/1G/2.5GBASE-T - RTL8221B'
 TITLE_AT = (52.8, 0.0)          # bottom label under the jack, clear of every pad
 SHEET = '3c9d2e71-5a4b-4f60-8d1e-7b2c3a4d5e61'
 
@@ -156,7 +157,7 @@ part('C30', 'Device:C_Small', '100nF', C0201, {1: '+3V3', 2: 'GND'}, (26.1, 4.7)
 # the T1 module's buck, mirrored onto the bottom so the top stays clear for
 # the SerDes pairs; EN from the PHY's POW_EXT_SWR (datasheet 8.8), held low
 # until the PHY drives it
-part('U3', 'Regulator_Switching:TPS62823DLC', 'TPS62822DLC', 'Package_DFN_QFN:Texas_VSON-HR-8_1.5x2mm_P0.5mm',
+part('U3', 'Regulator_Switching:TPS62823DLC', 'TPS62822DLC', 'sfp:Texas_VSON-HR-8_1.5x2mm_P0.5mm',
      {1: 'BUCK_EN', 2: 'BUCK_FB', 3: 'GND', 4: None, 5: 'GND', 6: 'BUCK_SW', 7: '+3V3', 8: None},
      (11.8, 1.3), side='B', mpn='TPS62822DLCR')
 part('R18', 'Device:R_Small', '100k', R0201, {1: 'BUCK_EN', 2: 'GND'}, (13.9, 3.6), side='B', rot=90)
