@@ -84,7 +84,7 @@
 static volatile uint32_t ms;
 void SysTick_Handler(void) { ms++; }
 
-static void delay_ms(uint32_t n) { uint32_t t = ms; while (ms - t < n) { } }
+__attribute__((unused)) static void delay_ms(uint32_t n) { uint32_t t = ms; while (ms - t < n) { } }   /* T1S only now */
 
 /* ------------------------------------------------------------------ GPIO */
 #define PIN(n)   (1u << (n))
@@ -430,18 +430,54 @@ static void phy_apply_config(void)
     master_applied = want;
 }
 
-static int phy_held;           /* 1 while TX_DISABLE holds the PHY in reset */
+/* TX_DISABLE: INF-8074i wants the transmitter off within 10 us of it rising
+ * (t_off) and back within 1 ms of it falling (t_on). The pin interrupts on
+ * both edges and the handler moves the PHY's reset at once; the settings that
+ * need MDIO follow from the main loop 20 ms after release (the straps
+ * resample on reset release). The PHY's own link training comes on top of
+ * t_on, as on every copper SFP. The main loop's poll stays as a backstop. */
+static volatile int phy_held = 1;  /* 1 while TX_DISABLE (or, on T1S, no FPGA) holds the PHY in reset */
+static volatile uint32_t cfg_due;   /* ms tick to apply the PHY settings at, 0 = none */
+
+static int txdis_high(void) { return (int)((TXDIS_PORT->IDR >> TXDIS_PIN) & 1); }
 
 static void phy_hold(int hold)
 {
-    if (hold == phy_held) return;
-    phy_held = hold;
-    if (hold) {
+    __disable_irq();
+    if (hold && !phy_held) {
         pa_clr(PHY_RST);
-    } else {
+        phy_held = 1;
+        cfg_due = 0;
+    } else if (!hold && phy_held) {
         pa_set(PHY_RST);
-        delay_ms(20);          /* straps resample on reset release */
-        phy_apply_config();
+        phy_held = 0;
+        cfg_due = (ms + 20u) | 1u;     /* never 0 */
+    }
+    __enable_irq();
+}
+
+/* T1S: the PHY's MII means nothing until the FPGA is configured */
+static int phy_may_run(void)
+{
+#if VARIANT_T1S
+    return pa_get(FPGA_DONE);
+#else
+    return 1;
+#endif
+}
+
+void EXTI4_15_IRQHandler(void)
+{
+    EXTI->RPR1 = PIN(TXDIS_PIN);
+    EXTI->FPR1 = PIN(TXDIS_PIN);
+    if (txdis_high()) {
+        pa_clr(PHY_RST);
+        phy_held = 1;
+        cfg_due = 0;
+    } else if (phy_held && phy_may_run()) {
+        pa_set(PHY_RST);
+        phy_held = 0;
+        cfg_due = (ms + 20u) | 1u;
     }
 }
 
@@ -537,6 +573,13 @@ int main(void)
     gpio_mode(GPIOA, MDIO, 1, 1, 0);             /* open drain, board pull-up */
     gpio_mode(GPIOA, PHY_INT, 0, 0, 1);
     gpio_mode(TXDIS_PORT, TXDIS_PIN, 0, 0, 0);
+    /* EXTI on both edges of TX_DISABLE (EXTICR: port A = 0, C = 2) */
+    RCC->APBENR2 |= RCC_APBENR2_SYSCFGEN;
+    EXTI->EXTICR[TXDIS_PIN >> 2] = (EXTI->EXTICR[TXDIS_PIN >> 2] & ~(0xFFu << (8 * (TXDIS_PIN & 3)))) |
+                                   ((TXDIS_PORT == GPIOC ? 2u : 0u) << (8 * (TXDIS_PIN & 3)));
+    EXTI->RTSR1 |= PIN(TXDIS_PIN);
+    EXTI->FTSR1 |= PIN(TXDIS_PIN);
+    EXTI->IMR1 |= PIN(TXDIS_PIN);
     pa_set(RX_LOS);
     gpio_mode(GPIOA, RX_LOS, 1, 1, 0);           /* released = LOS (no link yet) */
     TXF_PORT->BRR = PIN(TXF_PIN);
@@ -553,7 +596,7 @@ int main(void)
     }
     a0_init();
     i2c_init();
-    phy_held = 1;
+    NVIC_EnableIRQ(EXTI4_15_IRQn);               /* TX_DISABLE edges, from here on */
 
     uint32_t last = 0;
 #if VARIANT_T1S
@@ -562,7 +605,9 @@ int main(void)
 #endif
     for (;;) {
         i2c_poll();
-        if (ms - last < 50) continue;
+        /* every 5 ms: RX_LOS follows the link within a tick (INF-8074i asks
+         * 100 us, which a copper PHY's own link-fail timers exceed anyway) */
+        if (ms - last < 5) continue;
         last = ms;
 #if VARIANT_T1S
         /* the FPGA must be configured before the PHY's MII means anything.
@@ -577,14 +622,24 @@ int main(void)
             cfg_start = ms;
             reloads++;
         }
-        phy_hold((int)((TXDIS_PORT->IDR >> TXDIS_PIN) & 1) || !done);
+        phy_hold(txdis_high() || !done);
         if (phy_held) { pa_set(RX_LOS); continue; }
+        if (cfg_due) {                           /* released 20 ms ago? set the PHY up */
+            if ((int32_t)(ms - cfg_due) < 0) continue;
+            cfg_due = 0;
+            phy_apply_config();
+        }
         if (plca_changed()) plca_apply();
         if (pa_get(FPGA_LINK)) pa_clr(RX_LOS); else pa_set(RX_LOS);
         continue;
 #endif
-        phy_hold((int)((TXDIS_PORT->IDR >> TXDIS_PIN) & 1));   /* TX_DISABLE high/open: PHY in reset */
+        phy_hold(txdis_high());                  /* TX_DISABLE high/open: PHY in reset */
         if (phy_held) { pa_set(RX_LOS); continue; }
+        if (cfg_due) {                           /* released 20 ms ago? set the PHY up */
+            if ((int32_t)(ms - cfg_due) < 0) continue;
+            cfg_due = 0;
+            phy_apply_config();
+        }
         if ((a0[96] & 1) != master_applied) phy_apply_config();
 #if VARIANT_RJ45
         if (pl2_wanted() != pl2_applied) rtl8221b_power_level(pl2_wanted());   /* the host wrote A2h 118 */

@@ -267,6 +267,11 @@ PWR = ['+3V3', 'VDDA', 'VDDIO', 'VDD1P0', 'V1P0_BUCK', 'BUCK_SW', 'VCCT', 'VCCR'
 # stand next to its vias.
 CLASS_LAYERS = {'SGMII': ['F.Cu', 'B.Cu'], 'MDI': ['F.Cu', 'B.Cu']}
 
+# the tall parts, checked against the room inside the cage (4.65 mm over the
+# board, 1.65 under it); datasheet maxima. J2 (H-MTD) sits past the cage front
+HEIGHTS = {'U1': 0.9, 'U2': 1.2, 'U3': 1.0, 'U4': 1.45, 'L1': 1.0, 'L2': 2.5, 'Y1': 0.55,
+           'C27': 0.95, 'C28': 0.95, 'C37': 0.95, 'FB5': 0.95}
+
 NETCLASSES = [
     dict(name='Default', clearance=0.15, track_width=0.127, via_diameter=0.45, via_drill=0.25),
     dict(name='SGMII', clearance=0.15, track_width=0.157,   # 0.15: the 0201 AC caps' own pads are 0.18 apart

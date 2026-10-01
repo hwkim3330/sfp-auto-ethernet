@@ -17,8 +17,8 @@ A single I²C peripheral covers all three:
 
 ## What it does
 
-- **TX_DISABLE high or open → the PHY is held in reset.** When TX_DISABLE goes low, it releases reset and applies the master/slave setting (MMD1 0x0834 bit 14, the IEEE 1.2100 register, identical on the DP83TG720 and DP83TC812).
-- Every 50 ms it reads BMSR bit 2 (twice, because the link bit latches low). On link it drives RX_LOS low; with no link it releases RX_LOS.
+- **TX_DISABLE high or open → the PHY is held in reset.** The pin interrupts on both edges, so the reset moves within about a microsecond (INF-8074i t_off: 10 µs). When TX_DISABLE goes low, the interrupt releases reset at once and the main loop applies the PHY's settings 20 ms later, once its straps have resampled: master/slave (MMD1 0x0834 bit 14, the IEEE 1.2100 register, identical on the DP83TG720 and DP83TC812), and the variant's SerDes and power-level set-up. A 5 ms poll of the pin backs the interrupt up.
+- Every 5 ms it reads BMSR bit 2 (twice, because the link bit latches low). On link it drives RX_LOS low; with no link it releases RX_LOS. INF-8074i asks 100 µs for RX_LOS; a copper PHY's own link-fail timers take far longer, so no copper module meets that (see [../docs/COMPLIANCE.md](../docs/COMPLIANCE.md)).
 - TX_FAULT is always held low (no fault).
 - If byte 96 changes, it reapplies master/slave immediately.
 

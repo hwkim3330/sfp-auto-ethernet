@@ -4,6 +4,7 @@
 extern uint32_t _sidata, _sdata, _edata, _sbss, _ebss, _estack;
 int main(void);
 void SysTick_Handler(void);
+void EXTI4_15_IRQHandler(void);
 
 void Reset_Handler(void)
 {
@@ -26,4 +27,6 @@ void (*const vectors[16 + 32])(void) = {
     0, 0,
     Default_Handler,            /* PendSV */
     SysTick_Handler,
+    0, 0, 0, 0, 0, 0, 0,        /* IRQ 0-6 */
+    EXTI4_15_IRQHandler,        /* IRQ 7: TX_DISABLE (PA4, or PC14 on T1S) */
 };
