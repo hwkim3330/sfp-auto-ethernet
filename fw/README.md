@@ -7,7 +7,7 @@ Bare metal, no HAL, **1.8–2.4 KB**. All three boards use it (`make VARIANT=t1|
 | Address | Content |
 |---|---|
 | **0x50** (A0h) | SFF-8472 ID EEPROM, emulated. Byte 6 = `0x08` (1000BASE-T): this is what makes Linux probe the PHY. Checksums CC_BASE/CC_EXT are computed at boot. **Bytes 96–127 are writable**, and byte 96 bit 0 = T1 **master** |
-| 0x51 (A2h) | No diagnostics. Byte 92 = 0, so the host doesn't read it. Reads return 0 |
+| 0x51 (A2h) | No diagnostics (byte 92 = 0). Only byte 118, the power level control, is implemented; it acts on RJ45 (see below). Every other byte reads 0 |
 | **0x56** | PHY bridge, in the protocol Linux `mdio-i2c` expects. Write 1 byte = register, then read 2 bytes big-endian (auto-incrementing). Write 3 bytes = register + value. Clause 22. On the MDIO side the PHY is at the strapped address 0 |
 
 A single I²C peripheral covers all three:

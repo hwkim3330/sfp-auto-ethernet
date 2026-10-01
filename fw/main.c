@@ -4,8 +4,9 @@
  * What the host sees on the SFP I2C bus (SCL/SDA, 100 kHz, host pull-ups):
  *   0x50  A0h: 256-byte ID EEPROM, emulated (SFF-8472 base + extended ID).
  *              Bytes 96..127 are writable: byte 96 bit 0 = T1 master.
- *   0x51  A2h: diagnostics page - not implemented, reads as 0x00
- *              (byte 92 = 0 tells the host there is none).
+ *   0x51  A2h: no diagnostics (A0h byte 92 = 0). Only byte 118, the power
+ *              level control, is implemented; it acts on RJ45, the one
+ *              variant that declares level 2. Every other byte reads 0x00.
  *   0x56  the PHY, in the protocol Linux's mdio-i2c speaks
  *         (drivers/net/mdio/mdio-i2c.c), both clauses:
  *           C22 read   write [reg]                         then read 2 bytes BE
