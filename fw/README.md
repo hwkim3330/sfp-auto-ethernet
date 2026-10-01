@@ -28,6 +28,14 @@ To set master from Linux: write byte 96 = 1 into A0h. You can do this through `e
 
 - RTL8221B at MDIO address 1, native Clause 45. EEPROM byte 36 = `0x1E` (2.5GBASE-T), so Linux probes C45 at 0x56 and binds its realtek driver.
 - On release from reset it sets the SerDes mode (MMD30 0x697A): 2500BASE-X + SGMII by link speed for Linux, 2500BASE-X only for `HOST=d10`.
+- EEPROM byte 12 (nominal signalling rate) is 31: the host lane runs at 3.125 GBd. T1 and T1S say 13 (1.25 GBd).
+- **Power level 2** (up to 1.5 W; the PHY alone is near 1 W at 2.5G). A0h byte 64 bit 1 declares it and byte 94 claims SFF-8472 Rev 10.2, the earliest revision whose byte 64 Linux reads. A2h byte 118 is the handshake:
+  - until the host sets bit 0, the module stays at level 1 and advertises 100M / 1G only (MMD7 0x0020 bit 7 cleared, auto-negotiation restarted);
+  - when the host sets it, 2.5GBASE-T is advertised too, and bit 1 reports level 2.
+  - Linux grants level 2 only if its SFP cage allows it (`maximum-power-milliwatt` ≥ 1500 in the device tree); otherwise it logs "module left in power mode 1" and the link comes up at 1G.
+  - `HOST=d10` starts at level 2: the D10 links 2.5G modules only at a fixed 2500 and never writes A2h.
+  - A host PHY driver that rewrites the advertisement itself overrides the level-1 restriction.
+  - Every other A2h byte reads 0 (no diagnostics: A0h byte 92 = 0).
 
 ## T1S (`VARIANT=t1s`)
 

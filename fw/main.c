@@ -252,15 +252,19 @@ static void a0_init(void)
      * 2.5GBASE-T module otherwise (byte 36 = 0x1E -> C45 PHY probe) */
     a0[6] = HOST_FIBER ? 0x00 : 0x08;
     a0[36] = HOST_FIBER ? 0x00 : 0x1E;
-    a0[12] = 25;             /* 2.5 GBd nominal */
-    a0[64] = 0x02;           /* power level 2 (up to 1.5 W): the PHY alone peaks near 1 W */
+    /* power level 2 (up to 1.5 W): the PHY alone peaks near 1 W at 2.5G.
+     * Linux reads byte 64 only from a module claiming SFF-8472 Rev 10.2 or
+     * later (byte 94), and then grants the level through A2h byte 118 */
+    a0[64] = 0x02;
+    a0[94] = 0x03;           /* SFF-8472 Rev 10.2: A2h byte 118 is implemented */
 #endif
 #if VARIANT_T1S
     a0[2] = 0x80;            /* connector: vendor specific (2-pin JST PH) */
     a0[18] = 25;             /* a 10BASE-T1S mixing segment: 25 m */
 #endif
     a0[11] = 0x01;           /* 8B/10B */
-    a0[12] = 13;             /* 1.3 GBd nominal, units of 100 MBd */
+    /* nominal signalling rate, units of 100 MBd: the host lane's line rate */
+    a0[12] = VARIANT_RJ45 ? 31 : 13;   /* 3.125 GBd (2500BASE-X) / 1.25 GBd (SGMII) */
     if (!VARIANT_T1S) a0[18] = 15;             /* copper length, m */
     put_str(20, 16, "SFP-AUTO-ETH");
     put_str(40, 16, VARIANT_PN);
@@ -284,6 +288,12 @@ static void a0_init(void)
 #endif
     a0_checksums();
 }
+
+/* ------------------------------------------------------------------ A2h */
+/* No diagnostics (A0h byte 92 = 0); only byte 118, the power level control
+ * of SFF-8472 / SFF-8419: bit 0 the host's select (1 = level 2 allowed),
+ * bit 1 the level the module runs at. Every other byte reads 0. */
+static uint8_t a2_118;
 
 /* ------------------------------------------------------------------ PHY */
 static int master_applied = -1;
@@ -361,6 +371,28 @@ static int plca_changed(void)
 }
 #endif
 
+#if VARIANT_RJ45
+/* Power level 1 (<= 1 W) until the host grants level 2: advertise 100M/1G
+ * only, then 2.5GBASE-T as well (MMD7 0x0020 bit 7, the MultiGBASE-T AN
+ * control register), restarting auto-negotiation (MMD7 0x0000 bits 12/9).
+ * On a fibre-personality host (HOST_FIBER: the D10, which links 2.5G
+ * modules only at a fixed 2500 and never writes A2h) the module starts at
+ * level 2. A host PHY driver that rewrites the advertisement overrides this. */
+static int pl2_applied = -1;
+
+static void rtl8221b_power_level(int pl2)
+{
+    uint16_t v = mmd_read(7, 0x0020);
+    v = (uint16_t)(pl2 ? (v | 0x0080u) : (v & ~0x0080u));
+    mmd_write(7, 0x0020, v);
+    mmd_write(7, 0x0000, (uint16_t)(mmd_read(7, 0x0000) | 0x1200u));
+    pl2_applied = pl2;
+    a2_118 = (uint8_t)((a2_118 & ~0x02u) | (pl2 ? 0x02u : 0x00u));
+}
+
+static int pl2_wanted(void) { return HOST_FIBER || (a2_118 & 1); }
+#endif
+
 static void phy_apply_config(void)
 {
 #if VARIANT_T1S
@@ -374,6 +406,7 @@ static void phy_apply_config(void)
      * module only at speed 2500); on Linux, switch with speed and let the
      * driver take over when it binds */
     rtl8221b_serdes(HOST_FIBER ? 2 : 0);
+    rtl8221b_power_level(pl2_wanted());
     master_applied = a0[96] & 1;
     return;
 #endif
@@ -430,7 +463,7 @@ static uint8_t next_tx(void)
 {
     switch (dev) {
     case DEV_A0:  return a0[off++];
-    case DEV_A2:  off++; return 0x00;
+    case DEV_A2:  return off++ == 118 ? a2_118 : 0x00;
     case DEV_PHY:
         if (nrd == 2) {                          /* mdio-i2c auto-increments */
             uint16_t v = mdio_read(PHYAD, ++phy_reg);
@@ -470,6 +503,7 @@ static void i2c_poll(void)
             off = b;
         } else {
             if (dev == DEV_A0 && off >= 96 && off < 128) a0[off] = b;   /* vendor area only */
+            if (dev == DEV_A2 && off == 118) a2_118 = (uint8_t)((a2_118 & ~1u) | (b & 1u));   /* power level select */
             off++;
         }
         nwr++;
@@ -551,6 +585,9 @@ int main(void)
         phy_hold((int)((TXDIS_PORT->IDR >> TXDIS_PIN) & 1));   /* TX_DISABLE high/open: PHY in reset */
         if (phy_held) { pa_set(RX_LOS); continue; }
         if ((a0[96] & 1) != master_applied) phy_apply_config();
+#if VARIANT_RJ45
+        if (pl2_wanted() != pl2_applied) rtl8221b_power_level(pl2_wanted());   /* the host wrote A2h 118 */
+#endif
         (void)mdio_read(PHYAD, 0x01);            /* BMSR link bit latches low: read twice */
         if (mdio_read(PHYAD, 0x01) & 0x0004u) pa_clr(RX_LOS); else pa_set(RX_LOS);
     }
