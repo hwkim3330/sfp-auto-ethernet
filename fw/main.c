@@ -317,11 +317,17 @@ static void rtl8221b_serdes(uint16_t mode)
 #endif
 
 #if VARIANT_T1S
-/* LAN8670/1/2 Rev C1/C2 configuration: Microchip AN1699 Rev E (and AN1760,
- * whose first nine writes and SQI table it shares), in the order Linux's
- * drivers/net/phy/microchip_t1s.c (lan867x_revc_config_init) makes them.
- * All in MMD 31. Two of the values carry per-part trim offsets read back
- * through the CFGPARAM window (0xD8 address, 0xDA control, 0xD9 data). */
+/* LAN8670/1/2 configuration: Microchip AN1699 Rev G (DS60001699G, Oct 2025).
+ * Which table applies follows the silicon revision in PHY_ID2[3:0]
+ * (AN1699 Table 1): 0101 = C2 (the LAN8670C2 the BOM orders), 0110 = D0 and
+ * later. All writes in MMD 31.
+ * C2 (Tables 3-1, 3-2; the same writes as Linux's microchip_t1s.c
+ * lan867x_revc_config_init): two values carry per-part trim offsets read
+ * back through the CFGPARAM window (0xD8 address, 0xDA control, 0xD9 data).
+ * D0 (Table 2-1): fixed values; LSCTL (0x0012) = 0x1001 keeps C2's
+ * behaviour, link status always up and no pin output. */
+static int lan867x_rev;
+
 static int8_t cfg_offset(uint16_t addr)
 {
     mmd_write(31, 0x00D8, addr);
@@ -332,11 +338,18 @@ static int8_t cfg_offset(uint16_t addr)
 
 static void lan867x_init(void)
 {
+    for (int i = 0; i < 20 && !(mmd_read(31, 0x0019) & 0x0800u); i++) delay_ms(1);   /* STS2 reset complete */
+    lan867x_rev = mdio_read(PHYAD, 0x03) & 0x000F;
+    if (lan867x_rev >= 6) {                         /* D0 and later */
+        static const uint16_t reg[9] = { 0x0037, 0x008A, 0x0118, 0x00D6, 0x0082, 0x00FD, 0x00FD, 0x0091, 0x0012 };
+        static const uint16_t val[9] = { 0x0800, 0xBFC0, 0x029C, 0x1001, 0x001C, 0x0C0B, 0x8C07, 0x9660, 0x1001 };
+        for (int i = 0; i < 9; i++) mmd_write(31, reg[i], val[i]);
+        return;
+    }
     static const uint16_t reg[9] = { 0x00D0, 0x00E0, 0x00E9, 0x00F5, 0x00F4, 0x00F8, 0x00F9, 0x0081, 0x0091 };
     static const uint16_t val[9] = { 0x3F31, 0xC000, 0x9E50, 0x1CF8, 0xC020, 0xB900, 0x4E53, 0x0080, 0x9660 };
     static const uint16_t sqi[12] = { 0x0103, 0x0910, 0x1D26, 0x002A, 0x0103, 0x070D,
                                       0x1720, 0x0027, 0x0509, 0x0E13, 0x1C25, 0x002B };
-    for (int i = 0; i < 20 && !(mmd_read(31, 0x0019) & 0x0800u); i++) delay_ms(1);   /* STS2 reset complete */
     int o0 = cfg_offset(0x0004), o1 = cfg_offset(0x0008);
     for (int i = 0; i < 9; i++) {
         mmd_write(31, reg[i], val[i]);
@@ -352,17 +365,50 @@ static void lan867x_init(void)
 }
 
 /* OPEN Alliance TC14 PLCA registers, MMD 31: CTRL0 0xCA01 (bit 15 enable),
- * CTRL1 0xCA02 (node count 15:8, local ID 7:0), BURST 0xCA05 (max burst
- * count 15:8, burst timer 7:0 = 0x80 bit times, its reset value) */
+ * CTRL1 0xCA02 (the coordinator, node ID 0, writes the node count in 15:8;
+ * a follower its ID in 7:0: AN1699 2.2 / 3.4), STS 0xCA03 (bit 15 PST,
+ * PLCA running), BURST 0xCA05 (max burst count 15:8, burst timer 7:0 =
+ * 0x80 bit times, its reset value).
+ * Collision detection, CDCTL0 0x0087 (read-modify-write, reserved fields):
+ *   D0: CDAD (bit 9) lets the PHY turn it off while PLCA runs and back on
+ *       when it falls back to CSMA/CD;
+ *   C2: CDEN (bit 15) off while PLCA runs, on in CSMA/CD - including when
+ *       the beacon is lost and the PHY falls back on its own, which
+ *       plca_watch() catches through PST. */
 static uint8_t plca_applied[4] = { 0xFF, 0xFF, 0xFF, 0xFF };
+static int plca_running = -1;
+
+static void cdctl0(uint16_t set, uint16_t clear)
+{
+    uint16_t v = mmd_read(31, 0x0087);
+    mmd_write(31, 0x0087, (uint16_t)((v | set) & ~clear));
+}
 
 static void plca_apply(void)
 {
     mmd_write(31, 0xCA01, 0x0000);                  /* off while it changes */
-    mmd_write(31, 0xCA02, (uint16_t)((a0[122] << 8) | a0[121]));
+    mmd_write(31, 0xCA02, (uint16_t)(a0[121] == 0 ? (a0[122] << 8) : a0[121]));
     mmd_write(31, 0xCA05, (uint16_t)((a0[123] << 8) | 0x80u));
-    if (a0[120] & 1) mmd_write(31, 0xCA01, 0x8000);
+    if (a0[120] & 1) {
+        mmd_write(31, 0xCA01, 0x8000);
+        if (lan867x_rev >= 6) cdctl0(0x0200, 0);
+        else cdctl0(0, 0x8000);
+    } else {
+        cdctl0(lan867x_rev >= 6 ? 0x0200 : 0x8000, 0);   /* AN1699 Table 2-3 / CDEN back on */
+    }
+    plca_running = (a0[120] & 1) ? 1 : 0;
     for (int i = 0; i < 4; i++) plca_applied[i] = a0[120 + i];
+}
+
+/* C2 only: follow PST, so collision detection is back on whenever the PHY
+ * has fallen back to CSMA/CD (no beacon), and off again once PLCA runs */
+static void plca_watch(void)
+{
+    if (lan867x_rev >= 6 || !(a0[120] & 1)) return;
+    int pst = (mmd_read(31, 0xCA03) & 0x8000u) != 0;
+    if (pst == plca_running) return;
+    if (pst) cdctl0(0, 0x8000); else cdctl0(0x8000, 0);
+    plca_running = pst;
 }
 
 static int plca_changed(void)
@@ -433,13 +479,15 @@ static void phy_apply_config(void)
 /* TX_DISABLE: INF-8074i wants the transmitter off within 10 us of it rising
  * (t_off) and back within 1 ms of it falling (t_on). The pin interrupts on
  * both edges and the handler moves the PHY's reset at once; the settings that
- * need MDIO follow from the main loop 20 ms after release (the straps
- * resample on reset release). The PHY's own link training comes on top of
+ * need MDIO follow from the main loop 70 ms after release: the DP83TG720
+ * wants 65 ms before its first MDIO frame, the RTL8221B 55 ms. Until then the
+ * 0x56 bridge answers 0xFFFF (Linux retries its PHY probe for ~1.25 s). The PHY's own link training comes on top of
  * t_on, as on every copper SFP. The main loop's poll stays as a backstop. */
 static volatile int phy_held = 1;  /* 1 while TX_DISABLE (or, on T1S, no FPGA) holds the PHY in reset */
 static volatile uint32_t cfg_due;   /* ms tick to apply the PHY settings at, 0 = none */
 
 static int txdis_high(void) { return (int)((TXDIS_PORT->IDR >> TXDIS_PIN) & 1); }
+static int phy_ready(void) { return !phy_held && !cfg_due; }
 
 static void phy_hold(int hold)
 {
@@ -451,7 +499,7 @@ static void phy_hold(int hold)
     } else if (!hold && phy_held) {
         pa_set(PHY_RST);
         phy_held = 0;
-        cfg_due = (ms + 20u) | 1u;     /* never 0 */
+        cfg_due = (ms + 70u) | 1u;     /* never 0 */
     }
     __enable_irq();
 }
@@ -477,7 +525,7 @@ void EXTI4_15_IRQHandler(void)
     } else if (phy_held && phy_may_run()) {
         pa_set(PHY_RST);
         phy_held = 0;
-        cfg_due = (ms + 20u) | 1u;
+        cfg_due = (ms + 70u) | 1u;
     }
 }
 
@@ -503,7 +551,7 @@ static uint8_t next_tx(void)
     case DEV_A2:  return off++ == 118 ? a2_118 : 0x00;
     case DEV_PHY:
         if (nrd == 2) {                          /* mdio-i2c auto-increments */
-            uint16_t v = mdio_read(PHYAD, ++phy_reg);
+            uint16_t v = phy_ready() ? mdio_read(PHYAD, ++phy_reg) : 0xFFFFu;
             phy_buf[0] = (uint8_t)(v >> 8); phy_buf[1] = (uint8_t)v; nrd = 0;
         }
         return phy_buf[nrd++];
@@ -520,7 +568,8 @@ static void i2c_poll(void)
         dev = code;
         if (read) {
             if (dev == DEV_PHY) {                /* SCL is stretched while this runs */
-                uint16_t v = (nwr == 3 && (phy_wr[0] & 0x20))
+                uint16_t v = !phy_ready() ? 0xFFFFu
+                    : (nwr == 3 && (phy_wr[0] & 0x20))
                     ? mmd_read(phy_wr[0] & 31u, (uint16_t)((phy_wr[1] << 8) | phy_wr[2]))
                     : mdio_read(PHYAD, phy_reg);
                 phy_buf[0] = (uint8_t)(v >> 8); phy_buf[1] = (uint8_t)v; nrd = 0;
@@ -549,7 +598,9 @@ static void i2c_poll(void)
     if (isr & I2C_ISR_NACKF) I2C1->ICR = I2C_ICR_NACKCF;
     if (isr & I2C_ISR_STOPF) {
         I2C1->ICR = I2C_ICR_STOPCF;
-        if (dev == DEV_PHY && nwr == 3 && phy_wr[0] < 0x20)          /* C22 write */
+        if (dev == DEV_PHY && !phy_ready())
+            ;                                                         /* not up yet: dropped */
+        else if (dev == DEV_PHY && nwr == 3 && phy_wr[0] < 0x20)          /* C22 write */
             mdio_write(PHYAD, phy_wr[0] & 31u, (uint16_t)((phy_wr[1] << 8) | phy_wr[2]));
         else if (dev == DEV_PHY && nwr == 5)                          /* C45 write */
             mmd_write(phy_wr[0] & 31u, (uint16_t)((phy_wr[1] << 8) | phy_wr[2]),
@@ -585,7 +636,7 @@ int main(void)
     TXF_PORT->BRR = PIN(TXF_PIN);
     gpio_mode(TXF_PORT, TXF_PIN, 1, 1, 0);       /* held low: no fault */
 #if VARIANT_T1S
-    gpio_mode(GPIOA, FPGA_LINK, 0, 0, 2);        /* in, pulled down: no FPGA = no link */
+    gpio_mode(GPIOA, FPGA_LINK, 0, 0, 0);        /* in; R26 pulls it up (it is also the FPGA's SSPI_CS_N) */
     gpio_mode(GPIOA, FPGA_DONE, 0, 0, 0);
     GPIOB->BSRR = PIN(FPGA_RECONF);
     gpio_mode(GPIOB, FPGA_RECONF, 1, 1, 0);      /* released */
@@ -624,18 +675,19 @@ int main(void)
         }
         phy_hold(txdis_high() || !done);
         if (phy_held) { pa_set(RX_LOS); continue; }
-        if (cfg_due) {                           /* released 20 ms ago? set the PHY up */
+        if (cfg_due) {                           /* released 70 ms ago? set the PHY up */
             if ((int32_t)(ms - cfg_due) < 0) continue;
             cfg_due = 0;
             phy_apply_config();
         }
         if (plca_changed()) plca_apply();
+        if ((ms % 50u) < 5u) plca_watch();       /* every ~50 ms */
         if (pa_get(FPGA_LINK)) pa_clr(RX_LOS); else pa_set(RX_LOS);
         continue;
 #endif
         phy_hold(txdis_high());                  /* TX_DISABLE high/open: PHY in reset */
         if (phy_held) { pa_set(RX_LOS); continue; }
-        if (cfg_due) {                           /* released 20 ms ago? set the PHY up */
+        if (cfg_due) {                           /* released 70 ms ago? set the PHY up */
             if ((int32_t)(ms - cfg_due) < 0) continue;
             cfg_due = 0;
             phy_apply_config();

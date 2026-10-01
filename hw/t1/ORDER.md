@@ -6,7 +6,7 @@ Upload the files in `jlc/` as they are (`python3 panel_t1.py` makes them).
 |---|---|
 | `jlc/t1-panel-gerbers.zip` | 5-board panel, **70.6 × 81.1 mm**. Gerbers (4 copper layers, masks, silks, paste, outline) + drill |
 | `jlc/bom-tg720.csv`, `jlc/cpl-tg720.csv` | **1000BASE-T1** loadout (DP83TG720 + FB3): BOM 29 lines, CPL **280 placements** (designators `R4_1…R4_5`) |
-| `jlc/bom-tc812.csv`, `jlc/cpl-tc812.csv` | **100BASE-T1** loadout (DP83TC812, FB3 left off): BOM 28 lines, CPL **275 placements** |
+| `jlc/bom-tc812.csv`, `jlc/cpl-tc812.csv` | **100BASE-T1** loadout (DP83TC812, FB3 left off, L2 = the 200 µH DLW32MH201XK2L the TC812 needs): BOM 28 lines, CPL **275 placements** |
 | `jlc/panel-drc.rpt` | Panel DRC: **0 errors, 0 unconnected**; all 86 findings are warnings: "library not in this project" for the placed footprints and KiKit's mouse-bite holes; they don't reach the gerbers |
 | `jlc/panel-top.png` | Panel preview. The gold fingers sit on the left edge |
 
@@ -52,7 +52,7 @@ A 5-board panel × 2 panels = **10 PHYs needed**. Pick one:
 
 1. **1000BASE-T1, parts from JLC Global Sourcing.** Add 10 × DP83TG720SWRHARQ1 via "Order Parts" from DigiKey/Mouser (TI has plenty), wait for them to reach your parts library, then place the PCBA order. Adds about 1–2 weeks.
 2. **100BASE-T1 first run (in stock now).**
-   - Upload `bom-tc812.csv` + `cpl-tc812.csv`: U1 is already C3225813 and FB3 is already left out (the TC812 regulates its own core). Nothing to edit by hand.
+   - Upload `bom-tc812.csv` + `cpl-tc812.csv`: U1 is already C3225813, FB3 is already left out (the TC812 regulates its own core), and the CMC L2 is already the 200 µH DLW32MH201XK2L (C883600) the TC812 datasheet asks for. Nothing to edit by hand.
    - Same board, same firmware.
    - Cheapest, and it proves the design end to end.
 3. **Smaller panel:** `python3 panel_t1.py 3` gives 3 boards × 2 panels = 6 boards. But one BOM can list only one C-number and each reel has only 3, so this still needs global sourcing.

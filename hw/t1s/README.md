@@ -63,6 +63,8 @@ Schematic, 6-layer PCB (routed), fab outputs and a JLC panel are in place; the o
   - VDDHAQ leaves the ball field through row C and runs under the MCU to its LDO; MISO crosses over the flash.
   The MCU's pins follow the buses: TX_DISABLE / TX_FAULT are on PC14 / PC15 here (PA4 / PA6 on the other boards).
 - **Around the ball field:** JTAG leaves west on In2 to four pads on top beside the FPGA; the flash is turned 180° so CLK and MOSI reach it underneath; CRS, RXD0 and TXEN reach their straps through vias in the PHY's pads.
+- **Configuration pins, from Gowin's pinout and UG720** (see [../../docs/REFERENCES.md](../../docs/REFERENCES.md)): CLKHOLD_N (K3) is pulled down during configuration and would hold the flash clock, so it is tied to +3V3; P1 doubles as SSPI_CS_N and is pulled up (R26) so the FPGA cannot select slave SPI after loading.
+- **MDI network as AN1718 Rev D:** 100 nF 100 V series caps, 2 × 49.9 Ω end-node termination (0.75 W 1206, the closest stocked to AN1718's 1 W), 100 nF 100 V ‖ 100 kΩ to ground, ACT1210E-241 CMC; no copper under the CMC on any layer and no ground flood round the network on top.
 - **SGMII pairs** (0.114 / 0.152 mm, coupled):
   - RX on F over In1.
   - TX on B over In4. It leaves the ball field through its two via-in-pads, with 0.1 mm necks between the neighbouring ball vias.

@@ -75,7 +75,10 @@ def jlc_files(panel_path, jlc, n):
     #   tg720  1000BASE-T1, DP83TG720 + FB3 (1.0 V from the buck to pins 9/21)
     #   tc812  100BASE-T1, DP83TC812 (in stock at JLC), FB3 left off - the
     #          TC812 regulates pin 21 itself (see README)
-    LOADOUTS = {'tg720': {}, 'tc812': {'U1': ('DP83TC812SRHARQ1', 'C3225813'), 'FB3': None}}
+    #          the TC812 also wants a 200 uH CMC (its datasheet; SNLA340 2.7),
+    #          the TG720 the 100 uH one: same 3.2 x 2.5 land
+    LOADOUTS = {'tg720': {}, 'tc812': {'U1': ('DP83TC812SRHARQ1', 'C3225813'), 'FB3': None,
+                                       'L2': ('DLW32MH201XK2L', 'C883600')}}
     for old in ('cpl.csv', 'bom.csv'):
         if os.path.exists(os.path.join(jlc, old)):
             os.remove(os.path.join(jlc, old))

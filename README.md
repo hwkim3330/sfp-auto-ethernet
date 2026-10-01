@@ -45,6 +45,7 @@ SFP 모듈 세 가지. 일반 SFP 슬롯에 꽂으면 호스트와 SerDes로 붙
 | 펌웨어 빌드: 4가지 변형, 경고 0 | arm-none-eabi-gcc | `fw/`, CI |
 | T1S 게이트웨어 | Icarus Verilog 테스트벤치 3개 | `hw/t1s/gw/`, CI |
 | 규격 대조: 임피던스(자체 2D 전계 해석기), 쌍 스큐 대 심볼 시간, 엣지 핑거 치수, 케이지 높이, 클럭 ppm, 제어 핀 타이밍, 커넥터 | `tools/zsolve.py`, `tools/compliance.py` | [docs/COMPLIANCE.md](docs/COMPLIANCE.md) |
+| 레퍼런스 대조: TI·Realtek·Microchip·Gowin 데이터시트·앱노트·EVM, 리눅스 드라이버, 상용 모듈 | 문서별 값 대조 | [docs/REFERENCES.md](docs/REFERENCES.md) |
 
 - GitHub Actions([.github/workflows/check.yml](.github/workflows/check.yml))가 push할 때마다 위 셋을 다시 돌린다.
 - KiCad 9 검사에서 허용하는 경고는 "라이브러리 사본이 다르다" 두 종류뿐이다. KiCad 9 라이브러리가 KiCad 7 원본보다 새 판이라서 생긴다.

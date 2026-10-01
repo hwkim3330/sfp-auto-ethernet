@@ -269,6 +269,10 @@ CLASS_LAYERS = {'SGMII': ['F.Cu', 'B.Cu'], 'MDI': ['F.Cu', 'B.Cu']}
 
 # the tall parts, checked against the room inside the cage (4.65 mm over the
 # board, 1.65 under it); datasheet maxima. J2 (H-MTD) sits past the cage front
+# DP83TG720 datasheet 8.5: no copper under the CMC on the top layer and at
+# least the one under it
+NO_POUR = [(35.0, -0.3, 39.0, 2.8, ('F', 'In1'))]
+
 HEIGHTS = {'U1': 0.9, 'U2': 1.2, 'U3': 1.0, 'U4': 1.45, 'L1': 1.0, 'L2': 2.5, 'Y1': 0.55,
            'C27': 0.95, 'C28': 0.95, 'C37': 0.95, 'FB5': 0.95}
 

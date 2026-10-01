@@ -137,6 +137,10 @@ FPGA.update({
     'L14': 'F_CLK', 'L13': 'F_CS_N', 'M13': 'F_MOSI', 'K14': 'F_MISO',
     'N1': 'MODE1', 'M3': 'FPGA_RECONFIG_N',          # MODE0 (N2): its internal pull-up (MSPI = 11)
     'L3': 'FPGA_DONE', 'M12': 'FPGA_READY',
+    # CLKHOLD_N (K3) holds the flash's clock while it is low, and the ball is
+    # pulled down during configuration (UG720, the pinout's term_during_config):
+    # left open, the FPGA would never load. Tied high, straight onto +3V3
+    'K3': '+3V3',
     'G2': 'JTAG_TCK', 'G3': 'JTAG_TMS', 'J3': 'JTAG_TDI', 'J2': 'JTAG_TDO',
     'P1': 'FPGA_LINK',                                # SGMII link up -> MCU (RX_LOS)
 })
@@ -180,8 +184,11 @@ BUCK = (22.4, 1.7)
 part('U3', 'Regulator_Switching:TPS62823DLC', 'TPS62822DLC', 'sfp:Texas_VSON-HR-8_1.5x2mm_P0.5mm',
      {1: '+3V3', 2: 'BUCK_FB', 3: 'GND', 4: None, 5: 'GND', 6: 'BUCK_SW', 7: '+3V3', 8: None},
      BUCK, side='B', mpn='TPS62822DLCR')
-part('L1', 'Device:L_Small', '470nH DFE201610E-R47M', 'Inductor_SMD:L_Murata_DFE201610P',
-     {1: 'BUCK_SW', 2: 'VCC_CORE'}, (22.4, 4.2), side='B', mpn='DFE201610E-R47M')
+# 1.0 uH, not the datasheet's usual 0.47 (both are in TPS6282x Table 3): the
+# ripple halves, so the buck stays in PWM down to ~0.15 A instead of ~0.33 A
+# and spends less time skipping pulses next to the SerDes rails it feeds
+part('L1', 'Device:L_Small', '1uH DFE201610E-1R0M', 'Inductor_SMD:L_Murata_DFE201610P',
+     {1: 'BUCK_SW', 2: 'VCC_CORE'}, (22.4, 4.2), side='B', mpn='DFE201610E-1R0M')
 part('C11', 'Device:C_Small', '4.7uF', C0402, {1: '+3V3', 2: 'GND'}, (20.4, 1.7), side='B', rot=90)
 part('C12', 'Device:C_Small', '10uF', C0603, {1: 'VCC_CORE', 2: 'GND'}, (24.6, 4.3), side='B', rot=90)
 part('C13', 'Device:C_Small', '10uF', C0603, {1: 'VCC_CORE', 2: 'GND'}, (20.2, 4.3), side='B', rot=90)
@@ -260,9 +267,11 @@ part('C40', 'Device:C_Small', '100nF 100V', C0805, {1: 'TRXP', 2: 'MDI_CP'}, (37
 part('C41', 'Device:C_Small', '100nF 100V', C0805, {1: 'TRXN', 2: 'MDI_CN'}, (37.2, 2.3))
 part('L2', 'Device:L_Coupled_1423', 'ACT1210E-241-2P', 'sfp:L_CommonMode_3225',
      {1: 'MDI_CP', 4: 'MDI_P', 2: 'MDI_CN', 3: 'MDI_N'}, (41.1, 3.3), mpn='ACT1210E-241-2P-TL00')
-part('R22', 'Device:R_Small', '49.9 1%', R1206, {1: 'MDI_P', 2: 'MDI_TERM'}, (45.5, 4.1))
-part('R23', 'Device:R_Small', '49.9 1%', R1206, {1: 'MDI_N', 2: 'MDI_TERM'}, (45.5, 1.85))
-part('C42', 'Device:C_Small', '100nF 50V', C0805, {1: 'MDI_TERM', 2: 'GND'}, (45.5, -1.2))
+# AN1718 Rev D wants the end-node pair at 1 W in 1206 and the centre cap at
+# 100 V; no 1 W 1206 49.9 ohm is stocked, so Vishay's 0.75 W CRCW1206-HP
+part('R22', 'Device:R_Small', '49.9 1% 0.75W', R1206, {1: 'MDI_P', 2: 'MDI_TERM'}, (45.5, 4.1), mpn='CRCW120649R9FKEAHP')
+part('R23', 'Device:R_Small', '49.9 1% 0.75W', R1206, {1: 'MDI_N', 2: 'MDI_TERM'}, (45.5, 1.85), mpn='CRCW120649R9FKEAHP')
+part('C42', 'Device:C_Small', '100nF 100V', C0805, {1: 'MDI_TERM', 2: 'GND'}, (45.5, -1.2))
 part('R24', 'Device:R_Small', '100k', R0805, {1: 'MDI_TERM', 2: 'GND'}, (45.5, -3.4))
 part('J2', 'Connector_Generic:Conn_01x02', 'S2B-PH-K-S', 'Connector_JST:JST_PH_S2B-PH-K_1x02_P2.00mm_Horizontal',
      {1: 'MDI_P', 2: 'MDI_N'}, (51.6, 1.0), rot=90, mpn='S2B-PH-K-S(LF)(SN)')
@@ -287,6 +296,9 @@ part('C45', 'Device:C_Small', '100nF', C0402, {1: 'NRST', 2: 'GND'}, (41.6, 4.7)
 part('R25', 'Device:R_Small', '10k', R0201, {1: '+3V3', 2: 'TX_DISABLE'}, (9.15, 1.9), side='B', rot=90)
 part('R4', 'Device:R_Small', '4.7k', R0201, {1: '+3V3', 2: 'FPGA_DONE'}, (39.2, -4.65), side='B', rot=270)
 part('R3', 'Device:R_Small', '4.7k', R0201, {1: '+3V3', 2: 'FPGA_RECONFIG_N'}, (40.0, -4.65), side='B', rot=270)
+# P1 is also SSPI_CS_N, pulled down while the FPGA configures; held low after
+# an MSPI load it would select slave SPI (UG720), so FPGA_LINK is pulled up
+part('R26', 'Device:R_Small', '4.7k', R0201, {1: '+3V3', 2: 'FPGA_LINK'}, (40.75, -4.65), side='B', rot=270)
 for i, (net, xy) in enumerate([('+3V3', (54.8, 4.2)), ('SWDIO', (54.8, 2.1)), ('SWCLK', (54.8, 0.0)),
                                ('NRST', (54.8, -2.1)), ('GND', (54.8, -4.2))]):
     part(f'TP{i + 1}', 'Connector:TestPoint', net, TP, {1: net}, xy, side='B')
@@ -295,7 +307,7 @@ for i, (net, xy) in enumerate([('+3V3', (54.8, 4.2)), ('SWDIO', (54.8, 2.1)), ('
 LCSC_BY_MPN = {
     'GW5AT-LV15MG132C1/I0': 'C54067362', 'LAN8670C2-E/LMX': 'C20901523',
     'OB2EL89CLIB112YLC-125M': 'C7425465', 'GD25Q64CWIGR': 'C395511',
-    'TPS62822DLCR': 'C473385', 'DFE201610E-R47M': 'C269773', 'TLV75518PDBVR': 'C2877863',
+    'TPS62822DLCR': 'C473385', 'DFE201610E-1R0M': 'C161082', 'CRCW120649R9FKEAHP': 'C4014562', 'TLV75518PDBVR': 'C2877863',
     'TLV75512PDBVR': 'C2877864', 'TPS22918DBVR': 'C131941', 'BLM18KG601SH1': 'C710379',
     'STM32G031F6P6': 'C529333', 'ACT1210E-241-2P-TL00': 'C6114822', 'S2B-PH-K-S(LF)(SN)': 'C173752',
 }
@@ -592,8 +604,9 @@ for net, x in _MCU_VIA.items():
     PREVIAS.append((net, (x, -4.0), _DV))
     PREROUTES.append((net, 'B', [(x, -3.3), (x, -4.0)], _BW))
 # and the three pull-ups from the pins' inner ends
-PREROUTES += [('+3V3', 'B', [(39.2, -4.97), (39.2, -5.15), (40.0, -5.15), (42.4, -5.15), (42.6, -4.95)], 0.15),
+PREROUTES += [('+3V3', 'B', [(39.2, -4.97), (39.2, -5.15), (40.0, -5.15), (40.75, -5.15), (42.4, -5.15), (42.6, -4.95)], 0.15),
               ('+3V3', 'B', [(40.0, -4.97), (40.0, -5.15)], 0.15),
+              ('+3V3', 'B', [(40.75, -4.97), (40.75, -5.15)], 0.15),
               ('+3V3', 'B', [(9.15, 2.22), (8.6, 2.6)], 0.15),          # R25 from U4's output
               ('TX_DISABLE', 'B', [(9.2, 1.3), (9.15, 1.58)], _BW)]
 PREVIAS.append(('+3V3', (42.6, -4.95), _DV))
@@ -691,6 +704,11 @@ PREVIAS += [('GND', (round(PHY_AT[0] + dx, 3), dy)) for dx in (-0.7, 0.7) for dy
 # the one link Freerouting left open in the kept session (t1s.ses): C14's and
 # R8's core pads, into the In4 island through a via of their own (a GND track
 # from C12 to U3 walls them off from L1). Valid with that .ses only
+# AN1718: no copper under the CMC on any layer, and no ground flood round
+# the MDI parts on their layer
+NO_POUR = [(39.1, 1.75, 43.1, 4.85, ('F', 'In1', 'In2', 'In3', 'In4', 'B')),
+           (35.5, 0.73, 47.8, 5.3, ('F',))]
+
 POST_ROUTES = [('VCC_CORE', 'B', [(25.08, 1.0), (25.08, 1.9), (25.08, 2.1), (24.665, 2.65)], 0.2)]
 POST_VIAS = [('VCC_CORE', (24.665, 2.7), MIN_VIA)]      # between X1's pin 1 (on top) and C9's +3V3 via
 

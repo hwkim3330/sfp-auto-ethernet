@@ -172,8 +172,13 @@ part('U3', 'Regulator_Switching:TPS62823DLC', 'TPS62822DLC', 'sfp:Texas_VSON-HR-
      {1: 'BUCK_EN', 2: 'BUCK_FB', 3: 'GND', 4: None, 5: 'GND', 6: 'BUCK_SW', 7: '+3V3', 8: None},
      (11.8, 1.3), side='B', mpn='TPS62822DLCR')
 part('R18', 'Device:R_Small', '100k', R0201, {1: 'BUCK_EN', 2: 'GND'}, (13.9, 3.6), side='B', rot=90)
-part('L1', 'Device:L_Small', '470nH DFE201610E-R47M', 'Inductor_SMD:L_Murata_DFE201610P',
-     {1: 'BUCK_SW', 2: 'V0P95'}, (11.8, -1.6), side='B', mpn='DFE201610E-R47M')
+# 1.0 uH, not 0.47 (both in TPS6282x Table 3): the RTL8221B wants its core
+# switcher in PWM, not pulse skipping (datasheet 9.x: CCM, > 1 MHz). The
+# TPS62822 has no forced-PWM pin and skips below half its ripple current:
+# ~0.33 A with 0.47 uH, against the PHY's 0.36 A typical at 2.5G (less at 1G
+# and link-down); 1.0 uH halves the ripple and moves that to ~0.15 A
+part('L1', 'Device:L_Small', '1uH DFE201610E-1R0M', 'Inductor_SMD:L_Murata_DFE201610P',
+     {1: 'BUCK_SW', 2: 'V0P95'}, (11.8, -1.6), side='B', mpn='DFE201610E-1R0M')
 part('C32', 'Device:C_Small', '4.7uF', C0402, {1: '+3V3', 2: 'GND'}, (12.0, 3.4), side='B')
 part('C33', 'Device:C_Small', '10uF', C0603, {1: 'V0P95', 2: 'GND'}, (9.2, -1.8), side='B', rot=90)
 part('C34', 'Device:C_Small', '10uF', C0603, {1: 'V0P95', 2: 'GND'}, (11.8, -3.8), side='B')
@@ -578,7 +583,7 @@ PREVIAS.append(('MDC', (51.6, -4.4)))   # the right-side caps' ground end would 
 
 # LCSC numbers, each checked against JLC's parts search on 2026-09-30
 LCSC_BY_MPN = {'RTL8221B-VB-CG': 'C5155988', 'STM32G031F6P6': 'C529333', 'TPS62822DLCR': 'C473385',
-               'DFE201610E-R47M': 'C269773', 'BLM18KG601SH1': 'C710379', 'LP72450ANL': 'C53281905',
+               'DFE201610E-1R0M': 'C161082', 'BLM18KG601SH1': 'C710379', 'LP72450ANL': 'C53281905',
                'KH-RJ45-58-8P8C': 'C2683360', 'SL201625M20P': 'C5155510', 'TPS22918DBVR': 'C131941',
                '1206B102K202NT': 'C9196', 'MST8011AI-72-33E25.000000': 'C51026225'}
 LCSC_BY_VALUE = {('100nF', C0201): 'C76928', ('100nF', C0402): 'C1525', ('10uF', C0603): 'C19702',

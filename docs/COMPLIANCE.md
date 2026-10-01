@@ -30,8 +30,8 @@ Skew from the routed lengths (`lengths.txt`) at the solver's 5.77 ps/mm, against
 | TD_P / TD_N | SGMII, host to module | 1250 MBd | 800 ps | 2.33 / 2.33 mm | 0.0 ps | 0.0% | 0/0 | 0.02 dB | ✓ |
 | SG_TX_P / SG_TX_N | SGMII | 1250 MBd | 800 ps | 21.58 / 22.02 mm | 2.5 ps | 0.3% | 0/0 | 0.19 dB | ✓ |
 | RD_P / RD_N | SGMII, module to host | 1250 MBd | 800 ps | 2.33 / 2.33 mm | 0.0 ps | 0.0% | 0/0 | 0.02 dB | ✓ |
-| SG_RX_P / SG_RX_N | SGMII | 1250 MBd | 800 ps | 12.25 / 13.33 mm | 6.2 ps | 0.8% | 2/2 | 0.11 dB | ✓ |
-| TRD_P / TRD_M | 1000BASE-T1 MDI (PAM3) | 750 MBd | 1333 ps | 16.13 / 15.68 mm | 2.5 ps | 0.2% | 0/0 | 0.10 dB | ✓ |
+| SG_RX_P / SG_RX_N | SGMII | 1250 MBd | 800 ps | 12.25 / 13.32 mm | 6.2 ps | 0.8% | 2/2 | 0.11 dB | ✓ |
+| TRD_P / TRD_M | 1000BASE-T1 MDI (PAM3) | 750 MBd | 1333 ps | 16.12 / 15.68 mm | 2.5 ps | 0.2% | 0/0 | 0.10 dB | ✓ |
 | DCB_P / DCB_N | 1000BASE-T1 MDI (PAM3) | 750 MBd | 1333 ps | 1.48 / 1.57 mm | 0.5 ps | 0.0% | 0/0 | 0.01 dB | ✓ |
 | MDI_P / MDI_N | 1000BASE-T1 MDI (PAM3) | 750 MBd | 1333 ps | 15.02 / 16.03 mm | 5.8 ps | 0.4% | 0/0 | 0.10 dB | ✓ |
 

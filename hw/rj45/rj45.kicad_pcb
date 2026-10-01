@@ -3311,7 +3311,7 @@
     (at 111.8 101.6)
     (descr "Inductor, Murata, DFE201610P, 2.0x1.6x1.0mm, https://www.murata.com/~/media/webrenewal/products/inductor/chip/tokoproducts/wirewoundmetalalloychiptype/m_dfe201610p.ashx")
     (tags "Inductor power chip flatwire")
-    (property "LCSC" "C269773")
+    (property "LCSC" "C161082")
     (property "Sheetfile" "rj45.kicad_sch")
     (property "Sheetname" "")
     (path "/51ff6a91-29f0-58b6-a8ff-1af6e82d0498")
@@ -3320,7 +3320,7 @@
         (effects (font (size 1 1) (thickness 0.15)) (justify mirror))
       (tstamp 24b501ca-3c48-4f11-a9f8-fbeebc1c871f)
     )
-    (fp_text value "470nH DFE201610E-R47M" (at 0 -1.8 180) (layer "B.Fab") hide
+    (fp_text value "1uH DFE201610E-1R0M" (at 0 -1.8 180) (layer "B.Fab") hide
         (effects (font (size 1 1) (thickness 0.15)) (justify mirror))
       (tstamp 3470a96c-0a75-4a74-92d2-82012772f9ef)
     )

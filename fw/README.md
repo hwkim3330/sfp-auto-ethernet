@@ -17,7 +17,7 @@ A single I²C peripheral covers all three:
 
 ## What it does
 
-- **TX_DISABLE high or open → the PHY is held in reset.** The pin interrupts on both edges, so the reset moves within about a microsecond (INF-8074i t_off: 10 µs). When TX_DISABLE goes low, the interrupt releases reset at once and the main loop applies the PHY's settings 20 ms later, once its straps have resampled: master/slave (MMD1 0x0834 bit 14, the IEEE 1.2100 register, identical on the DP83TG720 and DP83TC812), and the variant's SerDes and power-level set-up. A 5 ms poll of the pin backs the interrupt up.
+- **TX_DISABLE high or open → the PHY is held in reset.** The pin interrupts on both edges, so the reset moves within about a microsecond (INF-8074i t_off: 10 µs). When TX_DISABLE goes low, the interrupt releases reset at once and the main loop applies the PHY's settings 70 ms later (the DP83TG720 wants 65 ms before its first MDIO frame, the RTL8221B 55 ms; until then the 0x56 bridge answers 0xFFFF and Linux retries): master/slave (MMD1 0x0834 bit 14, the IEEE 1.2100 register, identical on the DP83TG720 and DP83TC812), and the variant's SerDes and power-level set-up. A 5 ms poll of the pin backs the interrupt up.
 - Every 5 ms it reads BMSR bit 2 (twice, because the link bit latches low). On link it drives RX_LOS low; with no link it releases RX_LOS. INF-8074i asks 100 µs for RX_LOS; a copper PHY's own link-fail timers take far longer, so no copper module meets that (see [../docs/COMPLIANCE.md](../docs/COMPLIANCE.md)).
 - TX_FAULT is always held low (no fault).
 - If byte 96 changes, it reapplies master/slave immediately.
@@ -40,7 +40,8 @@ To set master from Linux: write byte 96 = 1 into A0h. You can do this through `e
 ## T1S (`VARIANT=t1s`)
 
 - **The FPGA first.** The PHY stays in reset until the FPGA's DONE (PA11) goes high. If DONE hasn't come 1.5 s after boot, the MCU pulses RECONFIG_N (PB0) low and waits again, three times at most.
-- **LAN8670 set-up** on every release from reset: the Rev C1/C2 configuration from Microchip AN1699 Rev E, including the two per-part trim offsets read back through the CFGPARAM window. The order is the one Linux's `microchip_t1s` driver uses.
+- **LAN8670 set-up** on every release from reset, from Microchip AN1699 Rev G, picked by the silicon revision in PHY_ID2: C2 (Tables 3-1/3-2, with the two per-part trim offsets read back through the CFGPARAM window; the order Linux's `microchip_t1s` driver uses) or D0 and later (Table 2-1, LSCTL = 0x1001).
+- **Collision detection follows PLCA** (AN1699): on C2 it is turned off while PLCA runs and back on whenever the PHY falls back to CSMA/CD (the PLCA status bit, read every 50 ms); on D0 the PHY's CDAD bit does that itself.
 - **PLCA** from the writable vendor area of A0h. The host can change it at any time:
 
   | Byte | Meaning | Default |

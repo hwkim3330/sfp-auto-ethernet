@@ -1,7 +1,7 @@
 TD_P/TD_N 2.33/2.33 mm skew 0.00 vias 0/0
 SG_TX_P/SG_TX_N 21.58/22.02 mm skew 0.44 vias 0/0
 RD_P/RD_N 2.33/2.33 mm skew 0.00 vias 0/0
-SG_RX_P/SG_RX_N 12.25/13.33 mm skew 1.08 vias 2/2
-TRD_P/TRD_M 16.13/15.68 mm skew 0.44 vias 0/0
+SG_RX_P/SG_RX_N 12.25/13.32 mm skew 1.08 vias 2/2
+TRD_P/TRD_M 16.12/15.68 mm skew 0.44 vias 0/0
 DCB_P/DCB_N 1.48/1.57 mm skew 0.09 vias 0/0
 MDI_P/MDI_N 15.02/16.03 mm skew 1.01 vias 0/0

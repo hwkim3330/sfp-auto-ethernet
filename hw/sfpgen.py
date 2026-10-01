@@ -966,6 +966,30 @@ def import_ses(board, path):
     return len(wires), len(vias)
 
 
+def add_no_pour(board):
+    """D.NO_POUR: [(x0, y0, x1, y1, layers)] where no copper pour may go
+    (tracks and pads stay): under a common-mode choke, which TI (DP83TG720
+    datasheet 8.5) and Microchip (AN1718) want clear of copper on the layers
+    named. Added after routing, so a kept session stays valid; only the
+    fills change."""
+    for x0, y0, x1, y1, layers in getattr(D, 'NO_POUR', []):
+        k = pcbnew.ZONE(board)
+        ls = pcbnew.LSET()
+        for l in layers:
+            ls.addLayer(CU[l.split('.')[0]])
+        k.SetLayerSet(ls)
+        ch = pcbnew.SHAPE_LINE_CHAIN()
+        for x, y in ((x0, y0), (x1, y0), (x1, y1), (x0, y1)):
+            ch.Append(MB.V(x, y))
+        ch.SetClosed(True)
+        k.AddPolygon(ch)
+        k.SetIsRuleArea(True)
+        k.SetDoNotAllowCopperPour(True)
+        k.SetDoNotAllowTracks(False); k.SetDoNotAllowVias(False)
+        k.SetDoNotAllowPads(False); k.SetDoNotAllowFootprints(False)
+        board.Add(k)
+
+
 def drop_duplicate_plane_vias(board):
     """Freerouting hands back a via of its own, a grid step off, beside some of
     the plane dogbones it was given (T1S: four +3V3 pairs 0.13 mm apart, and
@@ -1688,6 +1712,7 @@ def route(passes=20, reuse_ses=False):
             raise RuntimeError(f'netclass {name} reached the DSN with no nets - the widths would be lost')
     nw, nv = import_ses(board, ses)
     drop_duplicate_plane_vias(board)
+    add_no_pour(board)
     add_outer_pours(board)
     pcbnew.ZONE_FILLER(board).Fill(board.Zones())
     stitch_gnd(board)
