@@ -34,7 +34,7 @@ Schematic, 6-layer PCB (routed), fab outputs and a JLC panel are in place; the o
 | FPGA | Gowin **GW5AT-LV15MG132C1/I0** | C54067362 | The only FPGA with real transceivers that fits the width (8 × 8 mm) and is in JLC stock |
 | PHY | Microchip **LAN8670C2-E/LMX** | C20901523 | MII + PLCA, 5 × 5 VQFN (B1/C1 variants have no stock) |
 | Reference | YXC OB2EL89CLIB112YLC-125M, 125 MHz LVDS 3225 | C7425465 | As the Gowin kit: LVDS, AC coupled at the FPGA |
-| Configuration | GD25Q64CWIGR, 64 Mbit SPI NOR, WSON-8 | C395511 | Gowin wants ≥ 64 Mbit (its retry image sits at 0x800000) |
+| Configuration | GD25Q128EWIGR, 128 Mbit SPI NOR, WSON-8 6 × 5 | C2982923 | 128 Mbit so Gowin's default golden (retry) address 0x800000 is inside the part: main image at 0x000000, golden at 0x800000 |
 | Core 0.946 V | TPS62822 buck | C473385 | Same circuit as the RJ45 board (57.6k / 100k) |
 | 1.8 V, 1.2 V | TLV75518 / TLV75512, SOT-23-5 | C2877863 / C2877864 | VDDHAQ0; VDD12M + VCCLDO |
 | MDI | ACT1210E-241 CMC, 2 × 100 nF 100 V, 49.9 Ω end-node termination | C6114822 … | Microchip AN1718 "BIN" |

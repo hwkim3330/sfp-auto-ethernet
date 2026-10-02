@@ -50,4 +50,5 @@ Not estimated: the FPGA's price at quantity 10 and the 6-layer PCB with 0.15 mm 
 ## Before ordering
 
 - The flash is blank from the factory: the FPGA will not configure until it is programmed over JTAG (TP10–TP13, on top beside the FPGA).
+- Flash layout (GD25Q128E, 16 MiB): write the main bitstream at 0x000000 and the same bitstream again as the golden image at 0x800000, Gowin's default MSPI retry address. With no golden image the FPGA has nothing to fall back to if the main image fails to load.
 - Read [README.md](README.md#what-is-not-verified): the transceiver IP, synthesis and timing are not done.

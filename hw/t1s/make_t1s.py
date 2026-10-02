@@ -168,9 +168,11 @@ part('C8', 'Device:C_Small', '100nF', C0201, {1: 'REFCLK_P', 2: 'OSC_N'}, (20.3,
 part('C9', 'Device:C_Small', '100nF', C0201, {1: '+3V3', 2: 'GND'}, (25.2, 3.6), rot=90)
 
 # configuration flash (MSPI), underneath beside the FPGA's bank-2 corner
-part('U2', 'sfp:GD25Q64_WSON8', 'GD25Q64CWIGR', 'Package_SON:WSON-8-1EP_6x5mm_P1.27mm_EP3.4x4.3mm',
+# 128 Mbit, not 64: Gowin's MSPI retry (golden) image defaults to 0x800000,
+# which is one past the end of a 64 Mbit part; same WSON-8 6x5 footprint
+part('U2', 'sfp:GD25Q128_WSON8', 'GD25Q128EWIGR', 'Package_SON:WSON-8-1EP_6x5mm_P1.27mm_EP3.4x4.3mm',
      {1: 'F_CS_N', 2: 'F_MISO', 3: '+3V3', 4: 'GND', 5: 'F_MOSI', 6: 'F_CLK', 7: '+3V3', 8: '+3V3', 9: 'GND'},
-     (23.6, -2.6), side='B', rot=180, mpn='GD25Q64CWIGR')      # WP#/HOLD# tied high: x1 SPI only
+     (23.6, -2.6), side='B', rot=180, mpn='GD25Q128EWIGR')      # WP#/HOLD# tied high: x1 SPI only
 # straps and config pull-ups (UG984 3.5: 4.7k)
 # (R5 READY and R6 flash CS sit in the decap grid under the FPGA, below)
 # MODE1 beside its ball, TCK's pull-down beside its escape; DONE's and
@@ -306,7 +308,7 @@ for i, (net, xy) in enumerate([('+3V3', (54.8, 4.2)), ('SWDIO', (54.8, 2.1)), ('
 # LCSC part numbers, JLC API 2026-09-30
 LCSC_BY_MPN = {
     'GW5AT-LV15MG132C1/I0': 'C54067362', 'LAN8670C2-E/LMX': 'C20901523',
-    'OB2EL89CLIB112YLC-125M': 'C7425465', 'GD25Q64CWIGR': 'C395511',
+    'OB2EL89CLIB112YLC-125M': 'C7425465', 'GD25Q128EWIGR': 'C2982923',
     'TPS62822DLCR': 'C473385', 'DFE201610E-1R0M': 'C161082', 'CRCW120649R9FKEAHP': 'C4014562', 'TLV75518PDBVR': 'C2877863',
     'TLV75512PDBVR': 'C2877864', 'TPS22918DBVR': 'C131941', 'BLM18KG601SH1': 'C710379',
     'STM32G031F6P6': 'C529333', 'ACT1210E-241-2P-TL00': 'C6114822', 'S2B-PH-K-S(LF)(SN)': 'C173752',
@@ -373,9 +375,9 @@ def _osc_symbol():
 
 
 def _flash_symbol():
-    # GD25Q64C in x1 SPI: WP# and HOLD# are inputs held high (KiCad's W25Q32
+    # GD25Q128E in x1 SPI: WP# and HOLD# are inputs held high (KiCad's W25Q32
     # symbol calls them IO2/IO3, bidirectional, which ERC flags against +3V3)
-    return ('GD25Q64_WSON8', 'U', [('8', 'VCC', 'power_in'), ('1', 'CS#', 'input'), ('6', 'CLK', 'input'),
+    return ('GD25Q128_WSON8', 'U', [('8', 'VCC', 'power_in'), ('1', 'CS#', 'input'), ('6', 'CLK', 'input'),
                                    ('5', 'DI', 'input'), ('3', 'WP#', 'input'), ('7', 'HOLD#', 'input')],
             [('2', 'DO', 'output'), ('4', 'GND', 'power_in'), ('9', 'EP', 'passive')], 15.24)
 

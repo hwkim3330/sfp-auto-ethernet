@@ -132,7 +132,7 @@ def single(w, h, er, **kw):
 if __name__ == '__main__':
     H, ER = 0.0994, 4.1           # JLC 3313 prepreg under the outer layers (both stacks)
     print('outer layers over a plane: 3313 (0.0994 mm, er 4.1), 35 um copper, mask 25/15 um er 3.8')
-    print('every pair on the three boards is 0.114 / 0.152 mm on an outer layer over GND')
+    print('every high-speed pair is 0.114 / 0.152 mm on an outer layer over GND; the T1S MDI is two 0.2 mm lines')
     for label, w, s_, er in (('nominal', 0.114, 0.152, ER),
                              ('etched -0.0127 (w narrower, gap wider)', 0.1013, 0.1647, ER),
                              ('er 4.3', 0.114, 0.152, 4.3), ('er 3.9', 0.114, 0.152, 3.9)):

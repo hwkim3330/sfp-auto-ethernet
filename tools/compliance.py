@@ -84,6 +84,32 @@ def lengths(board):
     return rows
 
 
+def widths(board):
+    """Each net's track width, the one most of its routed length is drawn at."""
+    b = pcbnew.LoadBoard(os.path.join(HW, board, f'{board}.kicad_pcb'))
+    by = {}
+    for t in b.GetTracks():
+        if t.GetClass() == 'PCB_TRACK':
+            c = by.setdefault(t.GetNetname(), {})
+            w = round(pcbnew.ToMM(t.GetWidth()), 3)
+            c[w] = c.get(w, 0.0) + pcbnew.ToMM(t.GetLength())
+    return {n: max(c, key=c.get) for n, c in by.items()}
+
+
+PAIR_W = 0.114        # the coupled-pair geometry zsolve.py's 'pair' cases solve
+
+
+def lane_model(w, nom, zl):
+    """(geometry label, delay ps/mm, eps_eff, Z of one line for the loss) for a
+    lane drawn at width w: the solved pair, or a solved single line."""
+    if w == PAIR_W:
+        return f'pair {PAIR_W} / 0.152', nom['psmm'], nom['eeff'], nom['zdiff'] / 2
+    if w in zl:
+        v = zl[w]
+        return f'2 × line {w:g} (Z0 {v["z0"]:.1f})', v['psmm'], v['eeff'], v['z0']
+    return None
+
+
 def loss_db_per_mm(f, eeff, w_mm, z_line, tand=0.02, rough=1.3):
     """Microstrip loss, first order: dielectric (tan d) plus conductor (skin
     effect over the line's width, times a roughness factor). FR-4: tan d ~0.02."""
@@ -166,8 +192,12 @@ def main():
           '`tools/zsolve.py`: a 2D finite-difference solver on the cross-section, refined until Z moves by '
           '< 0.5 %. Checked against Hammerstad\'s closed form for a thin microstrip (57.4 vs 57.9 ohm) and '
           'against JLC\'s calculator (0.157 mm → 50 ohm; this solver: 50.7). Stack: JLC 3313 prepreg '
-          '0.0994 mm, εr 4.1, 35 µm copper, solder mask 25 / 15 µm εr 3.8. Every pair on the three boards is '
-          '0.114 / 0.152 mm on an outer layer over GND.',
+          '0.0994 mm, εr 4.1, 35 µm copper, solder mask 25 / 15 µm εr 3.8. Every high-speed pair (SGMII, '
+          '1000BASE-X / 2500BASE-X, BASE-T1 and BASE-T MDI, LVDS) is 0.114 / 0.152 mm on an outer layer '
+          'over GND. The one exception is the T1S MDI (10BASE-T1S, 12.5 MBd DME): two 0.2 mm lines '
+          '≥ 0.58 mm apart, so close to uncoupled and modelled as single lines (Z0 from the 0.2 mm row; '
+          'Zdiff ≤ 2 × Z0). At 15 mm against a ≈ 13 m wavelength (12.5 MHz) it is electrically short, so its '
+          'impedance does not matter; its lane below uses the single-line delay and loss.',
           '',
           '| Case | Zdiff (Ω) | Zcm (Ω) | Delay |',
           '|---|---:|---:|---:|']
@@ -183,25 +213,33 @@ def main():
            '']
 
     md += ['## 2. Pair skew and loss, per lane', '',
-           f'Skew from the routed lengths (`lengths.txt`) at the solver\'s {nom["psmm"]:.2f} ps/mm, against a '
+           f'Skew from the routed lengths (`lengths.txt`) at the solver\'s delay for each lane\'s geometry '
+           f'(pairs {nom["psmm"]:.2f} ps/mm), against a '
            f'conservative budget of {SKEW_BUDGET_UI:.0%} of a symbol. Loss is a first-order estimate at the '
            'Nyquist frequency (FR-4 tan δ 0.02, skin effect × 1.3 for roughness).', '']
     allok = True
     for board in ('t1', 'rj45', 't1s'):
         md += [f'### {board.upper()}', '',
-               '| Pair | Interface | Rate | UI | Length P / N | Skew | % of UI | Vias | Loss at Nyquist | |',
-               '|---|---|---:|---:|---:|---:|---:|---:|---:|---|']
+               '| Pair | Interface | Geometry (mm) | Rate | UI | Length P / N | Skew | % of UI | Vias | Loss at Nyquist | |',
+               '|---|---|---|---:|---:|---:|---:|---:|---:|---:|---|']
+        wid = widths(board)
         for r in lengths(board):
             name, rate = LANES[board].get(r['base'], ('?', None))
             if rate is None:
                 continue
+            w = wid.get(r['p'])
+            model = lane_model(w, nom, zl)
+            if model is None or wid.get(r['n']) != w:
+                raise SystemExit(f'{board} {r["p"]}/{r["n"]}: drawn at {w} / {wid.get(r["n"])} mm, '
+                                 'which tools/zsolve.txt has no case for - add it to zsolve.py')
+            geom, psmm, eeff, z_line = model
             ui_ps = 1e12 / rate
-            sk_ps = r['skew'] * nom['psmm']
+            sk_ps = r['skew'] * psmm
             frac = sk_ps / ui_ps
-            loss = loss_db_per_mm(rate / 2, nom['eeff'], 0.114, nom['zdiff'] / 2) * max(r['lp'], r['ln'])
+            loss = loss_db_per_mm(rate / 2, eeff, w, z_line) * max(r['lp'], r['ln'])
             ok = frac <= SKEW_BUDGET_UI and r['vp'] == r['vn']
             allok &= ok
-            md.append(f'| {r["p"]} / {r["n"]} | {name} | {rate / 1e6:g} MBd | {ui_ps:.0f} ps | '
+            md.append(f'| {r["p"]} / {r["n"]} | {name} | {geom} | {rate / 1e6:g} MBd | {ui_ps:.0f} ps | '
                       f'{r["lp"]:.2f} / {r["ln"]:.2f} mm | {sk_ps:.1f} ps | {frac:.1%} | {r["vp"]}/{r["vn"]} | '
                       f'{loss:.2f} dB | {"✓" if ok else "✗"} |')
         md.append('')

@@ -5,7 +5,7 @@ Nothing here is measured: it is what the design files say, checked against the d
 
 ## 1. Line impedance (field solver)
 
-`tools/zsolve.py`: a 2D finite-difference solver on the cross-section, refined until Z moves by < 0.5 %. Checked against Hammerstad's closed form for a thin microstrip (57.4 vs 57.9 ohm) and against JLC's calculator (0.157 mm → 50 ohm; this solver: 50.7). Stack: JLC 3313 prepreg 0.0994 mm, εr 4.1, 35 µm copper, solder mask 25 / 15 µm εr 3.8. Every pair on the three boards is 0.114 / 0.152 mm on an outer layer over GND.
+`tools/zsolve.py`: a 2D finite-difference solver on the cross-section, refined until Z moves by < 0.5 %. Checked against Hammerstad's closed form for a thin microstrip (57.4 vs 57.9 ohm) and against JLC's calculator (0.157 mm → 50 ohm; this solver: 50.7). Stack: JLC 3313 prepreg 0.0994 mm, εr 4.1, 35 µm copper, solder mask 25 / 15 µm εr 3.8. Every high-speed pair (SGMII, 1000BASE-X / 2500BASE-X, BASE-T1 and BASE-T MDI, LVDS) is 0.114 / 0.152 mm on an outer layer over GND. The one exception is the T1S MDI (10BASE-T1S, 12.5 MBd DME): two 0.2 mm lines ≥ 0.58 mm apart, so close to uncoupled and modelled as single lines (Z0 from the 0.2 mm row; Zdiff ≤ 2 × Z0). At 15 mm against a ≈ 13 m wavelength (12.5 MHz) it is electrically short, so its impedance does not matter; its lane below uses the single-line delay and loss.
 
 | Case | Zdiff (Ω) | Zcm (Ω) | Delay |
 |---|---:|---:|---:|
@@ -21,47 +21,47 @@ Targets: 100 Ω ± 10 % differential for SGMII, 1000BASE-X / 2500BASE-X (SFF-843
 
 ## 2. Pair skew and loss, per lane
 
-Skew from the routed lengths (`lengths.txt`) at the solver's 5.77 ps/mm, against a conservative budget of 5% of a symbol. Loss is a first-order estimate at the Nyquist frequency (FR-4 tan δ 0.02, skin effect × 1.3 for roughness).
+Skew from the routed lengths (`lengths.txt`) at the solver's delay for each lane's geometry (pairs 5.77 ps/mm), against a conservative budget of 5% of a symbol. Loss is a first-order estimate at the Nyquist frequency (FR-4 tan δ 0.02, skin effect × 1.3 for roughness).
 
 ### T1
 
-| Pair | Interface | Rate | UI | Length P / N | Skew | % of UI | Vias | Loss at Nyquist | |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---|
-| TD_P / TD_N | SGMII, host to module | 1250 MBd | 800 ps | 2.33 / 2.33 mm | 0.0 ps | 0.0% | 0/0 | 0.02 dB | ✓ |
-| SG_TX_P / SG_TX_N | SGMII | 1250 MBd | 800 ps | 21.58 / 22.02 mm | 2.5 ps | 0.3% | 0/0 | 0.19 dB | ✓ |
-| RD_P / RD_N | SGMII, module to host | 1250 MBd | 800 ps | 2.33 / 2.33 mm | 0.0 ps | 0.0% | 0/0 | 0.02 dB | ✓ |
-| SG_RX_P / SG_RX_N | SGMII | 1250 MBd | 800 ps | 12.25 / 13.32 mm | 6.2 ps | 0.8% | 2/2 | 0.11 dB | ✓ |
-| TRD_P / TRD_M | 1000BASE-T1 MDI (PAM3) | 750 MBd | 1333 ps | 16.12 / 15.68 mm | 2.5 ps | 0.2% | 0/0 | 0.10 dB | ✓ |
-| DCB_P / DCB_N | 1000BASE-T1 MDI (PAM3) | 750 MBd | 1333 ps | 1.48 / 1.57 mm | 0.5 ps | 0.0% | 0/0 | 0.01 dB | ✓ |
-| MDI_P / MDI_N | 1000BASE-T1 MDI (PAM3) | 750 MBd | 1333 ps | 15.02 / 16.03 mm | 5.8 ps | 0.4% | 0/0 | 0.10 dB | ✓ |
+| Pair | Interface | Geometry (mm) | Rate | UI | Length P / N | Skew | % of UI | Vias | Loss at Nyquist | |
+|---|---|---|---:|---:|---:|---:|---:|---:|---:|---|
+| TD_P / TD_N | SGMII, host to module | 2 × line 0.157 (Z0 50.7) | 1250 MBd | 800 ps | 2.33 / 2.33 mm | 0.0 ps | 0.0% | 0/0 | 0.02 dB | ✓ |
+| SG_TX_P / SG_TX_N | SGMII | pair 0.114 / 0.152 | 1250 MBd | 800 ps | 21.58 / 22.02 mm | 2.5 ps | 0.3% | 0/0 | 0.19 dB | ✓ |
+| RD_P / RD_N | SGMII, module to host | 2 × line 0.157 (Z0 50.7) | 1250 MBd | 800 ps | 2.33 / 2.33 mm | 0.0 ps | 0.0% | 0/0 | 0.02 dB | ✓ |
+| SG_RX_P / SG_RX_N | SGMII | pair 0.114 / 0.152 | 1250 MBd | 800 ps | 12.25 / 13.32 mm | 6.2 ps | 0.8% | 2/2 | 0.11 dB | ✓ |
+| TRD_P / TRD_M | 1000BASE-T1 MDI (PAM3) | pair 0.114 / 0.152 | 750 MBd | 1333 ps | 16.12 / 15.68 mm | 2.5 ps | 0.2% | 0/0 | 0.10 dB | ✓ |
+| DCB_P / DCB_N | 1000BASE-T1 MDI (PAM3) | pair 0.114 / 0.152 | 750 MBd | 1333 ps | 1.48 / 1.57 mm | 0.5 ps | 0.0% | 0/0 | 0.01 dB | ✓ |
+| MDI_P / MDI_N | 1000BASE-T1 MDI (PAM3) | pair 0.114 / 0.152 | 750 MBd | 1333 ps | 15.02 / 16.03 mm | 5.8 ps | 0.4% | 0/0 | 0.10 dB | ✓ |
 
 ### RJ45
 
-| Pair | Interface | Rate | UI | Length P / N | Skew | % of UI | Vias | Loss at Nyquist | |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---|
-| TD_P / TD_N | 2500BASE-X, host to module | 3125 MBd | 320 ps | 2.43 / 2.33 mm | 0.6 ps | 0.2% | 0/0 | 0.04 dB | ✓ |
-| HSI_P / HSI_N | 2500BASE-X | 3125 MBd | 320 ps | 14.07 / 14.07 mm | 0.0 ps | 0.0% | 1/1 | 0.21 dB | ✓ |
-| RD_P / RD_N | 2500BASE-X, module to host | 3125 MBd | 320 ps | 12.13 / 12.23 mm | 0.6 ps | 0.2% | 1/1 | 0.19 dB | ✓ |
-| HSO_P / HSO_N | 2500BASE-X | 3125 MBd | 320 ps | 1.07 / 1.32 mm | 1.4 ps | 0.5% | 0/0 | 0.02 dB | ✓ |
-| MDI0_P / MDI0_N | 2.5GBASE-T MDI (PAM16) | 200 MBd | 5000 ps | 25.53 / 24.24 mm | 7.5 ps | 0.2% | 1/1 | 0.07 dB | ✓ |
-| MDI1_P / MDI1_N | 2.5GBASE-T MDI (PAM16) | 200 MBd | 5000 ps | 20.40 / 19.13 mm | 7.3 ps | 0.1% | 1/1 | 0.06 dB | ✓ |
-| MDI2_P / MDI2_N | 2.5GBASE-T MDI (PAM16) | 200 MBd | 5000 ps | 16.15 / 14.90 mm | 7.2 ps | 0.1% | 1/1 | 0.05 dB | ✓ |
-| MDI3_P / MDI3_N | 2.5GBASE-T MDI (PAM16) | 200 MBd | 5000 ps | 12.72 / 11.48 mm | 7.2 ps | 0.1% | 1/1 | 0.04 dB | ✓ |
-| LINE0_P / LINE0_N | 2.5GBASE-T line side | 200 MBd | 5000 ps | 24.39 / 20.99 mm | 19.6 ps | 0.4% | 0/0 | 0.07 dB | ✓ |
-| LINE1_P / LINE1_N | 2.5GBASE-T line side | 200 MBd | 5000 ps | 19.86 / 15.56 mm | 24.9 ps | 0.5% | 0/0 | 0.06 dB | ✓ |
-| LINE2_P / LINE2_N | 2.5GBASE-T line side | 200 MBd | 5000 ps | 13.39 / 15.08 mm | 9.7 ps | 0.2% | 1/1 | 0.04 dB | ✓ |
-| LINE3_P / LINE3_N | 2.5GBASE-T line side | 200 MBd | 5000 ps | 10.91 / 8.35 mm | 14.8 ps | 0.3% | 0/0 | 0.03 dB | ✓ |
+| Pair | Interface | Geometry (mm) | Rate | UI | Length P / N | Skew | % of UI | Vias | Loss at Nyquist | |
+|---|---|---|---:|---:|---:|---:|---:|---:|---:|---|
+| TD_P / TD_N | 2500BASE-X, host to module | 2 × line 0.157 (Z0 50.7) | 3125 MBd | 320 ps | 2.43 / 2.33 mm | 0.6 ps | 0.2% | 0/0 | 0.03 dB | ✓ |
+| HSI_P / HSI_N | 2500BASE-X | pair 0.114 / 0.152 | 3125 MBd | 320 ps | 14.07 / 14.07 mm | 0.0 ps | 0.0% | 1/1 | 0.21 dB | ✓ |
+| RD_P / RD_N | 2500BASE-X, module to host | pair 0.114 / 0.152 | 3125 MBd | 320 ps | 12.13 / 12.23 mm | 0.6 ps | 0.2% | 1/1 | 0.19 dB | ✓ |
+| HSO_P / HSO_N | 2500BASE-X | 2 × line 0.157 (Z0 50.7) | 3125 MBd | 320 ps | 1.07 / 1.32 mm | 1.5 ps | 0.5% | 0/0 | 0.02 dB | ✓ |
+| MDI0_P / MDI0_N | 2.5GBASE-T MDI (PAM16) | pair 0.114 / 0.152 | 200 MBd | 5000 ps | 25.53 / 24.24 mm | 7.5 ps | 0.2% | 1/1 | 0.07 dB | ✓ |
+| MDI1_P / MDI1_N | 2.5GBASE-T MDI (PAM16) | pair 0.114 / 0.152 | 200 MBd | 5000 ps | 20.40 / 19.13 mm | 7.3 ps | 0.1% | 1/1 | 0.06 dB | ✓ |
+| MDI2_P / MDI2_N | 2.5GBASE-T MDI (PAM16) | pair 0.114 / 0.152 | 200 MBd | 5000 ps | 16.15 / 14.90 mm | 7.2 ps | 0.1% | 1/1 | 0.05 dB | ✓ |
+| MDI3_P / MDI3_N | 2.5GBASE-T MDI (PAM16) | pair 0.114 / 0.152 | 200 MBd | 5000 ps | 12.72 / 11.48 mm | 7.2 ps | 0.1% | 1/1 | 0.04 dB | ✓ |
+| LINE0_P / LINE0_N | 2.5GBASE-T line side | pair 0.114 / 0.152 | 200 MBd | 5000 ps | 24.39 / 20.99 mm | 19.6 ps | 0.4% | 0/0 | 0.07 dB | ✓ |
+| LINE1_P / LINE1_N | 2.5GBASE-T line side | pair 0.114 / 0.152 | 200 MBd | 5000 ps | 19.86 / 15.56 mm | 24.9 ps | 0.5% | 0/0 | 0.06 dB | ✓ |
+| LINE2_P / LINE2_N | 2.5GBASE-T line side | pair 0.114 / 0.152 | 200 MBd | 5000 ps | 13.39 / 15.08 mm | 9.7 ps | 0.2% | 1/1 | 0.04 dB | ✓ |
+| LINE3_P / LINE3_N | 2.5GBASE-T line side | pair 0.114 / 0.152 | 200 MBd | 5000 ps | 10.91 / 8.35 mm | 14.8 ps | 0.3% | 0/0 | 0.03 dB | ✓ |
 
 ### T1S
 
-| Pair | Interface | Rate | UI | Length P / N | Skew | % of UI | Vias | Loss at Nyquist | |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---|
-| TD_P / TD_N | SGMII, host to module | 1250 MBd | 800 ps | 2.33 / 2.33 mm | 0.0 ps | 0.0% | 0/0 | 0.02 dB | ✓ |
-| SRX_P / SRX_M | SGMII | 1250 MBd | 800 ps | 8.44 / 7.67 mm | 4.4 ps | 0.6% | 0/0 | 0.07 dB | ✓ |
-| RD_P / RD_N | SGMII, module to host | 1250 MBd | 800 ps | 2.33 / 2.33 mm | 0.0 ps | 0.0% | 0/0 | 0.02 dB | ✓ |
-| STX_P / STX_M | SGMII | 1250 MBd | 800 ps | 12.89 / 11.31 mm | 9.1 ps | 1.1% | 2/2 | 0.11 dB | ✓ |
-| REFCLK_P / REFCLK_M | 125 MHz LVDS reference | 250 MBd | 4000 ps | 5.07 / 6.19 mm | 6.5 ps | 0.2% | 0/0 | 0.02 dB | ✓ |
-| MDI_P / MDI_N | 10BASE-T1S MDI (DME) | 12.5 MBd | 80000 ps | 14.88 / 10.62 mm | 24.5 ps | 0.0% | 1/1 | 0.01 dB | ✓ |
+| Pair | Interface | Geometry (mm) | Rate | UI | Length P / N | Skew | % of UI | Vias | Loss at Nyquist | |
+|---|---|---|---:|---:|---:|---:|---:|---:|---:|---|
+| TD_P / TD_N | SGMII, host to module | pair 0.114 / 0.152 | 1250 MBd | 800 ps | 2.33 / 2.33 mm | 0.0 ps | 0.0% | 0/0 | 0.02 dB | ✓ |
+| SRX_P / SRX_M | SGMII | pair 0.114 / 0.152 | 1250 MBd | 800 ps | 8.44 / 7.67 mm | 4.4 ps | 0.6% | 0/0 | 0.07 dB | ✓ |
+| RD_P / RD_N | SGMII, module to host | pair 0.114 / 0.152 | 1250 MBd | 800 ps | 2.33 / 2.33 mm | 0.0 ps | 0.0% | 0/0 | 0.02 dB | ✓ |
+| STX_P / STX_M | SGMII | pair 0.114 / 0.152 | 1250 MBd | 800 ps | 12.89 / 11.31 mm | 9.1 ps | 1.1% | 2/2 | 0.11 dB | ✓ |
+| REFCLK_P / REFCLK_M | 125 MHz LVDS reference | pair 0.114 / 0.152 | 250 MBd | 4000 ps | 5.07 / 6.19 mm | 6.5 ps | 0.2% | 0/0 | 0.02 dB | ✓ |
+| MDI_P / MDI_N | 10BASE-T1S MDI (DME) | 2 × line 0.2 (Z0 44.8) | 12.5 MBd | 80000 ps | 14.88 / 10.62 mm | 25.9 ps | 0.0% | 1/1 | 0.01 dB | ✓ |
 
 **Every pair is inside the budget, with the same via count on both lines.** The longest SerDes run loses well under 1 dB; SFF-8431 leaves the module several dB.
 

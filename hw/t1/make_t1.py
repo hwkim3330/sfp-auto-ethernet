@@ -176,8 +176,12 @@ for i, (net, xy) in enumerate([('+3V3', (37.6, 3.2)), ('SWDIO', (37.6, 1.1)), ('
 # termination -> H-MTD, P above N the whole way (design review: the pair
 # was split over two layers before)
 TRD_Y = 4.433                                   # pair centre along the top
-part('C33', 'Device:C_Small', '100nF', C0402, {1: 'TRD_P', 2: 'DCB_P'}, (34.0, 2.3))
-part('C34', 'Device:C_Small', '100nF', C0402, {1: 'TRD_M', 2: 'DCB_N'}, (34.0, 1.35))
+# MDI DC block: SNLA371B asks 0.1 uF 100 V (the line can be hot-plugged into a
+# PoDL or shorted to the battery); a 16 V decap here would be the weak point.
+# No 1% 100 V part exists in 0402, so +-10% X5R - the coupling corner moves by
+# 10%, which at 100 nF is still under 2 kHz.
+part('C33', 'Device:C_Small', '100nF 100V', C0402, {1: 'TRD_P', 2: 'DCB_P'}, (34.0, 2.3), mpn='GRM155R62A104KE14D')
+part('C34', 'Device:C_Small', '100nF 100V', C0402, {1: 'TRD_M', 2: 'DCB_N'}, (34.0, 1.35), mpn='GRM155R62A104KE14D')
 # Murata DLW32MH101XT2 is the datasheet's CMC; land = the 3.2 x 2.5 TDK ACT1210
 # class footprint, windings 1-4 and 2-3; at 0 degrees 1/2 face the caps, 4/3 the connector
 part('L2', 'Device:L_Coupled_1423', 'DLW32MH101XT2', 'sfp:L_CommonMode_3225',
@@ -186,8 +190,11 @@ part('L2', 'Device:L_Coupled_1423', 'DLW32MH101XT2', 'sfp:L_CommonMode_3225',
 # apart: a tap's 0402 pad (0.62 tall) cannot sit on one line of a coupled
 # pair without reaching the other. 1k from each line to a node, the node to
 # ground through 4.7 nF || 100k (underneath). ESD (unfitted) likewise.
-part('R6', 'Device:R_Small', '1k 1%', R0402, {1: 'MDI_P', 2: 'MDI_CT'}, (39.5, 2.28), rot=90)
-part('R7', 'Device:R_Small', '1k 1%', R0402, {1: 'MDI_N', 2: 'MDI_CT'}, (39.5, 0.22), rot=270)
+# TI's reference uses 0.75 W 2010 here; 2010 does not fit beside the CMC, so
+# the 200 mW 0402 (anti-surge Vishay HP) is the most this board gives - see
+# docs/REFERENCES.md
+part('R6', 'Device:R_Small', '1k 1% 0.2W', R0402, {1: 'MDI_P', 2: 'MDI_CT'}, (39.5, 2.28), rot=90, mpn='CRCW04021K00FKEDHP')
+part('R7', 'Device:R_Small', '1k 1% 0.2W', R0402, {1: 'MDI_N', 2: 'MDI_CT'}, (39.5, 0.22), rot=270, mpn='CRCW04021K00FKEDHP')
 part('C35', 'Device:C_Small', '4.7nF', C0402, {1: 'MDI_CT', 2: 'GND'}, (40.6, 1.25), side='B', rot=90)
 part('R8', 'Device:R_Small', '100k', R0402, {1: 'MDI_CT', 2: 'GND'}, (41.6, 1.25), side='B', rot=90)
 part('D2', 'Device:D_TVS', 'ESD (DNP)', 'Diode_SMD:D_0402_1005Metric',
@@ -204,7 +211,7 @@ LCSC_BY_MPN = {
     'DP83TG720SWRHARQ1': 'C2921292',   # only 3 in stock - see README (TC812 C3225813 has 18)
     'STM32G031F6P6': 'C529333', 'TPS62822DLCR': 'C473385', 'DFE201610E-R47M': 'C269773',
     'DLW32MH101XT2': 'C2935101', 'BLM18KG601SH1': 'C710379', 'BLM18HE102SN1': 'C85828',
-    'TPS22918DBVR': 'C131941',
+    'TPS22918DBVR': 'C131941', 'GRM155R62A104KE14D': 'C162178', 'CRCW04021K00FKEDHP': 'C313354',
 }
 LCSC_BY_VALUE = {   # (value, footprint) -> C-number
     ('100nF', C0201): 'C76928', ('10nF', C0201): 'C285010', ('12pF', C0201): 'C50391',

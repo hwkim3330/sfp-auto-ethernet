@@ -38,9 +38,9 @@ Our firmware is the 0x56 / mdio-i2c convention. None of the commercial T1 module
 
 | Item | TI | Ours | |
 |---|---|---|---|
-| MDI DC block | 0.1 µF, 100 V (371: 1 %) | 100 nF 0402 | ✓ value; the 1 % is a compliance-lab refinement |
+| MDI DC block | 0.1 µF, 100 V (371: 1 %) | 100 nF **100 V** X5R ±10 % 0402 (GRM155R62A104KE14D, C162178) | **fixed**: it was the 16 V decap (C1525), only the value had been checked; ⚠ ±10 %, no 1 % 100 V part exists in 0402 (at 100 nF the coupling corner stays under 2 kHz either way) |
 | CMC | DLW32MH101XT2 (100 µH) for the TG720; **200 µH** for the TC812 | DLW32MH101XT2; **the TC812 loadout now fits DLW32MH201XK2L (C883600)** | **fixed** |
-| CM termination | 2 × 1 kΩ 1 % (371: 0.75 W 2010) | 2 × 1 kΩ 1 % 0402 | ⚠ the coupled pair leaves no room for 2010 parts; larger only helps ESD margin |
+| CM termination | 2 × 1 kΩ 1 % (371: 0.75 W 2010) | 2 × 1 kΩ 1 % **0.2 W** anti-surge 0402 (CRCW0402-HP, C313354) | **improved** from 62.5 mW (C11702); ⚠ still under the 0.75 W 2010: the coupled pair beside the CMC leaves no room for 2010, and the rating only matters for surge / ESD energy, not the signal |
 | CM to GND | 4.7 nF (EVM: 1 kV 1206) ‖ 100 kΩ | 4.7 nF 0402 ‖ 100 kΩ 0402 | ⚠ the same; the 1 kV part is for ESD robustness tests |
 | Copper under the CMC | none, top and at least one layer below (8.5) | **no pour on F and In1 under L2** | **fixed** |
 | SGMII AC coupling | 0.1 µF ×4 | 100 nF 0201 ×4, all in the module as INF-8074i asks | ✓ |
@@ -89,7 +89,7 @@ Our firmware is the 0x56 / mdio-i2c convention. None of the commercial T1 module
 | DONE, READY | open drain, 4.7 kΩ pull-ups | R4, R5 4.7 kΩ | ✓ |
 | RECONFIG_N | high until 1 ms after power is stable; pulses ≥ 25 ns | R3 4.7 kΩ; MCU pulses 1 ms | ✓ |
 | MODE[1:0] | 11 = MSPI; 4.7 kΩ pull-up / 1 kΩ pull-down | MODE1 4.7 kΩ up, MODE0 its internal pull-up | ⚠ an external MODE0 pull-up would be belt-and-braces |
-| Flash | ≥ 64 Mbit, 03h/0Bh read | GD25Q64 (64 Mbit) | ✓ (no headroom) |
+| Flash | ≥ 64 Mbit, 03h/0Bh read; MSPI retry (golden) image at 0x800000 by default | **GD25Q128E (128 Mbit, C2982923)**, same WSON-8 6 × 5 | **fixed**: a 64 Mbit part ends at 0x7FFFFF, so the default golden address fell off the end; now the main image sits at 0x000000 and the golden at 0x800000, each with 8 MiB |
 | REFCLK | 20–800 MHz, 40–60 % duty; 0.1 µF series near the FPGA (UG984 5.2); the dev board uses a 3.3 V LVDS oscillator the same way | 125 MHz LVDS, 100 nF series at the FPGA, A8/A7 | ✓ |
 | SerDes rails | VDDAQ0 / VDDTQ0 0.87–1.03 V, VDDHAQ0 1.8 V; low-noise LDOs, VDDTQ kept apart (UG984 Table 2-3); the dev board has separate LDOs | VDDAQ / VDDTQ each through its own ferrite from the 0.946 V buck (now 1 µH, see RJ45); VDDHAQ from an LDO | ⚠ beads, not LDOs, on the 0.95 V SerDes rails |
 | Sequencing | VCCX before VCC recommended | VCCX on +3V3, VCC from a buck enabled off it | ✓ |
