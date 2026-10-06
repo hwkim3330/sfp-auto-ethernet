@@ -78,7 +78,9 @@ def jlc_files(panel_path, jlc, n):
     #          the TC812 also wants a 200 uH CMC (its datasheet; SNLA340 2.7),
     #          the TG720 the 100 uH one: same 3.2 x 2.5 land
     LOADOUTS = {'tg720': {}, 'tc812': {'U1': ('DP83TC812SRHARQ1', 'C3225813'), 'FB3': None,
-                                       'L2': ('DLW32MH201XK2L', 'C883600')}}
+                                       'L2': ('DLW32MH201XK2L', 'C883600'),
+                                       # 100 ohm in series with XI (SNLS654D Table 5-1)
+                                       'R9': ('100 1%', 'C270366')}}
     for old in ('cpl.csv', 'bom.csv'):
         if os.path.exists(os.path.join(jlc, old)):
             os.remove(os.path.join(jlc, old))

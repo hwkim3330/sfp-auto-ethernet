@@ -45,11 +45,18 @@ CAGE_FRONT = LATCH_TO_PCB_END + STOP       # x where the part outside the cage b
 TOP_ROOM = BODY_H - PCB_Z - PCB_T - WALL   # 4.65 above the PCB inside the cage
 BOT_ROOM = PCB_Z - WALL                    # 1.65 below it
 
-# Figure 2 / Figure 3: 20 pads, 0.8 pitch, 0.6 wide. Top side pins 11..20,
-# pin 20 at +3.8 from the centreline and pin 11 at -3.4; bottom side pins
-# 1..10 the mirror, pin 1 opposite pin 20 at +3.4, pin 10 at -3.8 (seen
-# through the top). Pad fronts are staggered for mating order - ground 0.5,
-# power 0.9, signal 1.3 mm from the edge - and all run back to 3.5 mm min.
+# Figure 2 / Figure 3: 20 pads, 0.8 pitch, 0.6 wide; top side pins 11..20,
+# bottom side 1..10. Which way round: SFF-8419 Figure 7-2 ("top side viewed
+# from top of board", card edge on the left) has pin 11 at the top and pin 20
+# at the bottom, and the bottom side seen through the board pin 10 at the top
+# and pin 1 at the bottom; INF-8074i Figure 2 is the same drawn with the edge
+# on the right. In this frame (edge at x = 0, nose to +x, +y = up the page
+# seen from the top) that is pin 11 at +3.4 ... pin 20 at -3.8, and pin 10
+# at +3.8 ... pin 1 at -3.4 (pin 1 under pin 20, 0.4 mm inboard).
+# Until 2026-10 this had the sign the other way round - every pad mirrored
+# across the centreline, so a host contact landed between two pads.
+# Pad fronts are staggered for mating order - ground 0.5, power 0.9, signal
+# 1.3 mm from the edge - and all run back to 3.5 mm min.
 PAD_W, PITCH, PAD_END = 0.6, 0.8, 3.8
 PINS = {1: 'VeeT', 2: 'TX_FAULT', 3: 'TX_DISABLE', 4: 'SDA', 5: 'SCL', 6: 'MOD_ABS',
         7: 'RS0', 8: 'RX_LOS', 9: 'VeeR', 10: 'VeeR', 11: 'VeeR', 12: 'RD-', 13: 'RD+',
@@ -60,8 +67,8 @@ PINS = {1: 'VeeT', 2: 'TX_FAULT', 3: 'TX_DISABLE', 4: 'SDA', 5: 'SCL', 6: 'MOD_A
 
 def pad_y(pin):
     if pin >= 11:
-        return 3.8 - (20 - pin) * PITCH          # 20 -> +3.8 ... 11 -> -3.4
-    return 3.4 - (pin - 1) * PITCH               # 1 -> +3.4 ... 10 -> -3.8
+        return 3.4 - (pin - 11) * PITCH          # 11 -> +3.4 ... 20 -> -3.8
+    return -3.4 + (pin - 1) * PITCH              # 1 -> -3.4 ... 10 -> +3.8
 
 
 def pad_start(pin):

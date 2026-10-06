@@ -57,8 +57,9 @@ part('J1', 'sfp:SFP_EDGE', 'SFP edge (INF-8074i)', 'sfp:SFP_Module_Edge', EDGE, 
 # review): the host's filter brings 3.3 V up in tens of us on hot plug, and
 # the MSA allows 30 mA of inrush over steady state. CT 2.2 nF -> ~3.6 ms
 # rise (TPS22918 table 2), ~20 uF downstream charges at ~20 mA.
-part('FB1', 'Device:FerriteBead_Small', 'BLM18KG601SH1', FB0603, {1: 'VCCT', 2: 'VIN_RAW'}, (8.9, 4.9), mpn='BLM18KG601SH1')
-part('FB2', 'Device:FerriteBead_Small', 'BLM18KG601SH1', FB0603, {1: 'VCCR', 2: 'VIN_RAW'}, (8.9, -4.9), mpn='BLM18KG601SH1')
+# each on the side of its finger: VccT (16) is below the centreline, VccR (15) above
+part('FB1', 'Device:FerriteBead_Small', 'BLM18KG601SH1', FB0603, {1: 'VCCT', 2: 'VIN_RAW'}, (8.9, -4.9), mpn='BLM18KG601SH1')
+part('FB2', 'Device:FerriteBead_Small', 'BLM18KG601SH1', FB0603, {1: 'VCCR', 2: 'VIN_RAW'}, (8.9, 4.9), mpn='BLM18KG601SH1')
 part('C1', 'Device:C_Small', '1uF', C0402, {1: 'VIN_RAW', 2: 'GND'}, (8.2, 3.4), side='B')
 part('C2', 'Device:C_Small', '100nF', C0402, {1: 'VIN_RAW', 2: 'GND'}, (8.9, -3.2), side='B')
 part('U4', 'sfp:TPS22918', 'TPS22918DBVR', 'Package_TO_SOT_SMD:SOT-23-6',
@@ -66,17 +67,15 @@ part('U4', 'sfp:TPS22918', 'TPS22918DBVR', 'Package_TO_SOT_SMD:SOT-23-6',
 part('C36', 'Device:C_Small', '2.2nF', C0402, {1: 'SS_CT', 2: 'GND'}, (14.8, 4.9), side='B')
 part('C37', 'Device:C_Small', '10uF', C0603, {1: '+3V3', 2: 'GND'}, (11.9, 4.6))
 
-# SGMII AC coupling, inside the module (MSA). TD = host -> module.
-# Both lanes are wired straight, which inverts both: the PHY's SGMII pins come
-# out mirrored against the SFP edge, and crossing each pair would cost it two
-# vias on one line. The swap happens across these caps (TD+ -> TX_M ...), and
-# the firmware sets SGMII_CTRL_1 (0x608) bits 7 and 8, tx/rx polarity invert,
-# which both the DP83TG720 and the DP83TC812 have. Inverting both means it
-# does not matter which lane TI calls "RX".
-part('C3', 'Device:C_Small', '100nF', C0201, {1: 'TD_P', 2: 'SG_TX_N'}, (5.2, 2.2))
-part('C4', 'Device:C_Small', '100nF', C0201, {1: 'TD_N', 2: 'SG_TX_P'}, (5.2, 3.0))
-part('C5', 'Device:C_Small', '100nF', C0201, {1: 'RD_P', 2: 'SG_RX_N'}, (5.2, -1.8))
-part('C6', 'Device:C_Small', '100nF', C0201, {1: 'RD_N', 2: 'SG_RX_P'}, (5.2, -2.6))
+# SGMII AC coupling, inside the module (MSA). TD = host -> module, into the
+# PHY's TX_P/TX_M (its SGMII input, datasheet Table 4-1); RD = the PHY's RX
+# output back to the host. TD (fingers 18/19) is below the centreline and
+# meets U1's TX pins on its bottom row; RD (12/13) is above and meets the RX
+# pins on U1's west side. Both run straight, P to P - no polarity inversion.
+part('C3', 'Device:C_Small', '100nF', C0201, {1: 'TD_P', 2: 'SG_TX_P'}, (5.2, -2.2))
+part('C4', 'Device:C_Small', '100nF', C0201, {1: 'TD_N', 2: 'SG_TX_N'}, (5.2, -3.0))
+part('C5', 'Device:C_Small', '100nF', C0201, {1: 'RD_P', 2: 'SG_RX_P'}, (5.2, 1.8))
+part('C6', 'Device:C_Small', '100nF', C0201, {1: 'RD_N', 2: 'SG_RX_N'}, (5.2, 2.6))
 
 # ---------------------------------------------------------------- PHY
 PHY = {1: 'MDC', 2: 'PHY_INT_N', 3: 'PHY_RST_N', 4: 'XO', 5: 'XI', 6: None,
@@ -88,9 +87,11 @@ PHY = {1: 'MDC', 2: 'PHY_INT_N', 3: 'PHY_RST_N', 4: 'XO', 5: 'XI', 6: None,
        21: 'VDD1P0', 22: 'VDDIO', 23: 'SG_RX_N', 24: 'SG_RX_P', 25: None, 26: None,
        27: None, 28: None, 29: None, 30: None, 31: None, 32: 'SG_TX_P', 33: 'SG_TX_N',
        34: 'VDDIO', 35: 'LED0', 36: 'MDIO', 37: 'GND'}
-# pin 7 VSLEEP tied to VDDA3P3 (sleep unused, Figure 8-3); pin 8 WAKE may float
+# pin 7 VSLEEP tied to VDDA3P3 (sleep unused, Figure 8-3); pin 8 WAKE may float.
+# Land: RHA0036A's 3.7 mm thermal pad (the 4.1 mm EP used until 2026-10 left
+# 0.25 mm to the signal pads instead of TI's 0.45)
 part('U1', 'sfp:DP83TG720S', 'DP83TG720S-Q1 (or DP83TC812S-Q1)',
-     'Package_DFN_QFN:QFN-36-1EP_6x6mm_P0.5mm_EP4.1x4.1mm_ThermalVias', PHY, (19.5, 0.0), rot=180,
+     'Package_DFN_QFN:QFN-36-1EP_6x6mm_P0.5mm_EP3.7x3.7mm_ThermalVias', PHY, (19.5, 0.0), rot=180,
      mpn='DP83TG720SWRHARQ1')
 
 # supply islands, Figure 8-3 / Table 8-2
@@ -114,7 +115,7 @@ _slots = [  # (x, y, rot) in DECAP order
     (17.6, -3.2, 90), (18.6, -3.2, 90),                      # pin 34 VDDIO
     (16.3, 1.2, 0), (16.3, -1.2, 0), (16.3, -2.2, 0),        # pin 22 VDDIO
     (22.7, 2.2, 0), (22.7, -1.2, 0), (22.7, -2.2, 0),        # pin 9 VDD1P0
-    (16.3, 2.2, 0), (17.6, 3.2, 90), (20.2, -3.4, 90),       # pin 21 VDD1P0
+    (16.3, 2.2, 0), (17.6, 3.2, 90), (19.45, -3.4, 90),      # pin 21 VDD1P0
 ]
 _n = 7
 for pin, net, vals in DECAP:
@@ -126,9 +127,13 @@ for pin, net, vals in DECAP:
 
 # 25 MHz crystal, CL 8 pF -> 2 x 12 pF (less ~2 pF of strays each)
 part('Y1', 'Device:Crystal_GND24_Small', '25MHz CL8pF 2016', 'Crystal:Crystal_SMD_2016-4Pin_2.0x1.6mm',
-     {1: 'XI', 2: 'GND', 3: 'XO', 4: 'GND'}, (25.4, -0.4), rot=180)   # 180: XI/XO face U1's pins 5/4 uncrossed
+     {1: 'XI_X', 2: 'GND', 3: 'XO', 4: 'GND'}, (25.4, -0.4), rot=180)   # 180: XI/XO face U1's pins 5/4 uncrossed
+# XI series resistor: the DP83TC812 wants 100 ohm in series with XI when it
+# runs from a crystal (SNLS654D Table 5-1, pin 5); the DP83TG720 asks for none,
+# so its loadout fits 0 ohm here
+part('R9', 'Device:R_Small', '0', R0201, {1: 'XI', 2: 'XI_X'}, (24.3, 1.3))
 # load caps underneath: on top they closed the lane MDC/INT/RST take past the crystal
-part('C24', 'Device:C_Small', '12pF', C0201, {1: 'XI', 2: 'GND'}, (26.3, -0.4), side='B', rot=90)
+part('C24', 'Device:C_Small', '12pF', C0201, {1: 'XI_X', 2: 'GND'}, (26.3, -0.4), side='B', rot=90)
 part('C25', 'Device:C_Small', '12pF', C0201, {1: 'XO', 2: 'GND'}, (24.1, -0.4), side='B', rot=90)
 
 part('R1', 'Device:R_Small', '2.2k', R0201, {1: 'VDDIO', 2: 'MDIO'}, (25.6, -3.2), side='B', rot=90)
@@ -146,7 +151,7 @@ part('U3', 'Regulator_Switching:TPS62823DLC', 'TPS62822DLC',   # base symbol; TP
      BUCK, mpn='TPS62822DLCR')
 part('L1', 'Device:L_Small', '470nH DFE201610E-R47M', 'Inductor_SMD:L_Murata_DFE201610P',
      {1: 'BUCK_SW', 2: 'V1P0_BUCK'}, (30.0, -1.9), mpn='DFE201610E-R47M')
-part('C26', 'Device:C_Small', '4.7uF', C0402, {1: '+3V3', 2: 'GND'}, (32.5, 0.5), rot=90)
+part('C26', 'Device:C_Small', '4.7uF', C0402, {1: '+3V3', 2: 'GND'}, (32.4, 0.55), rot=90)
 part('C27', 'Device:C_Small', '10uF', C0603, {1: 'V1P0_BUCK', 2: 'GND'}, (27.6, -1.9), rot=90)
 part('C28', 'Device:C_Small', '10uF', C0603, {1: 'V1P0_BUCK', 2: 'GND'}, (32.4, -1.9), rot=90)
 # divider on the FB (pin 2) side
@@ -180,8 +185,8 @@ TRD_Y = 4.433                                   # pair centre along the top
 # PoDL or shorted to the battery); a 16 V decap here would be the weak point.
 # No 1% 100 V part exists in 0402, so +-10% X5R - the coupling corner moves by
 # 10%, which at 100 nF is still under 2 kHz.
-part('C33', 'Device:C_Small', '100nF 100V', C0402, {1: 'TRD_P', 2: 'DCB_P'}, (34.0, 2.3), mpn='GRM155R62A104KE14D')
-part('C34', 'Device:C_Small', '100nF 100V', C0402, {1: 'TRD_M', 2: 'DCB_N'}, (34.0, 1.35), mpn='GRM155R62A104KE14D')
+part('C33', 'Device:C_Small', '100nF 100V', C0402, {1: 'TRD_P', 2: 'DCB_P'}, (33.85, 2.3), mpn='GRM155R62A104KE14D')
+part('C34', 'Device:C_Small', '100nF 100V', C0402, {1: 'TRD_M', 2: 'DCB_N'}, (33.85, 1.35), mpn='GRM155R62A104KE14D')
 # Murata DLW32MH101XT2 is the datasheet's CMC; land = the 3.2 x 2.5 TDK ACT1210
 # class footprint, windings 1-4 and 2-3; at 0 degrees 1/2 face the caps, 4/3 the connector
 part('L2', 'Device:L_Coupled_1423', 'DLW32MH101XT2', 'sfp:L_CommonMode_3225',
@@ -193,8 +198,8 @@ part('L2', 'Device:L_Coupled_1423', 'DLW32MH101XT2', 'sfp:L_CommonMode_3225',
 # TI's reference uses 0.75 W 2010 here; 2010 does not fit beside the CMC, so
 # the 200 mW 0402 (anti-surge Vishay HP) is the most this board gives - see
 # docs/REFERENCES.md
-part('R6', 'Device:R_Small', '1k 1% 0.2W', R0402, {1: 'MDI_P', 2: 'MDI_CT'}, (39.5, 2.28), rot=90, mpn='CRCW04021K00FKEDHP')
-part('R7', 'Device:R_Small', '1k 1% 0.2W', R0402, {1: 'MDI_N', 2: 'MDI_CT'}, (39.5, 0.22), rot=270, mpn='CRCW04021K00FKEDHP')
+part('R6', 'Device:R_Small', '1k 1% 0.2W', R0402, {1: 'MDI_P', 2: 'MDI_CT'}, (39.6, 2.28), rot=90, mpn='CRCW04021K00FKEDHP')
+part('R7', 'Device:R_Small', '1k 1% 0.2W', R0402, {1: 'MDI_N', 2: 'MDI_CT'}, (39.6, 0.22), rot=270, mpn='CRCW04021K00FKEDHP')
 part('C35', 'Device:C_Small', '4.7nF', C0402, {1: 'MDI_CT', 2: 'GND'}, (40.6, 1.25), side='B', rot=90)
 part('R8', 'Device:R_Small', '100k', R0402, {1: 'MDI_CT', 2: 'GND'}, (41.6, 1.25), side='B', rot=90)
 part('D2', 'Device:D_TVS', 'ESD (DNP)', 'Diode_SMD:D_0402_1005Metric',
@@ -221,6 +226,7 @@ LCSC_BY_VALUE = {   # (value, footprint) -> C-number
     ('100k 1%', R0201): 'C106224', ('1k', R0402): 'C11702', ('10k', R0402): 'C25744',
     ('1k 1%', R0603): 'C21190', ('1k 1%', R0402): 'C11702', ('2.2nF', C0402): 'C106861', ('100k', R0402): 'C25741', ('green', LED0402): 'C965793',
     ('25MHz CL8pF 2016', 'Crystal:Crystal_SMD_2016-4Pin_2.0x1.6mm'): 'C7301943',
+    ('0', R0201): 'C106227',
 }
 
 
@@ -269,9 +275,8 @@ PWR = ['+3V3', 'VDDA', 'VDDIO', 'VDD1P0', 'V1P0_BUCK', 'BUCK_SW', 'VCCT', 'VCCR'
 # L1-L2 and L3-L4 3313 prepreg 0.0994 mm, Dk 4.1). Every high-speed pair is
 # laid by hand below as a coupled 100 ohm pair: 0.114 mm lines, 0.152 mm gap
 # (Wadell: ~57 ohm each, ~102 ohm differential; JLC's SI9000 gives 50 ohm
-# single-ended at 0.157). F and B both sit over a GND plane, so the one pair
-# that changes layer (RX, to get under TX) keeps a GND return; ground vias
-# stand next to its vias.
+# single-ended at 0.157). F and B both sit over a GND plane; both
+# SGMII pairs stay on F, over In1.
 CLASS_LAYERS = {'SGMII': ['F.Cu', 'B.Cu'], 'MDI': ['F.Cu', 'B.Cu']}
 
 # the tall parts, checked against the room inside the cage (4.65 mm over the
@@ -305,9 +310,9 @@ HMTD_AT = (54.0, 0.0)
 # In2 is a second GND plane: every pair, on F or B, references GND (design review)
 IN2_GND = True
 # ...which also takes the MCU's slow lines (two routing layers left six of them
-# open), except under the RX pair's bottom-side run, where it stays solid
+# open); no pair runs on B any more, so no keep-out
 IN2_SIGNALS = True
-IN2_KEEPOUTS = [(5.8, -3.1, 15.9, 0.7)]
+IN2_KEEPOUTS = []
 
 from sfpgen import pair_lines                    # noqa: E402
 
@@ -319,42 +324,37 @@ def _pair(p_net, n_net, layer, p_head, n_head, centre, p_tail, n_tail):
     return [(p_net, layer, p_head + pl + p_tail, DP_W), (n_net, layer, n_head + nl + n_tail, DP_W)]
 
 
-# SGMII TX (host -> PHY), on top: from the caps east, down the left of U1 and
-# under its bottom row into pins 32/33 (P = SG_TX_P = C4's line, the upper one)
-PREROUTES = _pair('SG_TX_P', 'SG_TX_N', 'F', [(5.52, 3.0), (5.9, 3.0)], [(5.52, 2.2), (5.9, 2.2)],
-                  [(6.4, 2.6), (13.2, 2.6), (13.6, 2.2), (13.6, -3.8), (14.0, -4.2), (19.35, -4.2),
-                   (19.75, -3.8), (19.75, -3.6)],
+# SGMII TX (host -> PHY), on top: from the caps east below the centreline,
+# down under U1's bottom row and up into pins 32 (TX_P) / 33 (TX_M). P (C3's
+# line) is the upper one going east and the west one going north.
+PREROUTES = _pair('SG_TX_P', 'SG_TX_N', 'F', [(5.52, -2.2), (5.9, -2.2)], [(5.52, -3.0), (5.9, -3.0)],
+                  [(6.4, -2.6), (13.0, -2.6), (14.6, -4.2), (19.35, -4.2), (19.75, -3.8), (19.75, -3.6)],
                   [(19.5, -3.45), (19.5, -2.838)], [(20.0, -3.45), (20.0, -2.838)])
-# SGMII RX (PHY -> host): under TX on the bottom, a via on each line at each
-# end, ground vias beside them; N (C5's line) is the upper one
-RX_VIAS = {'SG_RX_N': [(6.2, -1.8), (14.467, 0.2)], 'SG_RX_P': [(6.2, -2.6), (15.25, -0.9)]}
-PREROUTES += [('SG_RX_N', 'F', [(5.52, -1.8), (6.2, -1.8)], DP_W), ('SG_RX_P', 'F', [(5.52, -2.6), (6.2, -2.6)], DP_W)]
-PREROUTES += _pair('SG_RX_N', 'SG_RX_P', 'B', [(6.2, -1.8)], [(6.2, -2.6)],
-                   [(6.9, -2.2), (14.2, -2.2), (14.6, -1.8), (14.6, -1.3)],
-                   [(14.467, 0.2)], [(15.25, -0.9)])
-PREROUTES += [('SG_RX_N', 'F', [(14.467, 0.2), (14.8, 0.0), (16.662, 0.0)], DP_W),
-              ('SG_RX_P', 'F', [(15.25, -0.9), (15.65, -0.5), (16.662, -0.5)], DP_W)]
+# SGMII RX (PHY -> host), on top: from the caps east above the centreline,
+# diagonally down to U1's west side and into pins 23 (RX_M, y 0) / 24 (RX_P,
+# y -0.5). N (C6's line) is the upper one all the way.
+PREROUTES += _pair('SG_RX_N', 'SG_RX_P', 'F', [(5.52, 2.6), (5.9, 2.6)], [(5.52, 1.8), (5.9, 1.8)],
+                   [(6.4, 2.2), (12.6, 2.2), (15.05, -0.25), (15.5, -0.25)],
+                   [(15.95, 0.0), (16.662, 0.0)], [(15.95, -0.5), (16.662, -0.5)])
 # MDI, all on top: U1 pins 13 (P) / 12 (M) up, east along the edge, down past
 # the buck into the DC block, the CMC, the taps while its pins keep the lines
 # apart, then coupled again into the H-MTD
 PREROUTES += _pair('TRD_P', 'TRD_M', 'F', [(20.0, 2.838), (20.0, 3.4)], [(20.5, 2.838), (20.5, 3.4)],
                    [(20.25, 3.5), (20.25, TRD_Y - 0.4), (20.65, TRD_Y), (29.9, TRD_Y),
                     (29.9 + TRD_Y - 1.825, 1.825), (32.7, 1.825)],
-                   [(33.05, 2.3), (33.52, 2.3)], [(33.05, 1.35), (33.52, 1.35)])
-PREROUTES += [('DCB_P', 'F', [(34.48, 2.3), (35.2, 1.8), (35.8, 1.8)], DP_W),
-              ('DCB_N', 'F', [(34.48, 1.35), (35.2, 0.7), (35.8, 0.7)], DP_W)]
+                   [(32.95, 2.3), (33.37, 2.3)], [(32.95, 1.35), (33.37, 1.35)])
+PREROUTES += [('DCB_P', 'F', [(34.33, 2.3), (35.2, 1.8), (35.8, 1.8)], DP_W),
+              ('DCB_N', 'F', [(34.33, 1.35), (35.2, 0.7), (35.8, 0.7)], DP_W)]
 PREROUTES += _pair('MDI_P', 'MDI_N', 'F', [(38.2, 1.8), (41.0, 1.8)], [(38.2, 0.7), (41.0, 0.7)],
                    [(41.4, 1.25), (41.8, 1.25), (43.05, 0.0), (49.6, 0.0)],
                    [(50.467, 1.0), (52.13, 1.0)], [(50.467, -1.0), (52.13, -1.0)])
 # termination centre node: R6/R7's far ends down to a trace underneath, where
 # the 4.7 nF and 100k sit
-PREROUTES += [('MDI_CT', 'F', [(39.5, 2.76), (39.5, 3.55)]),
-              ('MDI_CT', 'F', [(39.5, -0.26), (39.5, -1.05)]),
-              ('MDI_CT', 'B', [(39.5, 3.55), (39.5, -1.05)]),
-              ('MDI_CT', 'B', [(39.5, 1.73), (41.6, 1.73)])]
-PREVIAS = [(n, xy) for n, vs in RX_VIAS.items() for xy in vs]
-PREVIAS += [('GND', (7.0, -1.1)), ('GND', (7.0, -3.3)), ('GND', (14.9, 0.9)),
-            ('MDI_CT', (39.5, 3.55)), ('MDI_CT', (39.5, -1.05))]
+PREROUTES += [('MDI_CT', 'F', [(39.6, 2.76), (39.6, 3.55)]),
+              ('MDI_CT', 'F', [(39.6, -0.26), (39.6, -1.05)]),
+              ('MDI_CT', 'B', [(39.6, 3.55), (39.6, -1.05)]),
+              ('MDI_CT', 'B', [(39.6, 1.73), (41.6, 1.73)])]
+PREVIAS = [('MDI_CT', (39.6, 3.55)), ('MDI_CT', (39.6, -1.05))]
 # U3's EN (pin 1) to VIN (pin 7): diagonal across the package with the
 # no-connect PG (pin 8) between; the router will not go round it, so under it
 _bx, _by = BUCK
@@ -370,6 +370,13 @@ PREVIAS += [('GND', (_bx - 1.55, _by - 0.25)), ('GND', (_bx + 1.55, _by - 0.75))
 # short links the router left open on one run or another, laid here:
 # U4's ON (pin 3) round its GND pin to VIN (pin 1), underneath
 PREROUTES += [('VIN_RAW', 'B', [(10.662, 5.05), (9.7, 5.05), (9.7, 3.15), (10.662, 3.15)])]
+# ...which boxes U4's GND pin (2) in: a GND via under the package body, in
+# the pour that pin sits in
+PREVIAS += [('GND', (11.8, 3.75))]
+# VDDIO at U1 pin 34, beside TX_M (33) on the bottom row: straight down past
+# the pair's tail to a via for its decaps underneath
+PREROUTES += [('VDDIO', 'F', [(20.5, -2.838), (20.5, -3.95)])]
+PREVIAS += [('VDDIO', (20.5, -3.95))]   # C21 underneath moved west for it; 35/36 still go down past it
 # MDC (U1 pin 1) straight to a via for the MCU underneath
 PREROUTES += [('MDC', 'F', [(22.338, -2.0), (22.95, -2.0), (23.4, -2.45), (23.4, -2.95)])]
 PREVIAS += [('MDC', (23.4, -2.95))]

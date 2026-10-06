@@ -235,13 +235,17 @@ def write_footprints():
             fp.Add(s)
 
     # 3.2 x 2.5 4-terminal CMC (DLW32MH / ACT1210 class): pads at the four
-    # corners, 1 and 2 on one end, 4 and 3 opposite. Land from the ACT1210
-    # recommended pattern (1.0 x 0.9 pads, 2.4 mm across, 1.1 mm pitch).
+    # corners, 1 and 2 on one end, 4 and 3 opposite, windings 1-4 and 2-3.
+    # Land: TDK ACT1210E "recommended land pattern" and Murata DLW32MH
+    # (JEFL243C) 13.7 give the same one - 4.1 across, 2.0 inner gap, 1.6 tall,
+    # 0.4 between the lines - i.e. 1.05 x 0.6 pads at x +-1.525, y +-0.5.
+    # Both warn that under 0.4 / 2.0 the paste may short; the land used until
+    # 2026-10 (1.0 x 0.9 at +-1.2, +-0.55: 0.2 and 1.4) was inside both.
     fp = pcbnew.FOOTPRINT(None)
     fp.SetFPID(pcbnew.LIB_ID('sfp', 'L_CommonMode_3225'))
-    for num, x, y in (('1', -1.2, -0.55), ('2', -1.2, 0.55), ('3', 1.2, 0.55), ('4', 1.2, -0.55)):
-        smd(fp, num, x, y, 1.0, 0.9)
-    crt(fp, 2.0, 1.55)
+    for num, x, y in (('1', -1.525, -0.5), ('2', -1.525, 0.5), ('3', 1.525, 0.5), ('4', 1.525, -0.5)):
+        smd(fp, num, x, y, 1.05, 0.6)
+    crt(fp, 2.1, 1.55)
     io.FootprintSave(FPLIB, fp)
 
     # H-MTD: Rosenberger E6S20A-40MT5-x, right angle, pin-in-paste THT.
@@ -261,8 +265,10 @@ def write_footprints():
         for y in (-3.5, 3.5):
             tht(fp, '3', x, y, 2.5, 1.74)
     # "solder area" (hatched) on MB_633: exposed copper for the shield to wet,
-    # tied to ground. Rectangles, trimmed clear of the R2 relief near the pins.
-    for cx, cy, w, h in ((0.76, 0.0, 1.0, 2.9), (-2.76, 4.03, 2.18, 1.27), (-2.76, -4.03, 2.18, 1.27)):
+    # tied to ground. Rectangles, trimmed clear of the R2 relief near the pins;
+    # the front one 2.2 wide, MB_633's width (2.9 until 2026-10 reached into
+    # its "free of solder" zone from +-1.35).
+    for cx, cy, w, h in ((0.76, 0.0, 1.0, 2.2), (-2.76, 4.03, 2.18, 1.27), (-2.76, -4.03, 2.18, 1.27)):
         p = pcbnew.PAD(fp)
         p.SetNumber('3')
         p.SetShape(pcbnew.PAD_SHAPE_RECT)
@@ -663,6 +669,9 @@ def apply_rules(board):
         solid = getattr(D, 'IN2_GND', False) and not getattr(D, 'IN2_SIGNALS', False)
         board.SetLayerType(pcbnew.In2_Cu, pcbnew.LT_POWER if solid else pcbnew.LT_SIGNAL)
     ds = board.GetDesignSettings()
+    # 1.0 mm finished (INF-8074i Figure 2: 1 +-0.1 over the pads); JLC04101H /
+    # JLC06101H are the 1.0 mm stacks. Until 2026-10 the files said 1.6.
+    ds.SetBoardThickness(MB.MM(MB.PCB_T))
     ds.m_MinClearance = MB.MM(0.1)
     ds.m_TrackMinWidth = MB.MM(0.1)
     mv = getattr(D, 'MIN_VIA', (0.4, 0.2))        # a BGA's via-in-pad is smaller
@@ -1039,10 +1048,13 @@ def preroute_edge_gnd(board, x_via=4.55):
     """The GND fingers sit where no pour may go, so each one gets a short
     trace back to a GND via just behind the finger area, laid before routing
     (the router keeps existing copper). A top and a bottom ground finger at
-    about the same height share one via. Vias at y = +3.6, +1.4, -0.8, -3.4."""
+    about the same height share one via. Vias at y = -3.6, -1.4, +0.8, +3.4
+    (pin 20/1 at the bottom, 11/10 at the top: SFF-8419 Figure 7-2)."""
     gnd = board.FindNet('GND')
-    groups = {3.6: [(20, 'F'), (1, 'B')], 1.4: [(17, 'F')], -0.8: [(14, 'F'), (6, 'B')],
-              -3.4: [(11, 'F'), (9, 'B'), (10, 'B')]}
+    groups = {-3.6: [(20, 'F'), (1, 'B')], -1.4: [(17, 'F')], 0.8: [(14, 'F'), (6, 'B')],
+              3.4: [(11, 'F'), (9, 'B'), (10, 'B')]}
+    for vy, pins in groups.items():          # each group's pins really are beside its via
+        assert all(abs(MB.pad_y(pin) - vy) < 0.75 for pin, _ in pins), (vy, pins)
     for vy, pins in groups.items():
         v = pcbnew.PCB_VIA(board)
         v.SetPosition(MB.V(x_via, vy))

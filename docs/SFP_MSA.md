@@ -30,8 +30,10 @@ Mating order: 1 = mates first.
 - PCB thickness **1.0 ± 0.1 mm** over the pads, with a 0.3 × 45° chamfer at the edge.
 - The tab is **9.2 ± 0.1 mm** wide. The host's card slot is 9.4.
 - 10 pads per side at **0.8 mm pitch**, each 0.6 ± 0.05 mm wide.
-- Top side carries pins 11–20: pin 20 sits **+3.8 mm** from the centreline and pin 11 sits −3.4 mm.
-- Bottom side carries pins 1–10. Seen through the board, pin 1 is opposite pin 20 at +3.4 mm and pin 10 is at −3.8 mm. The bottom row is therefore offset 0.4 mm from the top row.
+- Which way round (SFF-8419 Figure 7-2; INF-8074i Figure 2 draws the same with the edge on the right): look at the top side from above with the card edge on the **left**.
+  - Top side, pins 11–20: **pin 11 at the top**, 3.4 mm above the centreline; pin 20 at the bottom, 3.8 mm below it.
+  - Bottom side, pins 1–10, seen through the board: **pin 10 at the top**, 3.8 mm above; pin 1 at the bottom, 3.4 mm below, under pin 20. The bottom row is offset 0.4 mm from the top row.
+  - Until 2026-10 this repo had it mirrored (pin 20 at the top). Every host contact would then have landed between two pads, VccT against ground.
 - Where each pad starts, measured from the edge: **ground 0.5**, **power 0.9**, **signal 1.3** mm. That staggering sets the mating order. All pads run back to at least 3.5 mm.
 - Plating: 0.38 µm hard gold minimum over 1.27 µm nickel. Order the board with **hard gold edge fingers and a bevel**.
 

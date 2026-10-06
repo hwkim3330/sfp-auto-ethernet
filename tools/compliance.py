@@ -43,7 +43,10 @@ SKEW_BUDGET_UI = 0.05            # intra-pair skew, as a fraction of a symbol: c
 
 # INF-8074i Figure 2/3: the edge fingers
 FINGER = dict(width=0.6, width_tol=0.05, pitch=0.8, start={'gnd': 0.5, 'pwr': 0.9, 'sig': 1.3},
-              min_end=3.5, top_pin20=3.8, top_pin11=-3.4, bot_pin1=3.4, bot_pin10=-3.8)
+              min_end=3.5, top_pin20=-3.8, top_pin11=3.4, bot_pin1=-3.4, bot_pin10=3.8)
+# signs: seen from the top with the card edge on the left, + = up the page -
+# SFF-8419 Figure 7-2 (pin 11 at the top, pin 20 at the bottom), stated here
+# independently of hw/make_boards.py so the check cannot inherit its sign
 GND_PINS = {1, 9, 10, 11, 14, 17, 20}
 PWR_PINS = {15, 16}
 
@@ -249,8 +252,8 @@ def main():
            'the board adds well under 1 ns.', '']
 
     md += ['## 3. Edge fingers (INF-8074i Figures 2 and 3)', '',
-           'Measured from each board\'s J1 footprint: pad width 0.6 ± 0.05 mm, 0.8 mm pitch, pin 20 at +3.8 / '
-           'pin 11 at −3.4 (top), pin 1 at +3.4 / pin 10 at −3.8 (bottom), pads starting 0.5 (ground), 0.9 '
+           'Measured from each board\'s J1 footprint: pad width 0.6 ± 0.05 mm, 0.8 mm pitch, seen from the top with the card edge on the left (SFF-8419 Figure 7-2), '
+           'pin 11 at +3.4 (up the page) / pin 20 at −3.8 (top), pin 10 at +3.8 / pin 1 at −3.4 (bottom), pads starting 0.5 (ground), 0.9 '
            '(power), 1.3 mm (signal) from the edge, running to at least 3.5 mm; the tab 9.2 ± 0.1 mm wide.', '',
            '| Board | Result | Tab width |', '|---|---|---:|']
     for board in ('t1', 'rj45', 't1s'):

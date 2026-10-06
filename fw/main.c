@@ -459,15 +459,18 @@ static void phy_apply_config(void)
 #endif
     int want = a0[96] & 1;
     /* SGMII_CTRL_1 (MMD1F 0x0608), same on the DP83TG720 and DP83TC812.
-     * Bits 7/8 invert the SGMII TX and RX lanes: the T1 board wires both lanes
-     * straight from the SFP edge, which inverts both (the PHY's pins come out
-     * mirrored against the edge; see hw/t1/make_t1.py). Setting both undoes it
-     * whichever lane the datasheet means by "RX". Bit 0 is SGMII AN, off for a
-     * fibre-personality host (HOST_FIBER). */
+     * Bits 7/8 (tx/rx polarity invert) stay at their reset 0: the T1 board
+     * runs both lanes straight, P to P. (Until 2026-10 the SFP edge was drawn
+     * mirrored and both lanes came out inverted; these bits undid that.)
+     * Bit 0 is SGMII AN, off for a fibre-personality host (HOST_FIBER), and
+     * off on the DP83TC812 (PHYIDR2 model 0x27): it only runs 100 Mb/s and
+     * SNLS654D 7.4.12.4 says SGMII AN is disabled by clearing bit 0. The
+     * DP83TG720 is model 0x28. */
     {
+        int tc812 = ((mdio_read(PHYAD, 0x03) >> 4) & 0x3Fu) == 0x27u;
         uint16_t c = mmd_read(0x1F, 0x0608);
-        c |= 0x0180u;
-        if (HOST_FIBER) c &= (uint16_t)~1u;
+        c &= (uint16_t)~0x0180u;
+        if (HOST_FIBER || tc812) c &= (uint16_t)~1u;
         mmd_write(0x1F, 0x0608, c);
     }
     uint16_t v = mmd_read(1, 0x0834);
