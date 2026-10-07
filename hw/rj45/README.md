@@ -42,20 +42,25 @@ Parts come to about $11 a board.
 
   | Layer | Use |
   |---|---|
-  | F | SerDes to the host, the line side, slow signals |
+  | F | U1 and its decaps, both SerDes pairs, the MDI pairs under the magnetics, the line side |
   | In1 | GND |
-  | In2 | slow signals, and the 0.95 V core as tracks (an island there cut the slow lines' corridors) |
+  | In2 | the slow lines, hand-laid end to end (fingers and U1 to the MCU) |
   | In3 | +3V3 plane |
   | In4 | GND |
-  | B | U1 and its decaps, the MDI pairs under the magnetics, line pair 2, the MCU |
+  | B | the buck, the power-entry caps, the oscillator and analog beads, line pair 2, the MCU |
 
-- **Why six:** on four layers every signal routed, but the PHY's power pins did not all reach their rails. They sit 0.4 mm apart with their decaps directly above them. Here every +3V3 pad has its own via into the In3 plane, and the core pads reach the buck over In2.
+- **Why six:** on four layers every signal routed, but the PHY's power pins did not all reach their rails. They sit 0.4 mm apart with their decaps right next to them. Here every +3V3 pad has its own via into the In3 plane.
 - **Pairs, all laid by hand and coupled** (`make_rj45.py`):
-  - SerDes to the host. U1 sits underneath and is turned 90°, so HSI/HSO read straight across with no crossing.
-  - The four MDI pairs run on B under the magnetics, each dropping into its pad's via.
+  - SerDes to the host. U1 sits on top, turned 90°. Its pins 37–41 read HSON, HSOP, HSIP, HSIN top to bottom, the order of the SFP edge's RD−, RD+, TD+, TD− (SFF-8419 Figure 7-2). Both pairs run straight, P to P, on top, with no via.
+    (Until 2026-10 the edge was drawn mirrored and U1 sat underneath for the same reason; `make_rj45.py` turns that group over.)
+  - The four MDI pairs run on top under the magnetics' body and straight into its chip-side pads, in port order: port 0 on channel 1 (jack 1/2) … port 3 on channel 4. CFG_OPT1 is pulled down, so there is no MDI swap.
   - Line pairs 0, 1 and 3 run on top in lanes 0.8 mm apart.
   - Line pair 2 (jack pins 4/5) drops to the bottom under its pads. Pair 3/6 straddles 4/5 on the jack, so one of those two pairs has to leave the top side.
-- **The MCU sits under the jack.** It is the only place with room. Its ten slow lines pass through the jack's pin field on a hand-laid bus: three lanes of three on In2, plus MDC underneath.
+- **The MCU sits under the jack.** It is the only place with room. Its ten slow lines run on In2, laid by hand from end to end:
+  - they leave the fingers and U1 through vias;
+  - they run in the board's lane order to the jack's pin field;
+  - they cross the field in three lanes of three, plus MDIO underneath.
+  - The MCU's GPIOs are assigned to match the lane order, not the T1 board's: PA0 MDIO, PA1 MDC, PA4 TX_FAULT, PA5 TX_DISABLE, PA6 RX_LOS (`fw/main.c`, `VARIANT_RJ45`).
 - **In2 keepouts:** the MDI and line pairs are 2.5GBASE-T at 200 MBd PAM16, so In2 lines may cross under them. On six layers the bottom pairs reference In4 GND anyway.
 
 ## Regenerating

@@ -36,16 +36,15 @@ a ganged cage the jack may touch its neighbour.
 
 Signal flow decided the orientation of U1:
   - SerDes. QFN pins run anticlockwise seen from the top, and the SFP edge
-    runs TD-, TD+, RD+, RD- top to bottom: on the top side every rotation
-    arrives mirrored (both pairs reversed and crossed). U1 is on the BOTTOM,
-    turned 90, where pins 37..41 read HSIN, HSIP, HSOP, HSON top to bottom:
-    straight across, no crossing. The PHY has no documented SerDes polarity
-    swap, so this is the only way that does not need vias in the pairs.
-  - MDI. Pins 13..24 then face the magnetics. Fanned into the chip-side row
-    they land port 3 on channel 1 ... port 0 on channel 4, N before P. The
-    PHY corrects polarity (7.24) and pair order for 1G/2.5G, and CFG_OPT1
-    pulled up (MDI swap) maps port 3 -> channel A, port 2 -> B, so the
-    100BASE-TX pairs still reach jack pins 1/2 and 3/6.
+    (SFF-8419 Figure 7-2) runs RD-, RD+, ..., TD+, TD- top to bottom. U1 on
+    the TOP, its pins 37..41 facing the fingers, reads HSON, HSOP, HSIP, HSIN
+    top to bottom: both pairs straight, P to P, no crossing, no via. The PHY
+    has no documented SerDes polarity swap, so nothing else would do.
+    (Until 2026-10 the edge was drawn mirrored and U1 sat on the bottom for
+    the same reason; the group is turned over at the end of this file.)
+  - MDI. Pins 13..24 face the magnetics and land in order: port 0 on
+    channel 1 (jack 1/2) ... port 3 on channel 4, P on TDn+. CFG_OPT1 is
+    pulled down (no MDI swap). The PHY corrects polarity anyway (7.24).
 """
 import os
 import sys
@@ -79,19 +78,23 @@ part('J1', 'sfp:SFP_EDGE', 'SFP edge (INF-8074i)', 'sfp:SFP_Module_Edge', EDGE, 
 # host rails through a bead each, then a slew-limited load switch: the
 # module's own 3.3 V ramps in ~3.6 ms (CT 2.2 nF, TPS22918 table 2) and
 # charges ~30 uF at ~28 mA
-part('FB1', 'Device:FerriteBead_Small', 'BLM18KG601SH1', FB0603, {1: 'VCCT', 2: 'VIN_RAW'}, (8.9, 4.9), mpn='BLM18KG601SH1')
-part('FB2', 'Device:FerriteBead_Small', 'BLM18KG601SH1', FB0603, {1: 'VCCR', 2: 'VIN_RAW'}, (8.9, -4.9), mpn='BLM18KG601SH1')
-part('C1', 'Device:C_Small', '1uF', C0402, {1: 'VIN_RAW', 2: 'GND'}, (8.9, 3.3))
+# both beads below the HSI pair, beside the load switch: the VCC fingers
+# (15/16) sit between the two SerDes pairs, so VIN_RAW stays in one place
+part('FB1', 'Device:FerriteBead_Small', 'BLM18KG601SH1', FB0603, {1: 'VCCT', 2: 'VIN_RAW'}, (8.9, -4.9), mpn='BLM18KG601SH1')
+part('FB2', 'Device:FerriteBead_Small', 'BLM18KG601SH1', FB0603, {1: 'VCCR', 2: 'VIN_RAW'}, (8.9, -3.43), mpn='BLM18KG601SH1')
+part('C1', 'Device:C_Small', '1uF', C0402, {1: 'VIN_RAW', 2: 'GND'}, (11.0, -5.15), side='B')
 part('C2', 'Device:C_Small', '100nF', C0402, {1: 'VIN_RAW', 2: 'GND'}, (8.9, -4.9), side='B')
 part('U4', 'sfp:TPS22918', 'TPS22918DBVR', 'Package_TO_SOT_SMD:SOT-23-6',
-     {1: 'VIN_RAW', 2: 'GND', 3: 'VIN_RAW', 4: 'SS_CT', 5: '+3V3', 6: '+3V3'}, (12.9, 3.8), mpn='TPS22918DBVR')
-part('C44', 'Device:C_Small', '2.2nF', C0402, {1: 'SS_CT', 2: 'GND'}, (15.5, 3.0), rot=90)
-part('C45', 'Device:C_Small', '10uF', C0603, {1: '+3V3', 2: 'GND'}, (15.5, 4.95))   # against U4's output pin
+     {1: 'VIN_RAW', 2: 'GND', 3: 'VIN_RAW', 4: 'SS_CT', 5: '+3V3', 6: '+3V3'}, (13.0, -4.15), mpn='TPS22918DBVR')
+# below the HSI pair: above it the RD pair leaves 3.2 mm to the edge, the
+# package's courtyard is 3.4. Its soft-start and output caps underneath.
+part('C44', 'Device:C_Small', '2.2nF', C0402, {1: 'SS_CT', 2: 'GND'}, (15.6, -4.9))   # beside U4's pin 4, out of the edge strip
+part('C45', 'Device:C_Small', '10uF', C0603, {1: '+3V3', 2: 'GND'}, (15.7, -4.6), side='B')
 
-# SerDes: host -> module (TD) coupled at the fingers, module -> host (RD)
-# next to the PHY's HSOP/HSON (datasheet 6.3), on its side (the bottom)
-part('C3', 'Device:C_Small', '100nF', C0201, {1: 'TD_P', 2: 'HSI_P'}, (5.2, 2.2))
-part('C4', 'Device:C_Small', '100nF', C0201, {1: 'TD_N', 2: 'HSI_N'}, (5.2, 3.0))
+# SerDes: host -> module (TD, fingers 18/19, below the centreline) coupled at
+# the fingers, module -> host (RD) next to the PHY's HSOP/HSON (datasheet 6.3)
+part('C3', 'Device:C_Small', '100nF', C0201, {1: 'TD_P', 2: 'HSI_P'}, (5.2, -2.2))
+part('C4', 'Device:C_Small', '100nF', C0201, {1: 'TD_N', 2: 'HSI_N'}, (5.2, -3.0))
 part('C5', 'Device:C_Small', '100nF', C0402, {1: 'HSO_P', 2: 'RD_P'}, (15.0, -1.8), side='B', rot=180)
 part('C6', 'Device:C_Small', '100nF', C0402, {1: 'HSO_N', 2: 'RD_N'}, (15.0, -2.75), side='B', rot=180)
 
@@ -148,7 +151,7 @@ part('R10', 'Device:R_Small', '1.5k', R0201, {1: '+3V3', 2: 'MDIO'}, (54.2, -4.5
 part('R11', 'Device:R_Small', '4.7k', R0201, {1: '+3V3', 2: 'PHY_INT_N'}, (15.2, 2.9), side='B')
 # the straps are DC: out below the caps, the router takes CFG0/CFG1 between C16 and C15
 part('R12', 'Device:R_Small', '4.7k', R0201, {1: 'CFG0', 2: 'GND'}, (21.9, -5.2), side='B')
-part('R13', 'Device:R_Small', '4.7k', R0201, {1: '+3V3', 2: 'CFG1'}, (18.2, -5.3), side='B')
+part('R13', 'Device:R_Small', '4.7k', R0201, {1: 'GND', 2: 'CFG1'}, (18.2, -5.3), side='B')   # CFG_OPT1 down: no MDI swap
 
 # analog islands: ripple limit 15 mVpp on AVDD09 / AVDD33 (datasheet 9.6);
 # along the bottom edge on top, clear of the MDI lanes
@@ -188,9 +191,9 @@ part('R4', 'Device:R_Small', '100k 1%', R0201, {1: 'BUCK_FB', 2: 'GND'}, (9.2, 1
 
 # ---------------------------------------------------------------- magnetics
 # chip side pins 1..12 along the bottom row, cable side 13..24 back along the
-# top. The PHY's ports land reversed (see the docstring): port 3 on channel 1.
-MAG = {1: 'TCT0', 2: 'MDI3_N', 3: 'MDI3_P', 4: 'TCT1', 5: 'MDI2_N', 6: 'MDI2_P',
-       7: 'TCT2', 8: 'MDI1_N', 9: 'MDI1_P', 10: 'TCT3', 11: 'MDI0_N', 12: 'MDI0_P',
+# top. With U1 on top the ports land in order, P to +: port 0 on channel 1.
+MAG = {1: 'TCT0', 2: 'MDI0_P', 3: 'MDI0_N', 4: 'TCT1', 5: 'MDI1_P', 6: 'MDI1_N',
+       7: 'TCT2', 8: 'MDI2_P', 9: 'MDI2_N', 10: 'TCT3', 11: 'MDI3_P', 12: 'MDI3_N',
        23: 'LINE0_P', 22: 'LINE0_N', 24: 'CMT0', 20: 'LINE1_P', 19: 'LINE1_N', 21: 'CMT1',
        17: 'LINE2_P', 16: 'LINE2_N', 18: 'CMT2', 14: 'LINE3_P', 13: 'LINE3_N', 15: 'CMT3'}
 part('T1', 'sfp:LP72450ANL', 'LP72450ANL', 'sfp:LINKPP_LP72450ANL', MAG, (36.0, 0.0), mpn='LP72450ANL')
@@ -216,8 +219,10 @@ part('J2', 'sfp:RJ45_8P8C', 'KH-RJ45-58-8P8C', 'sfp:RJ45_Kinghelm_KH-RJ45-58', R
 # side that U1's power pins need; the front has the buck.) Its nine slow lines
 # run the length of the board: under the magnetics on In2 / bottom, then
 # through the gaps of the jack's pin field.
-MCU = {1: 'SDA', 2: None, 3: None, 4: '+3V3', 5: 'GND', 6: 'NRST', 7: 'MDC', 8: 'MDIO',
-       9: 'PHY_RST_N', 10: 'PHY_INT_N', 11: 'TX_DISABLE', 12: 'RX_LOS', 13: 'TX_FAULT',
+# GPIOs placed for the slow bus's lane order (fw/main.c VARIANT_RJ45): MDIO PA0,
+# MDC PA1, TX_FAULT PA4, TX_DISABLE PA5, RX_LOS PA6
+MCU = {1: 'SDA', 2: None, 3: None, 4: '+3V3', 5: 'GND', 6: 'NRST', 7: 'MDIO', 8: 'MDC',
+       9: 'PHY_RST_N', 10: 'PHY_INT_N', 11: 'TX_FAULT', 12: 'TX_DISABLE', 13: 'RX_LOS',
        14: None, 15: None, 16: None, 17: None, 18: 'SWDIO', 19: 'SWCLK', 20: 'SCL'}
 part('U2', 'MCU_ST_STM32G0:STM32G031F_4-6-8_Px', 'STM32G031F6P6', 'Package_SO:TSSOP-20_4.4x6.5mm_P0.65mm',
      MCU, (59.2, 0.0), side='B', rot=270, mpn='STM32G031F6P6')   # 270: pin 1's silk mark clear of the jack's peg hole
@@ -230,7 +235,7 @@ for i, (net, xy) in enumerate([('+3V3', (53.0, 3.0)), ('SWDIO', (53.0, 1.0)), ('
                                ('NRST', (53.0, -3.0)), ('GND', (53.0, 5.0))]):
     part(f'TP{i + 1}', 'Connector:TestPoint', net, TP, {1: net}, xy, side='B')
 
-COURTYARD_OK = {'U1': [r for r, *_ in DECAP] + ['R9', 'C5', 'C6'], 'U4': ['C45']}
+COURTYARD_OK = {'U1': [r for r, *_ in DECAP] + ['R9', 'C5', 'C6'], 'U4': ['C45', 'C44']}
 # outside the cage the board widens for the jack's shield tabs; 1.5 mm past
 # the cage front (44.3), not 0.3 (design review: cage tolerance, bezel)
 NOSE = (45.8, 17.0)
@@ -419,8 +424,8 @@ for pin, net in MAG.items():
     top = pin > 12
     k = (24 - pin) if top else (pin - 1)
     x = round(MAG_X0 - 5.5 + k, 3)
-    if top and not net.startswith('CMT'):
-        continue
+    if (top and not net.startswith('CMT')) or net.startswith('MDI'):
+        continue                                   # MDI arrives on top, straight into its pad
     yv = 3.6 if top else -3.6
     PREVIAS.append((net, (x, yv)))
     PREROUTES.append((net, 'F', [(x, 4.675 if top else -4.675), (x, yv)], 0.157 if net.startswith('MDI') else 0.2))
@@ -431,10 +436,11 @@ PREROUTES.append(('BOB', 'B', [(31.46, 4.5), (31.46, 5.1), (41.6, 5.1), (42.125,
 PREROUTES += [('BOB', 'B', [(x, 4.5), (x, 5.1)], 0.2) for x in (34.46, 37.46, 40.46)]
 
 # RSET: out of pin 12, right under C10's pad, into R9; R9's ground to a via
-PREROUTES += [('RSET', 'B', [u1_pin(12), (21.7, 3.45), (22.15, 3.45), (22.53, 3.95)]),
-              ('GND', 'B', [(23.17, 3.95), (23.6, 3.3)])]
+PREROUTES += [('RSET', 'B', [u1_pin(12), (21.7, 3.45), (22.15, 3.45), (22.53, 3.95)])]
+# (R9's ground end takes the pour of its own side: with U1 on top a via here
+# sat in the In2 lanes' way)
 # XI: straight up from pin 10 between C9 and C10, a via, then on top to X1 pin 3
-XI_VIA = (20.9, 4.95)
+XI_VIA = (20.9, 5.0)             # (5.0, not 4.95: with U1 on top MDC and MDIO pass between it and the decap vias on In2)
 PREROUTES += [('XI', 'B', [u1_pin(10), XI_VIA]),
               ('XI', 'F', [XI_VIA, (22.6, 4.1), (X1_AT[0] - 0.75, X1_AT[1] - 0.6)])]
 from sfpgen import pair_lines                    # noqa: E402
@@ -446,34 +452,6 @@ def _pair(left_net, right_net, layer, left_head, right_head, centre, left_tail, 
     ll, rl = pair_lines(centre, DP_PITCH)
     return [(left_net, layer, left_head + ll + left_tail, DP_W), (right_net, layer, right_head + rl + right_tail, DP_W)]
 
-
-# SerDes, host -> PHY (HSI): on top from the finger caps, down to U1's level,
-# then a via each into the PHY's pins underneath (N = C4's line, the upper one)
-PREROUTES += _pair('HSI_N', 'HSI_P', 'F', [(5.52, 3.0), (5.9, 3.0)], [(5.52, 2.2), (5.9, 2.2)],
-                   [(6.4, 2.6), (9.1, 2.6), (9.5, 2.2), (9.5, -0.4), (9.9, -0.8), (13.5, -0.8)],
-                   [(14.1, -0.45)], [(14.1, -1.15)])
-PREROUTES += [('HSI_N', 'B', [(14.1, -0.45), (15.6, -0.6), u1_pin(41)], DP_W),
-              ('HSI_P', 'B', [(14.1, -1.15), (15.6, -1.0), u1_pin(40)], DP_W)]
-PREVIAS += [('HSI_N', (14.1, -0.45)), ('HSI_P', (14.1, -1.15))]
-# SerDes, PHY -> host (RD): out of the caps by U1 (bottom), a via each, then on
-# top west to the fingers (heading west the left line is RD_N, the lower one)
-PREROUTES += [('RD_P', 'B', [(14.52, -1.8), (13.8, -1.8)], DP_W), ('RD_N', 'B', [(14.52, -2.75), (13.8, -2.75)], DP_W)]
-PREROUTES += _pair('RD_N', 'RD_P', 'F', [(13.8, -2.75), (13.45, -2.333)], [(13.8, -1.8), (13.45, -2.067)],
-                   [(13.2, -2.2), (4.4, -2.2)], [(3.9, -2.6), (3.6, -2.6)], [(3.9, -1.8), (3.6, -1.8)])
-PREVIAS += [('RD_P', (13.8, -1.8)), ('RD_N', (13.8, -2.75))]
-PREVIAS += [('GND', (13.3, 0.35)), ('GND', (13.2, -3.4))]       # return vias by the layer changes
-
-# MDI, chip side, underneath: from the fan out of U1's right edge, coupled
-# lanes under the magnetics, each line dropping into its pad's via
-_MDI_LANES = [('MDI0', -0.467, 40.5), ('MDI1', -1.267, 37.5), ('MDI2', -2.067, 34.5), ('MDI3', -2.867, 31.5)]
-for base, lane, xn in _MDI_LANES:
-    yp = RIGHT[[k for k, v in RIGHT.items() if v[0] == base + '_P'][0]][1]
-    yn = RIGHT[[k for k, v in RIGHT.items() if v[0] == base + '_N'][0]][1]
-    c0 = (yp + yn) / 2
-    run = abs(c0 - lane)
-    PREROUTES += _pair(base + '_P', base + '_N', 'B', [(FAN_X + 0.55, yp)], [(FAN_X + 0.55, yn)],
-                       [(26.2, c0), (26.5, c0), (26.5 + run, lane), (xn - 0.3, lane)],
-                       [(xn + 1.0, lane + 0.133), (xn + 1.0, -3.6)], [(xn, lane - 0.133), (xn, -3.6)])
 
 # line side. Jack pins top to bottom are 8 7 6 5 4 3 2 1, and pair 3/6 (line
 # pair 1) straddles pair 4/5 (line pair 2), so one of those two has to leave
@@ -507,12 +485,7 @@ PREROUTES += _pair('LINE2_N', 'LINE2_P', 'B', [(38.5, 3.75), (38.5, 3.55)], [(37
                    _tail(2.633, 43.2, _JA, 5), _tail(2.367, 43.0, _JB, 4))
 PREVIAS += [('GND', (36.8, 3.0))]       # return via beside the layer change (east of it the CMT3 via leaves no room)
 
-PREVIAS += [('XI', XI_VIA), ('GND', (23.6, 3.3))]
-# host control fingers (bottom): TX_DISABLE (y 1.8) and SDA (1.0) pass either
-# side of finger 17's ground via at (4.55, 1.4) with 0.11 mm to spare - a
-# jog each takes them clear before the router carries on
-PREROUTES += [('TX_DISABLE', 'B', [(3.8, 1.8), (4.0, 1.8), (4.25, 2.05), (5.1, 2.05)]),
-              ('SDA', 'B', [(3.8, 1.0), (4.0, 1.0), (4.25, 0.75), (5.1, 0.75)])]
+PREVIAS += [('XI', XI_VIA)]
 # U1's RST/MDC/MDIO (pins 1/2/3, top-left corner): each to an escape via,
 # the router takes them on through In2 to the MCU. MDC and MDIO step left on
 # parallel diagonals so MDIO can climb between MDC and C7; RST leaves left.
@@ -527,7 +500,7 @@ PREROUTES += [('CFG1', 'B', [u1_pin(30), (19.726, -3.3), (19.726, -4.9), (19.576
 # U1's thermal vias, our own 3 x 3 at 1.2 mm: the library's _ThermalVias
 # version puts a 4.3 mm copper pad and a +-1.9 mm grid on the far side (top),
 # where the top side's routing wants to pass. 3 x 3 inside the EP is enough for ~0.45 W.
-PREVIAS += [('GND', (round(U1_AT[0] + dx, 3), dy)) for dx in (-1.2, 0.0, 1.2) for dy in (-1.2, 0.0, 1.2)] + [(RIGHT[p][0], (PWR_VIA_X, RIGHT[p][1])) for p in (15, 16, 19, 22)]
+PREVIAS += [('GND', (round(U1_AT[0] + dx, 3), dy), MIN_VIA) for dx in (-1.2, 0.0, 1.2) for dy in (-1.2, 0.0, 1.2)] + [(RIGHT[p][0], (PWR_VIA_X, RIGHT[p][1])) for p in (15, 16, 19, 22)]
 DOGBONE_PREFIXES = ('C', 'R')   # resistors with a ground end too (CFG0, BUCK_EN, the divider)
 NO_DOGBONE = ('C11', 'C12', 'C13', 'C14')
 
@@ -554,9 +527,9 @@ def _mcu_via(net, pin_x, top):
 _UX = {n: 59.2 - 2.925 + 0.65 * k for k, n in enumerate(range(10, 0, -1))}   # bottom row, pin 10 at the left
 _UXT = {n: 59.2 - 2.925 + 0.65 * k for k, n in enumerate(range(11, 21))}     # top row, pin 11 at the left
 # top: TX_DISABLE, RX_LOS, TX_FAULT (pins 11/12/13), lanes 2.6/2.9/3.2 under the peg
-for net, pin, yb, xb, ya, x1, lane in (('TX_DISABLE', 11, 2.87, 48.32, 4.14, 50.66, 2.6),
-                                       ('RX_LOS', 12, 3.175, 48.215, 4.44, 50.77, 2.9),
-                                       ('TX_FAULT', 13, 3.48, 48.11, 4.74, 50.88, 3.2)):
+for net, pin, yb, xb, ya, x1, lane in (('TX_FAULT', 11, 2.87, 48.32, 4.14, 50.66, 2.6),
+                                       ('TX_DISABLE', 12, 3.175, 48.215, 4.44, 50.77, 2.9),
+                                       ('RX_LOS', 13, 3.48, 48.11, 4.74, 50.88, 3.2)):
     vx, vy = _mcu_via(net, _UXT[pin], True)
     PREROUTES.append((net, 'In2', [(44.8, yb), (xb, yb), (xb + 1.27, ya), (x1, ya), (x1 + ya - lane, lane),
                                    (vx, lane), (vx, vy)], _BW))
@@ -569,17 +542,20 @@ PREROUTES.append(('SCL', 'In2', [(42.5, -1.6), (48.11, -1.6), (49.38, -0.33), (5
 for net, pin, yb, xb, ya in (('SDA', 1, -1.905, 48.215, -0.635), ('+3V3', 4, -2.21, 48.32, -0.94)):
     vx, vy = _mcu_via(net, _UX[pin], False)
     PREROUTES.append((net, 'In2', [(42.5, yb), (xb, yb), (xb + 1.27, ya), (vx, ya), (vx, vy)], _BW))
+PREROUTES.append(('+3V3', 'In2', [(42.5, -2.21), (42.0, -2.65)], _BW))
+PREVIAS.append(('+3V3', (42.0, -2.65), MIN_VIA))   # into the In3 plane
 # bottom: PHY_INT_N, PHY_RST_N, MDIO (pins 10/9/8)
 for net, pin, yb, xb, ya in (('PHY_INT_N', 10, -4.14, 48.12, -2.87), ('PHY_RST_N', 9, -4.44, 48.23, -3.175),
-                             ('MDIO', 8, -4.74, 48.34, -3.48)):
+                             ('MDC', 8, -4.74, 48.34, -3.48)):
     vx, vy = _mcu_via(net, _UX[pin], False)
     PREROUTES.append((net, 'In2', [(43.5, yb), (xb, yb), (xb + 1.27, ya), (vx, ya), (vx, vy)], _BW))
 # MDC underneath: under pin 2, between 2 and 1, round 1's right side to a via,
 # then In2 in a fourth lane under MDIO's
-vx, vy = _mcu_via('MDC', _UX[7], False)
-PREROUTES += [('MDC', 'B', [(44.0, -4.6), (48.0, -4.6), (49.425, -3.175), (51.0, -3.175), (51.6, -3.775), (51.6, -4.4)], _BW),
-              ('MDC', 'In2', [(51.6, -4.4), (52.22, -3.78), (vx, -3.78), (vx, vy)], _BW)]
-PREVIAS.append(('MDC', (51.6, -4.4)))   # the right-side caps' ground end would land in the MDI descents; the top pour takes it
+vx, vy = _mcu_via('MDIO', _UX[7], False)
+PREROUTES += [('MDIO', 'B', [(42.8, -5.08), (43.28, -4.6), (43.4, -4.6), (44.0, -4.6), (48.0, -4.6), (49.425, -3.175), (51.0, -3.175), (51.6, -3.775), (51.6, -4.4)], _BW),
+              ('MDIO', 'In2', [(51.6, -4.4), (52.22, -3.78), (vx, -3.78), (vx, vy)], _BW)]
+PREVIAS.append(('MDIO', (51.6, -4.4)))
+PREVIAS.append(('MDIO', (42.8, -5.08), MIN_VIA))     # its In2 run from U1 ends here, below the bottom lanes   # the right-side caps' ground end would land in the MDI descents; the top pour takes it
 
 # LCSC numbers, each checked against JLC's parts search on 2026-09-30
 LCSC_BY_MPN = {'RTL8221B-VB-CG': 'C5155988', 'STM32G031F6P6': 'C529333', 'TPS62822DLCR': 'C473385',
@@ -611,19 +587,138 @@ PREROUTES += [('+3V3', 'B', [(15.95, -0.2), (15.8, -0.2)], 0.2),
 # X1's two +3V3 pins (OE, VDD) straight to each other: pin 1 sits at the edge
 # with no room for its own via
 PREROUTES += [('+3V3', 'F', [(24.95, 5.05), (24.95, 4.1)], 0.2)]   # (out of the edge strip)
-# R13's +3V3 end, boxed in by CFG1's route and C17: a via of its own
-PREROUTES += [('+3V3', 'B', [(17.88, -5.15), (16.0, -5.15), (16.0, -5.05)], 0.15)]
-PREVIAS += [('+3V3', (16.0, -5.05), MIN_VIA)]      # between C22's pads on top
+# R13's ground end, boxed in by CFG1's route and C17: a via of its own
+PREROUTES += [('GND', 'B', [(17.88, -5.15), (16.0, -5.15), (16.0, -5.05)], 0.15)]
+PREVIAS += [('GND', (16.0, -5.05), MIN_VIA)]      # between C22's pads on top
 # the buck's output had no via of its own: the core rail's two halves (pins
 # 43 / C19 / the buck, and pins 4 / 28 / 36) stayed apart. One beside C33.
 PAD_DOGBONE = [('C33', '1'), ('C43', '2')]
-PREVIAS += [('GND', (28.6, 0.0), MIN_VIA)]           # the top pour before the magnetics had no via
+PREVIAS += [('GND', (28.6, 2.75), MIN_VIA)]          # the top pour before the magnetics had no via (above the MDI diagonals underneath)
 # pin 43 (core) and its C19 had no via either, boxed in on the left edge: one
 # in the unused pin 44's slot, on pin 43's own stub, tied on In2 under U1 to
 # pin 4's (0.7 mm clear of the thermal vias)
 PREVIAS += [('V0P95', (15.75, 0.6), MIN_VIA)]
-PREROUTES += [('V0P95', 'In2', [(15.75, 0.6), (17.6, 0.6), (17.6, 3.0), (18.449, 3.85)], 0.15)]
+PREROUTES += [('V0P95', 'F', [(15.75, 0.6), (17.6, 0.6), (17.6, 3.0), (18.449, 3.85)], 0.15)]   # flips to the bottom, which U1 has left free
 PREROUTES += [('V0P95', 'B', [(15.95, 0.2), (15.75, 0.6)], 0.15)]   # joined end to end: overlap alone is not a connection
+
+
+# ---------------------------------------------------------------- U1 on top
+# Everything above was first laid with U1 on the bottom - for an SFP edge drawn
+# mirrored (until 2026-10). On the real edge (SFF-8419 Figure 7-2) the SerDes
+# reaches U1 straight only with U1 on top. So U1's group is turned over as one
+# body, about the board's long axis: y -> -y, top <-> bottom, inner layers
+# unchanged. Inside the group every pad, stub and via keeps its relation; what
+# joins the group to the rest is laid after.
+FLIP = {'U1', 'C5', 'C6', 'R9', 'R12', 'R13', 'FB3', 'C21', 'FB4', 'C22', 'X1', 'C30'} | \
+       {r for r, *_ in DECAP} | {'C11', 'C12', 'C13', 'C14'}
+_SW = {'F': 'B', 'B': 'F'}
+for _p in P:
+    if _p['ref'] in FLIP:
+        _p['at'] = (_p['at'][0], -_p['at'][1])
+        _p['side'] = _SW[_p['side']]
+
+
+def _in_group(pts):
+    return all(13.5 <= x <= 27.5 for x, _ in pts)
+
+
+PREROUTES = [((it[0], _SW.get(it[1], it[1]), [(x, -y) for x, y in it[2]]) + tuple(it[3:]))
+             if _in_group(it[2]) else it for it in PREROUTES]
+PREVIAS = [((n, (xy[0], -xy[1])) + tuple(rest)) if _in_group([xy]) else (n, xy) + tuple(rest)
+           for n, xy, *rest in PREVIAS]
+
+
+def u1_top(n):
+    x, y = u1_pin(n)
+    return (x, -y)
+
+
+# SerDes, PHY -> host (RD), on top: from the caps by U1 (C5/C6, HSOP/HSON
+# side towards U1) west above the centreline to fingers 13 (RD+, y 1.8) and
+# 12 (RD-, 2.6). Heading west the left line is RD_P, the lower one.
+PREROUTES += _pair('RD_P', 'RD_N', 'F', [(14.52, 1.8), (14.25, 2.067)], [(14.52, 2.75), (14.1, 2.333)],
+                   [(13.9, 2.2), (5.0, 2.2)], [(4.7, 1.8), (3.6, 1.8)], [(4.7, 2.6), (3.6, 2.6)])
+# SerDes, host -> PHY (HSI), on top: from the finger caps (C3/C4, below the
+# centreline) east, diagonally up, and into pins 40 (HSIP, y 1.0) / 41 (HSIN,
+# 0.6) on U1's west side. Heading east the left line is HSI_P, the upper one.
+PREROUTES += _pair('HSI_P', 'HSI_N', 'F', [(5.52, -2.2), (5.9, -2.2)], [(5.52, -3.0), (5.9, -3.0)],
+                   [(6.4, -2.6), (9.5, -2.6), (12.9, 0.8), (15.6, 0.8)],
+                   [(16.0, 1.0), u1_top(40)], [(16.0, 0.6), u1_top(41)])
+
+# MDI, chip side, on top: from the fan's pair ends, coupled lanes under the
+# magnetics' body (the line pairs keep to its upper half) and straight down
+# into the chip-side pads - the top pair to channel 4 ... the bottom pair to
+# channel 1, P on TDn+. No via: a via column here walled off In2.
+_MDI_LANES = [('MDI3', -0.467, 40.5), ('MDI2', -1.267, 37.5), ('MDI1', -2.067, 34.5), ('MDI0', -2.867, 31.5)]
+for base, lane, xn in _MDI_LANES:
+    yp, yn = -RIGHT[[k for k, v in RIGHT.items() if v[0] == base + '_P'][0]][1], \
+        -RIGHT[[k for k, v in RIGHT.items() if v[0] == base + '_N'][0]][1]
+    assert yn > yp
+    c0 = (yp + yn) / 2
+    run = abs(c0 - lane)
+    PREROUTES += _pair(base + '_N', base + '_P', 'F', [(FAN_X + 0.55, yn)], [(FAN_X + 0.55, yp)],
+                       [(26.2, c0), (26.5, c0), (26.5 + run, lane), (xn - 0.3, lane)],
+                       [(xn + 1.0, lane + 0.133), (xn + 1.0, -4.675)], [(xn, lane - 0.133), (xn, -4.675)])
+
+# the host's slow lines leave the fingers for In2 (the long runs, IN2_BUS):
+# RX_LOS and TX_FAULT through a via between their pairs' lines, right behind
+# the finger; TX_DISABLE, SDA and SCL underneath first, clear of the finger
+# ground vias, to vias of their own
+_DV = (0.35, 0.2)
+PREROUTES += [('RX_LOS', 'B', [(3.6, 2.2), (4.2, 2.2)], _BW), ('TX_FAULT', 'B', [(3.6, -2.6), (4.2, -2.6)], _BW),
+              ('TX_DISABLE', 'B', [(3.6, -1.8), (4.0, -1.85), (6.2, -1.85)], _BW),
+              ('SDA', 'B', [(3.6, -1.0), (3.9, -0.9), (8.3, -0.9)], _BW),
+              ('SCL', 'B', [(3.6, -0.2), (8.3, -0.2)], _BW)]
+PREVIAS += [('RX_LOS', (4.2, 2.2), _DV), ('TX_FAULT', (4.2, -2.6), _DV), ('TX_DISABLE', (6.2, -1.85), _DV),
+            ('SDA', (8.3, -0.9), _DV), ('SCL', (8.3, -0.2), _DV)]
+# the TD fingers into their caps at the pair's 0.114 (the class's 0.157 does
+# not clear TX_FAULT's via between them)
+PREROUTES += [('TD_P', 'F', [(3.6, -2.2), (4.88, -2.2)], DP_W), ('TD_N', 'F', [(3.6, -3.0), (4.88, -3.0)], DP_W)]
+# the buck (underneath): VIN (pin 7) and PGND (pin 5) each to a via in the
+# 1 mm strip between the HSI and RD pairs on top
+PREROUTES += [('+3V3', 'B', [(12.525, 1.05), (12.95, 1.05), (13.3, 1.4)], 0.2),
+              ('GND', 'B', [(12.525, 2.05), (13.5, 2.05), (13.85, 1.7), (13.85, 1.4)], 0.2)]
+PREVIAS += [('+3V3', (13.3, 1.4), MIN_VIA), ('GND', (13.85, 1.4), MIN_VIA)]
+
+# X1's +3V3 (underneath, U1 on top now) to a via of its own, above XI's pad
+# and clear of In2's bottom lanes
+PREROUTES += [('+3V3', 'B', [(24.95, -4.1), (24.55, -3.7), (24.2, -3.35), (23.6, -3.35)], 0.2)]
+PREVIAS += [('+3V3', (23.6, -3.35), MIN_VIA)]
+# the buck's switch node: pin 6 is boxed in by the VIN and PGND escapes, so
+# it leaves west under the package body (0.85 mm between the pad columns)
+# and down between pins 1 and 8 into L1
+PREROUTES += [('BUCK_SW', 'B', [(12.525, 1.55), (11.8, 1.55), (11.8, 0.1), (11.2, -0.5), (11.075, -0.85)], 0.2)]
+# C18 / C19's ground ends (pins 42 / 43) sit in a pour pocket on top: a via
+# between In2's SCL and SDA (0.16 mm to each)
+PREVIAS += [('GND', (14.1, -0.6), MIN_VIA)]
+# INT (pin 48, U1's west side) out to a via for its In2 run
+PREROUTES += [('PHY_INT_N', 'F', [u1_top(48), (15.95, -2.2), (15.55, -2.45)], _BW)]
+PREVIAS += [('PHY_INT_N', (15.55, -2.45), _DV)]
+# the host's lines on In2, laid by hand: TX_FAULT, TX_DISABLE and RX_LOS
+# climb west of SCL/SDA's vias and run the north side (RX_LOS and TX_DISABLE
+# over the centre-tap vias, TX_FAULT under them) to the jack bus's top lanes,
+# stepping down at staggered 45-degree turns so parallel diagonals keep
+# 0.28 mm; SCL and SDA between the thermal-via rows under U1 to its middle
+# lanes.
+IN2_BUS = [
+    ('RX_LOS', _BW, [(4.2, 2.2), (5.2, 2.2), (7.65, 4.65), (40.6, 4.65), (41.77, 3.48), (44.8, 3.48)]),
+    ('TX_DISABLE', _BW, [(6.2, -1.85), (6.2, 2.4), (8.1, 4.3), (40.3, 4.3), (41.425, 3.175), (44.8, 3.175)]),
+    ('TX_FAULT', _BW, [(4.2, -2.6), (7.4, -2.6), (7.4, 1.4), (7.9, 1.9), (41.0, 1.9), (41.97, 2.87), (44.8, 2.87)]),
+    ('SCL', _BW, [(8.3, -0.2), (17.0, -0.2), (17.2, -0.4), (41.0, -0.4), (42.2, -1.6), (42.5, -1.6)]),
+    ('SDA', _BW, [(8.3, -0.9), (8.4, -1.0), (17.0, -1.0), (17.2, -0.8), (40.9, -0.8), (42.005, -1.905), (42.5, -1.905)]),
+]
+# the PHY's four, in their escape vias' order: INT and RST over the decap
+# vias' row, MDC and MDIO between it and XI's via, then each down at a 45-degree
+# turn of its own - MDIO first, INT last, so parallel diagonals keep 0.28 mm -
+# to the jack bus's bottom lanes (MDIO to its via under them)
+IN2_BUS += [
+    ('PHY_INT_N', _BW, [(15.55, -2.45), (21.5, -2.45), (23.11, -4.06), (43.2, -4.06), (43.5, -4.14)]),
+    ('PHY_RST_N', _BW, [(16.2, -3.45), (21.6, -3.45), (22.51, -4.36), (43.2, -4.36), (43.5, -4.44)]),
+    ('MDC', _BW, [(17.3, -4.25), (21.8, -4.25), (22.21, -4.66), (43.2, -4.66), (43.5, -4.74)]),
+    ('MDIO', _BW, [(17.7, -5.05), (18.2, -4.55), (21.6, -4.55), (22.13, -5.08), (42.8, -5.08)]),
+]
+for _net, _w, _path in IN2_BUS:
+    PREROUTES.append((_net, 'In2', _path, _w))
 
 
 if __name__ == '__main__':

@@ -5,7 +5,7 @@ Upload the files in `jlc/` as they are (`python3 panel_rj45.py` makes them).
 | File | What it is |
 |---|---|
 | `jlc/rj45-panel-gerbers.zip` | 5-board panel, **71.5 × 107.1 mm**. Gerbers (6 copper layers, masks, silks, paste, outline) + drill |
-| `jlc/bom-rj45.csv`, `jlc/cpl-rj45.csv` | BOM 25 lines, CPL **305 placements** (100 top, 205 bottom; designators `R4_1…R4_5`). The jack J2 is in both (through-hole, JLC fits it) |
+| `jlc/bom-rj45.csv`, `jlc/cpl-rj45.csv` | BOM 25 lines, CPL **305 placements** (115 top, 190 bottom; designators `R4_1…R4_5`). The jack J2 is in both (through-hole, JLC fits it) |
 | `jlc/panel-drc.rpt` | Panel DRC with the board's own rules: **0 errors, 0 unconnected**. All 161 findings are warnings ("library not in this project" for the placed footprints and KiKit's mouse-bite holes); they don't reach the gerbers |
 | `jlc/panel-top.png` | Panel preview. The gold fingers sit on the left edge |
 
@@ -36,12 +36,12 @@ As on the T1: JLC's fingers are ENIG-grade gold, not the MSA's hard gold. That i
 | Field | Value |
 |---|---|
 | Type | **Standard** |
-| Sides | **both** (U1 and its decaps are on the bottom) |
+| Sides | **both** (U1 and its decaps on top; the buck, oscillator and MCU underneath) |
 | Quantity | 2 panels (the minimum) = 10 boards |
 | Through-hole | J2 (the RJ45 jack), 10 joints per board |
 | Files | `jlc/bom-rj45.csv` + `jlc/cpl-rj45.csv` |
 
-**Check part rotations in JLC's 3D preview**, above all U1 (QFN-48, on the bottom), T1 (the magnetics) and the jack.
+**Check part rotations in JLC's 3D preview**, above all U1 (QFN-48, on top), T1 (the magnetics) and the jack.
 
 ## Stock (2026-09-30)
 

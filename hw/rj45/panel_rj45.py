@@ -45,7 +45,7 @@ def preset(n):
 # (x, y, direction) in board mm: a point 0.5 mm outside the edge, pointing
 # into the board (KiKit grows the tab from there to the board and back to the
 # partition line), where no pad, via or track comes near a mouse-bite hole
-TABS = [(14.0, 6.4, 'up'), (26.4, 6.4, 'up'),
+TABS = [(21.0, 6.4, 'up'), (28.2, 6.4, 'up'),       # (not 14.0 / 26.4: U4 and X1 moved to that edge)
         (28.4, -6.4, 'down'), (46.5, -9.05, 'down'), (46.5, 9.05, 'up'),
         (64.9, 0.0, 'left')]
 TAB_WIDTH = 2.5

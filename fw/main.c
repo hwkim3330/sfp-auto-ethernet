@@ -27,6 +27,7 @@
  * Pins (TSSOP-20, see hw/t1/make_t1.py MCU map):
  *   PB7 SDA   PB6 SCL   (AF6, open drain)
  *   PA0 MDC   PA1 MDIO  (bit-banged; MDIO open drain, 2.2k to VDDIO on the board)
+ *   (RJ45: PA0 MDIO, PA1 MDC, PA4 TX_FAULT, PA5 TX_DISABLE, PA6 RX_LOS)
  *   PA2 PHY_RST_N out   PA3 PHY_INT_N in
  *   PA4 TX_DISABLE in (pulled up on the board: high/open = disabled; PC14 on T1S)
  *   PA5 RX_LOS out, open drain (high = no link)
@@ -88,6 +89,15 @@ __attribute__((unused)) static void delay_ms(uint32_t n) { uint32_t t = ms; whil
 
 /* ------------------------------------------------------------------ GPIO */
 #define PIN(n)   (1u << (n))
+#if VARIANT_RJ45                /* hw/rj45/make_rj45.py MCU map: placed for its In2 bus's lane order */
+#define MDC      1
+#define MDIO     0
+#define PHY_RST  2
+#define PHY_INT  3
+#define TX_DIS   5
+#define RX_LOS   6
+#define TX_FAULT 4
+#else
 #define MDC      0
 #define MDIO     1
 #define PHY_RST  2
@@ -95,6 +105,7 @@ __attribute__((unused)) static void delay_ms(uint32_t n) { uint32_t t = ms; whil
 #define TX_DIS   4
 #define RX_LOS   5
 #define TX_FAULT 6
+#endif
 /* where TX_DISABLE and TX_FAULT are: PA4 / PA6, or on T1S PC14 / PC15
  * (pins 2/3, next to SDA: they share its route along the board's north edge) */
 #if VARIANT_T1S

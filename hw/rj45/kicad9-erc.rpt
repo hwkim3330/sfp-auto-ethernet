@@ -1,4 +1,4 @@
-ERC report (2026-10-01T09:05:05+0000, Encoding UTF8)
+ERC report (2026-10-07T05:58:13+0000, Encoding UTF8)
 Report includes: Errors, Warnings, Exclusions
 
 ***** Sheet /
@@ -245,9 +245,9 @@ Report includes: Errors, Warnings, Exclusions
 [lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
     ; warning
     @(313.69 mm, 255.27 mm): Symbol #PWR025 [GND]
-[lib_symbol_mismatch]: Symbol '+3V3' doesn't match copy in library 'power'
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
     ; warning
-    @(313.69 mm, 267.97 mm): Symbol #PWR042 [+3V3]
+    @(313.69 mm, 270.51 mm): Symbol #PWR042 [GND]
 [lib_symbol_mismatch]: Symbol 'R_Small' doesn't match copy in library 'Device'
     ; warning
     @(313.69 mm, 273.05 mm): Symbol R13 [R_Small]

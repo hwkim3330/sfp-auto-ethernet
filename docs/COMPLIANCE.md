@@ -39,14 +39,14 @@ Skew from the routed lengths (`lengths.txt`) at the solver's delay for each lane
 
 | Pair | Interface | Geometry (mm) | Rate | UI | Length P / N | Skew | % of UI | Vias | Loss at Nyquist | |
 |---|---|---|---:|---:|---:|---:|---:|---:|---:|---|
-| TD_P / TD_N | 2500BASE-X, host to module | 2 × line 0.157 (Z0 50.7) | 3125 MBd | 320 ps | 2.43 / 2.33 mm | 0.6 ps | 0.2% | 0/0 | 0.03 dB | ✓ |
-| HSI_P / HSI_N | 2500BASE-X | pair 0.114 / 0.152 | 3125 MBd | 320 ps | 14.07 / 14.07 mm | 0.0 ps | 0.0% | 1/1 | 0.21 dB | ✓ |
-| RD_P / RD_N | 2500BASE-X, module to host | pair 0.114 / 0.152 | 3125 MBd | 320 ps | 12.13 / 12.23 mm | 0.6 ps | 0.2% | 1/1 | 0.19 dB | ✓ |
+| TD_P / TD_N | 2500BASE-X, host to module | pair 0.114 / 0.152 | 3125 MBd | 320 ps | 2.33 / 2.33 mm | 0.0 ps | 0.0% | 0/0 | 0.04 dB | ✓ |
+| HSI_P / HSI_N | 2500BASE-X | pair 0.114 / 0.152 | 3125 MBd | 320 ps | 12.51 / 12.51 mm | 0.0 ps | 0.0% | 0/0 | 0.19 dB | ✓ |
+| RD_P / RD_N | 2500BASE-X, module to host | pair 0.114 / 0.152 | 3125 MBd | 320 ps | 12.18 / 12.24 mm | 0.3 ps | 0.1% | 0/0 | 0.19 dB | ✓ |
 | HSO_P / HSO_N | 2500BASE-X | 2 × line 0.157 (Z0 50.7) | 3125 MBd | 320 ps | 1.07 / 1.32 mm | 1.5 ps | 0.5% | 0/0 | 0.02 dB | ✓ |
-| MDI0_P / MDI0_N | 2.5GBASE-T MDI (PAM16) | pair 0.114 / 0.152 | 200 MBd | 5000 ps | 25.53 / 24.24 mm | 7.5 ps | 0.2% | 1/1 | 0.07 dB | ✓ |
-| MDI1_P / MDI1_N | 2.5GBASE-T MDI (PAM16) | pair 0.114 / 0.152 | 200 MBd | 5000 ps | 20.40 / 19.13 mm | 7.3 ps | 0.1% | 1/1 | 0.06 dB | ✓ |
-| MDI2_P / MDI2_N | 2.5GBASE-T MDI (PAM16) | pair 0.114 / 0.152 | 200 MBd | 5000 ps | 16.15 / 14.90 mm | 7.2 ps | 0.1% | 1/1 | 0.05 dB | ✓ |
-| MDI3_P / MDI3_N | 2.5GBASE-T MDI (PAM16) | pair 0.114 / 0.152 | 200 MBd | 5000 ps | 12.72 / 11.48 mm | 7.2 ps | 0.1% | 1/1 | 0.04 dB | ✓ |
+| MDI0_P / MDI0_N | 2.5GBASE-T MDI (PAM16) | pair 0.114 / 0.152 | 200 MBd | 5000 ps | 11.48 / 12.72 mm | 7.2 ps | 0.1% | 0/0 | 0.04 dB | ✓ |
+| MDI1_P / MDI1_N | 2.5GBASE-T MDI (PAM16) | pair 0.114 / 0.152 | 200 MBd | 5000 ps | 15.14 / 16.41 mm | 7.3 ps | 0.1% | 0/0 | 0.05 dB | ✓ |
+| MDI2_P / MDI2_N | 2.5GBASE-T MDI (PAM16) | pair 0.114 / 0.152 | 200 MBd | 5000 ps | 19.54 / 20.82 mm | 7.4 ps | 0.1% | 0/0 | 0.06 dB | ✓ |
+| MDI3_P / MDI3_N | 2.5GBASE-T MDI (PAM16) | pair 0.114 / 0.152 | 200 MBd | 5000 ps | 24.24 / 25.53 mm | 7.5 ps | 0.2% | 0/0 | 0.07 dB | ✓ |
 | LINE0_P / LINE0_N | 2.5GBASE-T line side | pair 0.114 / 0.152 | 200 MBd | 5000 ps | 24.39 / 20.99 mm | 19.6 ps | 0.4% | 0/0 | 0.07 dB | ✓ |
 | LINE1_P / LINE1_N | 2.5GBASE-T line side | pair 0.114 / 0.152 | 200 MBd | 5000 ps | 19.86 / 15.56 mm | 24.9 ps | 0.5% | 0/0 | 0.06 dB | ✓ |
 | LINE2_P / LINE2_N | 2.5GBASE-T line side | pair 0.114 / 0.152 | 200 MBd | 5000 ps | 13.39 / 15.08 mm | 9.7 ps | 0.2% | 1/1 | 0.04 dB | ✓ |
@@ -74,7 +74,7 @@ Measured from each board's J1 footprint: pad width 0.6 ± 0.05 mm, 0.8 mm pitch,
 | Board | Result | Tab width |
 |---|---|---:|
 | T1 | ✓ all 20 pads | 9.20 mm |
-| RJ45 | ✗ pin 20 at y 3.80, wants -3.8; pin 11 at y -3.40, wants 3.4; pin 1 at y 3.40, wants -3.4; pin 10 at y -3.80, wants 3.8 | 9.20 mm |
+| RJ45 | ✓ all 20 pads | 9.20 mm |
 | T1S | ✗ pin 20 at y 3.80, wants -3.8; pin 11 at y -3.40, wants 3.4; pin 1 at y 3.40, wants -3.4; pin 10 at y -3.80, wants 3.8 | 9.20 mm |
 
 Pin 6 (MOD_DEF0) is grounded in the module but mates as a signal, so it starts at 1.3 mm. Board thickness over the fingers is the stackup's 1.0 mm (MSA: 1.0 ± 0.1). JLC plates ENIG, not the MSA's 0.38 µm hard gold: fine for tens of insertions.
@@ -100,10 +100,10 @@ Room inside the cage: 4.65 mm above the board, 1.65 mm below it (behind the cage
 | RJ45 | U4 | F | 1.45 mm | 4.65 mm | +3.20 mm |
 | RJ45 | C40 | B | 1.35 mm | 1.65 mm | +0.30 mm |
 | RJ45 | U2 | B | 1.20 mm | past the cage front | |
-| RJ45 | U1 | B | 1.00 mm | 1.65 mm | +0.65 mm |
+| RJ45 | U1 | F | 1.00 mm | 4.65 mm | +3.65 mm |
 | RJ45 | U3 | B | 1.00 mm | 1.65 mm | +0.65 mm |
 | RJ45 | L1 | B | 1.00 mm | 1.65 mm | +0.65 mm |
-| RJ45 | X1 | F | 0.80 mm | 4.65 mm | +3.85 mm |
+| RJ45 | X1 | B | 0.80 mm | 1.65 mm | +0.85 mm |
 | T1S | J2 | F | 6.00 mm | past the cage front | |
 | T1S | L2 | F | 2.50 mm | 4.65 mm | +2.15 mm |
 | T1S | U4 | B | 1.45 mm | 1.65 mm | +0.20 mm |
