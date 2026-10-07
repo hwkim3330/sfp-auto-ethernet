@@ -38,9 +38,9 @@ Our firmware is the 0x56 / mdio-i2c convention. None of the commercial T1 module
 
 | Item | TI | Ours | |
 |---|---|---|---|
-| MDI DC block | 0.1 µF, 100 V (371: 1 %) | 100 nF **100 V** X5R ±10 % 0402 (GRM155R62A104KE14D, C162178) | **fixed**: it was the 16 V decap (C1525), only the value had been checked; ⚠ ±10 %, no 1 % 100 V part exists in 0402 (at 100 nF the coupling corner stays under 2 kHz either way) |
+| MDI DC block | 0.1 µF, 100 V (371: 1 %) | 100 nF **100 V** X5R ±10 % 0402 (GRM155R62A104KE14D, C162178) | **fixed**: it was the 16 V decap (C1525), only the value had been checked; ⚠ ±10 %, no 1 % 100 V part exists in 0402 (at 100 nF the coupling corner stays under 2 kHz either way). JLC stocks no SMD 100 nF 100 V at 1 % (only a leaded C0G, out of stock) and no 0402 X7R at 100 V, so this is X5R (85 °C) |
 | CMC | DLW32MH101XT2 (100 µH) for the TG720; **200 µH** for the TC812 | DLW32MH101XT2; **the TC812 loadout now fits DLW32MH201XK2L (C883600)** | **fixed** |
-| CM termination | 2 × 1 kΩ 1 % (371: 0.75 W 2010) | 2 × 1 kΩ 1 % **0.2 W** anti-surge 0402 (CRCW0402-HP, C313354) | **improved** from 62.5 mW (C11702); ⚠ still under the 0.75 W 2010: the coupled pair beside the CMC leaves no room for 2010, and the rating only matters for surge / ESD energy, not the signal |
+| CM termination | 2 × 1 kΩ 1 % 0.75 W 2010 (SNLA371B OA configuration) | **2 × 1 kΩ 1 % 0.75 W 2010** (Yageo RC2010FK-071KL, C723477), along the board either side of the pair between the CMC and the H-MTD; 4.7 nF ‖ 100 kΩ to ground | **fixed** (was 0402: 62.5 mW, then 0.2 W). The H-MTD moved 1 mm back for the room. The two unfitted 0402 ESD footprints are gone: they are not in TI's configuration |
 | CM to GND | 4.7 nF (EVM: 1 kV 1206) ‖ 100 kΩ | 4.7 nF 0402 ‖ 100 kΩ 0402 | ⚠ the same; the 1 kV part is for ESD robustness tests |
 | Copper under the CMC | none, top and at least one layer below (8.5) | **no pour on F and In1 under L2** | **fixed** |
 | SGMII AC coupling | 0.1 µF ×4 | 100 nF 0201 ×4, all in the module as INF-8074i asks | ✓ |

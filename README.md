@@ -1,14 +1,21 @@
 # sfp-auto-ethernet
 
-SFP 모듈 세 가지. 일반 SFP 슬롯에 꽂으면 호스트와 SerDes로 붙고, 바깥쪽은 차량 이더넷이나 RJ45로 나간다.
+SFP 모듈 세 가지. 호스트와는 SerDes로 붙고, 바깥쪽은 차량 이더넷이나 RJ45로 나간다.
+
+- **폼팩터와 핀:** SFP(INF-8074i, SFF-8419)를 따른다. 전원·제어 핀과 EEPROM(SFF-8472)도 같다.
+- **호스트 쪽 조건:**
+  - T1과 T1S는 SGMII 1.25 Gbaud라서, 호스트 포트가 SGMII를 해야 한다. 1000BASE-X 전용 포트나 광모듈만 가정한 NIC에서는 안 된다.
+  - RJ45는 2500BASE-X 3.125 Gbaud라서 "2.5G SFP"다. 1G 전용 SFP 슬롯에서는 안 되고, 2500BASE-X를 지원하는 포트(대개 SFP+ 케이지)가 필요하다.
+- **표준이 아닌 부분:** 차량 이더넷(BASE-T1, T1S)을 SFP에 넣는 표준은 없다. SFF-8024에도 100/1000BASE-T1, 10BASE-T1S 코드가 없다. 그래서 EEPROM은 호스트에 1000BASE-T(RJ45는 2.5GBASE-T) 계열로 보이게 하고, 실제 매체는 벤더 영역에 적는다. 이것은 호환을 위한 우회이고, "표준 차량용 SFP"가 아니다. Intrepid나 Technica의 BASE-T1 SFP도 각사 자체 방식이다.
+- **첫 검증 범위:** 정확히 아는 호스트 하나(D10 또는 LAN9692 EVB)로 한정한다. 범용 호환은 1차 목표가 아니다.
 
 > **주문 금지 (2026-10-06):** SFP 엣지 커넥터가 좌우 반전으로 그려져 있었다(SFF-8419 그림 7-2와 반대). 반전이 남아 있으면 VccT가 GND와 닿는다. T1은 고쳐서 다시 배선했다. **RJ45와 T1S는 아직 반전된 엣지 그대로라 다시 배치하고 배선해야 한다.** 끝나면 이 줄을 지운다.
 
 | 변형 | 바깥쪽 | PHY | 호스트 쪽 | 커넥터 | 상태 |
 |---|---|---|---|---|---|
-| [`t1`](hw/t1/) | **100/1000BASE-T1** | TI DP83TG720S (1000) / DP83TC812S (100): 핀 호환이라 PCB 하나로 둘 다 | SGMII 1.25 Gbaud | H-MTD (Rosenberger E6S20A) | **배선 완료, KiCad 9 검사 통과, 주문 파일 있음**. 실물은 아직 없음 |
-| [`rj45`](hw/rj45/) | 100M / 1G / **2.5GBASE-T** | Realtek RTL8221B-VB | 2500BASE-X 3.125 Gbaud 또는 SGMII | RJ45 (Kinghelm KH-RJ45-58, 차폐) | **6층 배선 완료, KiCad 9 검사 통과, 주문 파일 있음**. 실물은 아직 없음 |
-| [`t1s`](hw/t1s/) | 10BASE-T1S | FPGA (Gowin GW5AT-15, SGMII PCS 브리지) + Microchip LAN8670 | SGMII 10 Mb/s | 2핀 (JST PH) | **6층 배선 완료, KiCad 9 검사 통과, 주문 파일 있음**. 게이트웨어는 시뮬레이션만, 트랜시버 IP·합성 미완 |
+| [`t1`](hw/t1/) | **100/1000BASE-T1** | TI DP83TG720S (1000) / DP83TC812S (100): 핀 호환이라 PCB 하나로 둘 다 | SGMII 1.25 Gbaud | H-MTD (Rosenberger E6S20A) | **엣지 수정 후 재배선(2026-10-07): DRC 0 / 미연결 0, ERC 0, KiCad 9 PASS, 주문 파일 있음.** MDI 종단은 TI OA 구성(1 kΩ 0.75 W 2010). 시제품 2~3장 후보. 실물·실측은 아직 없음 |
+| [`rj45`](hw/rj45/) | 100M / 1G / **2.5GBASE-T** | Realtek RTL8221B-VB | 2500BASE-X 3.125 Gbaud 또는 SGMII | RJ45 (Kinghelm KH-RJ45-58, 차폐) | **주문 금지: 엣지가 반전된 채로 배선돼 있다.** PHY를 윗면으로 옮겨 다시 배치하고 배선한다 |
+| [`t1s`](hw/t1s/) | 10BASE-T1S | FPGA (Gowin GW5AT-15, SGMII PCS 브리지) + Microchip LAN8670 | SGMII 10 Mb/s | 2핀 (JST PH) | **주문 금지: 엣지가 반전된 채로 배선돼 있다.** 그와 별개로 Gowin 트랜시버 IP 생성, 합성, P&R, 타이밍, 비트스트림이 끝나기 전에는 PCB를 주문하지 않는다 |
 
 ![t1](hw/t1/fab/t1-top.png)
 

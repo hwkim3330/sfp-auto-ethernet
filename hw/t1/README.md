@@ -37,7 +37,7 @@ Schematic, PCB (4 layers, routed), fab outputs and firmware are all in place.
 
 ## Board
 
-- 63.5 × 11.8 mm (the H-MTD overhangs a further 3.5 mm). The tab is 9.2 mm wide.
+- 64.5 × 11.8 mm (the H-MTD overhangs a further 3.5 mm). The tab is 9.2 mm wide.
 - Edge connector is the INF-8074i pattern (`../fp/sfp.pretty/SFP_Module_Edge`).
 - 4 layers, **F / GND / GND / B** (JLC04101H-3313, 1.0 mm):
 
@@ -75,7 +75,7 @@ Schematic, PCB (4 layers, routed), fab outputs and firmware are all in place.
   - Ground holes Ø1.74 / pad 2.5, **7.0 × 7.5** apart. The research said 9.3, but that is the outer width of the hatched areas; I measured the drawing myself.
   - Signal holes Ø0.7, 2.0 apart, 1.87 behind the front row.
   - The hatched solder areas are GND pads, and the no-routing keep-outs are rule areas.
-  - Overhangs the board edge by 3.5 mm. The body sits entirely outside the cage, so the board is 63.5 mm long.
+  - Overhangs the board edge by 3.5 mm. The body sits entirely outside the cage, so the board is 64.5 mm long.
   - LCSC has no stock: hand-solder it.
 - **U1 pins 12/13 cross over on purpose.** They leave the package M-over-P and the CMC takes P-over-M. The DP83TG720 corrects MDI polarity itself, and that can't be disabled (datasheet 6.4.7.2), so pin 12 drives the line's M side.
 - **Buck is the TPS62822** (the TPS62821 is out of stock at LCSC; same package, pins and divider).

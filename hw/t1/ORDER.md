@@ -82,7 +82,20 @@ To get the gigabit run under 500k:
 ## Before you order
 
 - [ ] Check the pair geometry in JLC's impedance calculator: **100 Ω differential, 0.114 mm lines / 0.152 mm gap** on 3313, outer layers over In1/In2 GND. If JLC's number differs, change `DP_W` / `DP_PITCH` in `make_t1.py` and rebuild
-- [ ] H-MTD J2: print [`fab/t1-1to1.pdf`](fab/t1-1to1.pdf) at **100 %** (check the 63.5 mm board length on paper) and set a real E6S20A on it
+- [ ] H-MTD J2: print [`fab/t1-1to1.pdf`](fab/t1-1to1.pdf) at **100 %** (check the 64.5 mm board length on paper) and set a real E6S20A on it
 - [ ] Load switch: after assembly, scope the 3.3 V rise on the first board (expect ≈3.6 ms)
 - [ ] Rotations in JLC's assembly preview
 - [ ] Flash the firmware (`fw/`) through SWD on TP1–TP5 after assembly
+- [ ] On the Gerbers, before paying: top side seen from above with the card edge on the left, **pin 11 (ground, long pad) at the top and pin 20 at the bottom**, VccR (15) above VccT (16) (SFF-8419 Figure 7-2; the edge was mirrored until 2026-10)
+
+## First board: bring-up order
+
+Not in a host first.
+1. **Bench supply, current-limited** to about 300 mA, into VccT/VccR and ground (the fingers or TP1/TP5). Scope +3V3 (U4 output), the input current (shunt or probe), and PHY_RST_N together. Expect a ≈3.6 ms rise and an inrush in the tens of mA, with no step at hot-plug.
+2. Flash the firmware over SWD and read it back over I²C from a USB–I²C adapter:
+   - A0h at 0x50, then A2h at 0x51;
+   - the PHY bridge at 0x56, then PHYIDR1/2 over it (0x2000 / 0xA28x for the DP83TG720, 0xA27x for the DP83TC812).
+3. Then one known host only: the D10 (`docs/D10.md`) or the LAN9692 EVB. Do not count on any SFP cage running SGMII; some are 1000BASE-X only. Check in this order:
+   - SGMII lock;
+   - the BASE-T1 link against a known partner (a TI EVM, or a second module);
+   - traffic.

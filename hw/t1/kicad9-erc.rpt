@@ -1,4 +1,4 @@
-ERC report (2026-10-06T09:01:45+0000, Encoding UTF8)
+ERC report (2026-10-07T02:23:30+0000, Encoding UTF8)
 Report includes: Errors, Warnings, Exclusions
 
 ***** Sheet /
@@ -55,7 +55,7 @@ Report includes: Errors, Warnings, Exclusions
     @(177.80 mm, 135.89 mm): Symbol #PWR017 [GND]
 [lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
     ; warning
-    @(222.25 mm, 30.48 mm): Symbol #PWR072 [GND]
+    @(222.25 mm, 30.48 mm): Symbol #PWR070 [GND]
 [lib_symbol_mismatch]: Symbol '+3V3' doesn't match copy in library 'power'
     ; warning
     @(160.02 mm, 176.53 mm): Symbol #PWR049 [+3V3]
@@ -136,7 +136,7 @@ Report includes: Errors, Warnings, Exclusions
     @(176.53 mm, 278.13 mm): Symbol #PWR027 [GND]
 [lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
     ; warning
-    @(320.04 mm, 113.03 mm): Symbol #PWR063 [GND]
+    @(320.04 mm, 113.03 mm): Symbol #PWR061 [GND]
 [lib_symbol_mismatch]: Symbol '+3V3' doesn't match copy in library 'power'
     ; warning
     @(176.53 mm, 290.83 mm): Symbol #PWR044 [+3V3]
@@ -223,12 +223,6 @@ Report includes: Errors, Warnings, Exclusions
     @(336.55 mm, 300.99 mm): Symbol #PWR054 [GND]
 [lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
     ; warning
-    @(320.04 mm, 318.77 mm): Symbol #PWR061 [GND]
-[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
-    ; warning
-    @(342.90 mm, 318.77 mm): Symbol #PWR062 [GND]
-[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
-    ; warning
     @(359.41 mm, 300.99 mm): Symbol #PWR055 [GND]
 
- ** ERC messages: 76  Errors 0  Warnings 76
+ ** ERC messages: 74  Errors 0  Warnings 74

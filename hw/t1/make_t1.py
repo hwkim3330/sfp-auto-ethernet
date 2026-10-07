@@ -32,6 +32,7 @@ sys.path.insert(0, os.path.dirname(HERE))
 import sfpgen                            # noqa: E402
 from sfpgen import (C0201, C0402, C0603, R0201, R0402, R0603, FB0603, LED0402,  # noqa: E402,F401
                     TP)
+R2010 = 'Resistor_SMD:R_2010_5025Metric'
 
 NAME = 't1'
 TITLE = 'T1 SFP'
@@ -191,23 +192,19 @@ part('C34', 'Device:C_Small', '100nF 100V', C0402, {1: 'TRD_M', 2: 'DCB_N'}, (33
 # class footprint, windings 1-4 and 2-3; at 0 degrees 1/2 face the caps, 4/3 the connector
 part('L2', 'Device:L_Coupled_1423', 'DLW32MH101XT2', 'sfp:L_CommonMode_3225',
      {1: 'DCB_P', 4: 'MDI_P', 2: 'DCB_N', 3: 'MDI_N'}, (37.0, 1.25), mpn='DLW32MH101XT2')
-# CM termination right after the CMC, where its pins keep the lines 1.1 mm
-# apart: a tap's 0402 pad (0.62 tall) cannot sit on one line of a coupled
-# pair without reaching the other. 1k from each line to a node, the node to
-# ground through 4.7 nF || 100k (underneath). ESD (unfitted) likewise.
-# TI's reference uses 0.75 W 2010 here; 2010 does not fit beside the CMC, so
-# the 200 mW 0402 (anti-surge Vishay HP) is the most this board gives - see
-# docs/REFERENCES.md
-part('R6', 'Device:R_Small', '1k 1% 0.2W', R0402, {1: 'MDI_P', 2: 'MDI_CT'}, (39.6, 2.28), rot=90, mpn='CRCW04021K00FKEDHP')
-part('R7', 'Device:R_Small', '1k 1% 0.2W', R0402, {1: 'MDI_N', 2: 'MDI_CT'}, (39.6, 0.22), rot=270, mpn='CRCW04021K00FKEDHP')
-part('C35', 'Device:C_Small', '4.7nF', C0402, {1: 'MDI_CT', 2: 'GND'}, (40.6, 1.25), side='B', rot=90)
-part('R8', 'Device:R_Small', '100k', R0402, {1: 'MDI_CT', 2: 'GND'}, (41.6, 1.25), side='B', rot=90)
-part('D2', 'Device:D_TVS', 'ESD (DNP)', 'Diode_SMD:D_0402_1005Metric',
-     {1: 'MDI_P', 2: 'GND'}, (40.6, 2.28), rot=90, dnp=True)
-part('D3', 'Device:D_TVS', 'ESD (DNP)', 'Diode_SMD:D_0402_1005Metric',
-     {1: 'MDI_N', 2: 'GND'}, (40.9, 0.22), rot=270, dnp=True)
+# CM termination, SNLA371B's OPEN Alliance configuration: 1 k 1 % 0.75 W 2010
+# from each line to a node, the node to ground through 4.7 nF || 100 k
+# (underneath). The 2010s lie along the board either side of the pair, between
+# the CMC and the H-MTD, each tapped off its line by a short stub; the H-MTD
+# moved 1 mm back to make the room (until 2026-10 these were 0402s, 62.5 mW
+# then 0.2 W, and two unfitted 0402 ESD footprints sat here - not in TI's
+# configuration, dropped).
+part('R6', 'Device:R_Small', '1k 1% 0.75W', R2010, {1: 'MDI_P', 2: 'MDI_CT'}, (42.35, 3.6), mpn='RC2010FK-071KL')
+part('R7', 'Device:R_Small', '1k 1% 0.75W', R2010, {1: 'MDI_N', 2: 'MDI_CT'}, (42.35, -2.6), mpn='RC2010FK-071KL')
+part('C35', 'Device:C_Small', '4.7nF', C0402, {1: 'MDI_CT', 2: 'GND'}, (45.7, 0.5), side='B', rot=90)
+part('R8', 'Device:R_Small', '100k', R0402, {1: 'MDI_CT', 2: 'GND'}, (46.7, 0.5), side='B', rot=90)
 part('J2', 'sfp:HMTD_1P', 'Rosenberger E6S20A-40MT5-Z (H-MTD, coding Z)', 'sfp:Rosenberger_HMTD_E6S20A_1P_RA',
-     {1: 'MDI_P', 2: 'MDI_N', 3: 'GND'}, (54.0, 0.0), mpn='E6S20A-40MT5-Z')   # = HMTD_AT
+     {1: 'MDI_P', 2: 'MDI_N', 3: 'GND'}, (55.0, 0.0), mpn='E6S20A-40MT5-Z')   # = HMTD_AT
 # polarity of pins 1/2 is unverified - irrelevant: the PHY corrects MDI polarity itself (6.4.7.2)
 
 # LCSC part numbers (JLC assembly). Checked against the LCSC / JLC parts API
@@ -216,7 +213,7 @@ LCSC_BY_MPN = {
     'DP83TG720SWRHARQ1': 'C2921292',   # only 3 in stock - see README (TC812 C3225813 has 18)
     'STM32G031F6P6': 'C529333', 'TPS62822DLCR': 'C473385', 'DFE201610E-R47M': 'C269773',
     'DLW32MH101XT2': 'C2935101', 'BLM18KG601SH1': 'C710379', 'BLM18HE102SN1': 'C85828',
-    'TPS22918DBVR': 'C131941', 'GRM155R62A104KE14D': 'C162178', 'CRCW04021K00FKEDHP': 'C313354',
+    'TPS22918DBVR': 'C131941', 'GRM155R62A104KE14D': 'C162178', 'RC2010FK-071KL': 'C723477',
 }
 LCSC_BY_VALUE = {   # (value, footprint) -> C-number
     ('100nF', C0201): 'C76928', ('10nF', C0201): 'C285010', ('12pF', C0201): 'C50391',
@@ -236,8 +233,8 @@ def lcsc_for(p):
     return LCSC_BY_MPN.get(p['mpn']) or LCSC_BY_VALUE.get((p['value'], p['fp']), '')
 
 
-LENGTH = 63.5      # H-MTD front ground row 9.5 from the edge -> 3.5 mm overhang;
-                   # its body then starts at 45.1, past the cage front (44.3)
+LENGTH = 64.5      # H-MTD front ground row 9.5 from the edge -> 3.5 mm overhang;
+                   # its body then starts at 46.1, past the cage front (44.3)
 
 
 
@@ -283,7 +280,7 @@ CLASS_LAYERS = {'SGMII': ['F.Cu', 'B.Cu'], 'MDI': ['F.Cu', 'B.Cu']}
 # board, 1.65 under it); datasheet maxima. J2 (H-MTD) sits past the cage front
 # DP83TG720 datasheet 8.5: no copper under the CMC on the top layer and at
 # least the one under it
-NO_POUR = [(35.0, -0.3, 39.0, 2.8, ('F', 'In1'))]
+NO_POUR = [(34.85, -0.35, 39.15, 2.85, ('F', 'In1'))]
 
 HEIGHTS = {'U1': 0.9, 'U2': 1.2, 'U3': 1.0, 'U4': 1.45, 'L1': 1.0, 'L2': 2.5, 'Y1': 0.55,
            'C27': 0.95, 'C28': 0.95, 'C37': 0.95, 'FB5': 0.95}
@@ -306,7 +303,7 @@ DP_W, DP_PITCH = 0.114, 0.266                  # coupled pair: 0.114 lines, 0.15
 PAIRS = [('TD_P', 'TD_N'), ('SG_TX_P', 'SG_TX_N'), ('RD_P', 'RD_N'), ('SG_RX_P', 'SG_RX_N'),
          ('TRD_P', 'TRD_M'), ('DCB_P', 'DCB_N'), ('MDI_P', 'MDI_N')]
 
-HMTD_AT = (54.0, 0.0)
+HMTD_AT = (55.0, 0.0)
 # In2 is a second GND plane: every pair, on F or B, references GND (design review)
 IN2_GND = True
 # ...which also takes the MCU's slow lines (two routing layers left six of them
@@ -328,7 +325,7 @@ def _pair(p_net, n_net, layer, p_head, n_head, centre, p_tail, n_tail):
 # down under U1's bottom row and up into pins 32 (TX_P) / 33 (TX_M). P (C3's
 # line) is the upper one going east and the west one going north.
 PREROUTES = _pair('SG_TX_P', 'SG_TX_N', 'F', [(5.52, -2.2), (5.9, -2.2)], [(5.52, -3.0), (5.9, -3.0)],
-                  [(6.4, -2.6), (13.0, -2.6), (14.6, -4.2), (19.35, -4.2), (19.75, -3.8), (19.75, -3.6)],
+                  [(6.4, -2.6), (13.0, -2.6), (14.7, -4.3), (19.35, -4.3), (19.75, -3.9), (19.75, -3.6)],
                   [(19.5, -3.45), (19.5, -2.838)], [(20.0, -3.45), (20.0, -2.838)])
 # SGMII RX (PHY -> host), on top: from the caps east above the centreline,
 # diagonally down to U1's west side and into pins 23 (RX_M, y 0) / 24 (RX_P,
@@ -345,16 +342,21 @@ PREROUTES += _pair('TRD_P', 'TRD_M', 'F', [(20.0, 2.838), (20.0, 3.4)], [(20.5, 
                    [(32.95, 2.3), (33.37, 2.3)], [(32.95, 1.35), (33.37, 1.35)])
 PREROUTES += [('DCB_P', 'F', [(34.33, 2.3), (35.2, 1.8), (35.8, 1.8)], DP_W),
               ('DCB_N', 'F', [(34.33, 1.35), (35.2, 0.7), (35.8, 0.7)], DP_W)]
-PREROUTES += _pair('MDI_P', 'MDI_N', 'F', [(38.2, 1.8), (41.0, 1.8)], [(38.2, 0.7), (41.0, 0.7)],
-                   [(41.4, 1.25), (41.8, 1.25), (43.05, 0.0), (49.6, 0.0)],
-                   [(50.467, 1.0), (52.13, 1.0)], [(50.467, -1.0), (52.13, -1.0)])
-# termination centre node: R6/R7's far ends down to a trace underneath, where
-# the 4.7 nF and 100k sit
-PREROUTES += [('MDI_CT', 'F', [(39.6, 2.76), (39.6, 3.55)]),
-              ('MDI_CT', 'F', [(39.6, -0.26), (39.6, -1.05)]),
-              ('MDI_CT', 'B', [(39.6, 3.55), (39.6, -1.05)]),
-              ('MDI_CT', 'B', [(39.6, 1.73), (41.6, 1.73)])]
-PREVIAS = [('MDI_CT', (39.6, 3.55)), ('MDI_CT', (39.6, -1.05))]
+PREROUTES += _pair('MDI_P', 'MDI_N', 'F', [(38.2, 1.8), (40.04, 1.8), (41.0, 1.8)],
+                   [(38.2, 0.7), (40.04, 0.7), (41.0, 0.7)],
+                   [(41.4, 1.25), (41.8, 1.25), (43.05, 0.0), (50.6, 0.0)],
+                   [(51.467, 1.0), (53.13, 1.0)], [(51.467, -1.0), (53.13, -1.0)])
+# the termination taps: a stub from a vertex of each line (KiCad does not take
+# a track end in mid-segment as a connection) into its 2010's near pad
+PREROUTES += [('MDI_P', 'F', [(40.04, 1.8), (40.04, 2.6)], 0.2),
+              ('MDI_N', 'F', [(40.04, 0.7), (40.04, -1.6)], 0.2)]
+# the centre node: both 2010s' far pads to a via each, joined underneath, where
+# the 4.7 nF and 100 k sit
+PREROUTES += [('MDI_CT', 'F', [(44.66, 2.6), (44.66, 1.85)], 0.2),
+              ('MDI_CT', 'F', [(44.66, -1.6), (44.66, -0.85)], 0.2),
+              ('MDI_CT', 'B', [(44.66, 1.85), (44.66, -0.85)], 0.2),
+              ('MDI_CT', 'B', [(44.66, 0.98), (45.7, 0.98)], 0.2)]
+PREVIAS = [('MDI_CT', (44.66, 1.85)), ('MDI_CT', (44.66, -0.85))]
 # U3's EN (pin 1) to VIN (pin 7): diagonal across the package with the
 # no-connect PG (pin 8) between; the router will not go round it, so under it
 _bx, _by = BUCK
@@ -377,6 +379,13 @@ PREVIAS += [('GND', (11.8, 3.75))]
 # the pair's tail to a via for its decaps underneath
 PREROUTES += [('VDDIO', 'F', [(20.5, -2.838), (20.5, -3.95)])]
 PREVIAS += [('VDDIO', (20.5, -3.95))]   # C21 underneath moved west for it; 35/36 still go down past it
+# LED0 (pin 35) likewise, to a via below VDDIO's
+PREROUTES += [('LED0', 'F', [(21.0, -2.838), (21.0, -4.6)])]
+PREVIAS += [('LED0', (21.0, -4.6))]
+# the bottom-row decaps' ground (C11/C12/C21) sits in a pour pocket under U1
+# with no via: one between U1's west corner and the TX pair, which runs at
+# -4.3 so the via fits between them on top
+PREVIAS += [('GND', (15.4, -3.67))]
 # MDC (U1 pin 1) straight to a via for the MCU underneath
 PREROUTES += [('MDC', 'F', [(22.338, -2.0), (22.95, -2.0), (23.4, -2.45), (23.4, -2.95)])]
 PREVIAS += [('MDC', (23.4, -2.95))]

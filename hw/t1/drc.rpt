@@ -1,10 +1,7 @@
 ** Drc report for /home/kim/sfp-auto-ethernet/hw/t1/.t1_placed.kicad_pcb **
-** Created on 2026-10-06 18:00:29 **
+** Created on 2026-10-07 11:22:28 **
 
-** Found 1 DRC violations **
-[lib_footprint_mismatch]: Footprint 'SFP_Module_Edge' does not match copy in library 'sfp'.
-    Local override; Severity: warning
-    @(100.0000 mm, 100.0000 mm): Footprint J1
+** Found 0 DRC violations **
 
 ** Found 0 unconnected pads **
 

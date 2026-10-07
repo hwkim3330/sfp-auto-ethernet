@@ -28,12 +28,12 @@ Skew from the routed lengths (`lengths.txt`) at the solver's delay for each lane
 | Pair | Interface | Geometry (mm) | Rate | UI | Length P / N | Skew | % of UI | Vias | Loss at Nyquist | |
 |---|---|---|---:|---:|---:|---:|---:|---:|---:|---|
 | TD_P / TD_N | SGMII, host to module | 2 × line 0.157 (Z0 50.7) | 1250 MBd | 800 ps | 2.33 / 2.33 mm | 0.0 ps | 0.0% | 0/0 | 0.02 dB | ✓ |
-| SG_TX_P / SG_TX_N | SGMII | pair 0.114 / 0.152 | 1250 MBd | 800 ps | 21.58 / 22.02 mm | 2.5 ps | 0.3% | 0/0 | 0.19 dB | ✓ |
+| SG_TX_P / SG_TX_N | SGMII | pair 0.114 / 0.152 | 1250 MBd | 800 ps | 16.05 / 16.49 mm | 2.5 ps | 0.3% | 0/0 | 0.14 dB | ✓ |
 | RD_P / RD_N | SGMII, module to host | 2 × line 0.157 (Z0 50.7) | 1250 MBd | 800 ps | 2.33 / 2.33 mm | 0.0 ps | 0.0% | 0/0 | 0.02 dB | ✓ |
-| SG_RX_P / SG_RX_N | SGMII | pair 0.114 / 0.152 | 1250 MBd | 800 ps | 12.25 / 13.32 mm | 6.2 ps | 0.8% | 2/2 | 0.11 dB | ✓ |
-| TRD_P / TRD_M | 1000BASE-T1 MDI (PAM3) | pair 0.114 / 0.152 | 750 MBd | 1333 ps | 16.12 / 15.68 mm | 2.5 ps | 0.2% | 0/0 | 0.10 dB | ✓ |
-| DCB_P / DCB_N | 1000BASE-T1 MDI (PAM3) | pair 0.114 / 0.152 | 750 MBd | 1333 ps | 1.48 / 1.57 mm | 0.5 ps | 0.0% | 0/0 | 0.01 dB | ✓ |
-| MDI_P / MDI_N | 1000BASE-T1 MDI (PAM3) | pair 0.114 / 0.152 | 750 MBd | 1333 ps | 15.02 / 16.03 mm | 5.8 ps | 0.4% | 0/0 | 0.10 dB | ✓ |
+| SG_RX_P / SG_RX_N | SGMII | pair 0.114 / 0.152 | 1250 MBd | 800 ps | 12.24 / 12.24 mm | 0.0 ps | 0.0% | 0/0 | 0.10 dB | ✓ |
+| TRD_P / TRD_M | 1000BASE-T1 MDI (PAM3) | pair 0.114 / 0.152 | 750 MBd | 1333 ps | 16.01 / 15.57 mm | 2.5 ps | 0.2% | 0/0 | 0.10 dB | ✓ |
+| DCB_P / DCB_N | 1000BASE-T1 MDI (PAM3) | pair 0.114 / 0.152 | 750 MBd | 1333 ps | 1.66 / 1.75 mm | 0.5 ps | 0.0% | 0/0 | 0.01 dB | ✓ |
+| MDI_P / MDI_N | 1000BASE-T1 MDI (PAM3) | pair 0.114 / 0.152 | 750 MBd | 1333 ps | 18.25 / 20.50 mm | 13.0 ps | 1.0% | 0/0 | 0.13 dB | ✓ |
 
 ### RJ45
 
@@ -69,13 +69,13 @@ The pair-to-pair skew a BASE-T or BASE-T1 PHY tolerates is set by the cable (ten
 
 ## 3. Edge fingers (INF-8074i Figures 2 and 3)
 
-Measured from each board's J1 footprint: pad width 0.6 ± 0.05 mm, 0.8 mm pitch, pin 20 at +3.8 / pin 11 at −3.4 (top), pin 1 at +3.4 / pin 10 at −3.8 (bottom), pads starting 0.5 (ground), 0.9 (power), 1.3 mm (signal) from the edge, running to at least 3.5 mm; the tab 9.2 ± 0.1 mm wide.
+Measured from each board's J1 footprint: pad width 0.6 ± 0.05 mm, 0.8 mm pitch, seen from the top with the card edge on the left (SFF-8419 Figure 7-2), pin 11 at +3.4 (up the page) / pin 20 at −3.8 (top), pin 10 at +3.8 / pin 1 at −3.4 (bottom), pads starting 0.5 (ground), 0.9 (power), 1.3 mm (signal) from the edge, running to at least 3.5 mm; the tab 9.2 ± 0.1 mm wide.
 
 | Board | Result | Tab width |
 |---|---|---:|
 | T1 | ✓ all 20 pads | 9.20 mm |
-| RJ45 | ✓ all 20 pads | 9.20 mm |
-| T1S | ✓ all 20 pads | 9.20 mm |
+| RJ45 | ✗ pin 20 at y 3.80, wants -3.8; pin 11 at y -3.40, wants 3.4; pin 1 at y 3.40, wants -3.4; pin 10 at y -3.80, wants 3.8 | 9.20 mm |
+| T1S | ✗ pin 20 at y 3.80, wants -3.8; pin 11 at y -3.40, wants 3.4; pin 1 at y 3.40, wants -3.4; pin 10 at y -3.80, wants 3.8 | 9.20 mm |
 
 Pin 6 (MOD_DEF0) is grounded in the module but mates as a signal, so it starts at 1.3 mm. Board thickness over the fingers is the stackup's 1.0 mm (MSA: 1.0 ± 0.1). JLC plates ENIG, not the MSA's 0.38 µm hard gold: fine for tens of insertions.
 
