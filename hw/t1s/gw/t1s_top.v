@@ -1,14 +1,15 @@
 // Top level of the T1S SFP's FPGA (Gowin GW5AT-LV15MG132): transceiver lane 0
 // <-> t1s_bridge <-> MII to the LAN8670. Pins: t1s.cst (from hw/t1s/make_t1s.py).
 //
-// Polarity: the board lays both SGMII pairs straight, which lands the host's
-// TD+ on the lane's RXM (hw/t1s/make_t1s.py, C3/C4). The RX words are
-// therefore inverted here (RX_INVERT); TX goes out as it comes. Inverting a
-// 10-bit code group bit by bit is exact for 8b/10b: the decoder sees what
-// the host sent.
+// Polarity: the board keeps both SGMII lanes P to P (hw/t1s/make_t1s.py, C3-C6:
+// host TD+ reaches RXP, TXP reaches host RD+), so nothing is inverted. Until
+// the SFP edge was corrected (2026-10) the fingers were drawn mirrored and RX
+// arrived inverted, which RX_INVERT undid. The parameters stay for a board
+// that needs them: inverting a 10-bit code group bit by bit is exact for
+// 8b/10b, the decoder sees what the host sent.
 `default_nettype none
 module t1s_top #(
-    parameter RX_INVERT = 1,
+    parameter RX_INVERT = 0,
     parameter TX_INVERT = 0,
     parameter integer LINK_TIMER = 200000       // 1.6 ms at 125 MHz (SGMII link timer)
 ) (

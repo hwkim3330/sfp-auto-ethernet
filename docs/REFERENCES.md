@@ -88,7 +88,7 @@ Our firmware is the 0x56 / mdio-i2c convention. None of the commercial T1 module
 | SSPI_CS_N (P1) | pull up if SSPI is unused, else the FPGA may select slave SPI after an MSPI load (UG720); pulled down during configuration | P1 is FPGA_LINK; **R26 4.7 kΩ pull-up at the MCU**, the MCU's own pull-down removed | **fixed** |
 | DONE, READY | open drain, 4.7 kΩ pull-ups | R4, R5 4.7 kΩ | ✓ |
 | RECONFIG_N | high until 1 ms after power is stable; pulses ≥ 25 ns | R3 4.7 kΩ; MCU pulses 1 ms | ✓ |
-| MODE[1:0] | 11 = MSPI; 4.7 kΩ pull-up / 1 kΩ pull-down | MODE1 4.7 kΩ up, MODE0 its internal pull-up | ⚠ an external MODE0 pull-up would be belt-and-braces |
+| MODE[1:0] | 11 = MSPI; 4.7 kΩ pull-up / 1 kΩ pull-down | **MODE0 and MODE1 both on R1, 4.7 kΩ up** (N2 has a via in its pad and joins N1 underneath) | **fixed** (MODE0 relied on its internal pull-up) |
 | Flash | ≥ 64 Mbit, 03h/0Bh read; MSPI retry (golden) image at 0x800000 by default | **GD25Q128E (128 Mbit, C2982923)**, same WSON-8 6 × 5 | **fixed**: a 64 Mbit part ends at 0x7FFFFF, so the default golden address fell off the end; now the main image sits at 0x000000 and the golden at 0x800000, each with 8 MiB |
 | REFCLK | 20–800 MHz, 40–60 % duty; 0.1 µF series near the FPGA (UG984 5.2); the dev board uses a 3.3 V LVDS oscillator the same way | 125 MHz LVDS, 100 nF series at the FPGA, A8/A7 | ✓ |
 | SerDes rails | VDDAQ0 / VDDTQ0 0.87–1.03 V, VDDHAQ0 1.8 V; low-noise LDOs, VDDTQ kept apart (UG984 Table 2-3); the dev board has separate LDOs | VDDAQ / VDDTQ each through its own ferrite from the 0.946 V buck (now 1 µH, see RJ45); VDDHAQ from an LDO | ⚠ beads, not LDOs, on the 0.95 V SerDes rails |
@@ -103,3 +103,6 @@ Our firmware is the 0x56 / mdio-i2c convention. None of the commercial T1 module
 | MDI traces | 50 Ω single-ended, spaced ≥ 3 w, differential C ≤ 15 pF | 0.2 mm (44.8 Ω), not coupled | ⚠ at 12.5 MBd over ~15 mm the capacitance matters, not the impedance; ~1–2 pF |
 | Crystal | 25 MHz ±100 ppm, CL 10–22 pF, ESR ≤ 100 Ω | ±30 ppm, CL 12 pF, ESR 100 Ω | ✓ |
 | Straps | MII + crystal = MODE 01, 10 kΩ each (no internal pulls) | 10 kΩ each | ✓ |
+| LAN8670 pins | DS60001573K table 3-1: pin 1 INH (open when unused), 9 GPIO0 (open when unused), 25 VDDAU, 32 WAKE_IN (to VSS when unused) | INH, GPIO0 open; WAKE_IN on GND; symbol names now as rev K (they were rev C's DNC/VSS) | **fixed** (names; the nets were already right) |
+| LAN8670 land | package C04-500: EP 3.4 nom (3.5 max), recommended centre pad 3.50, contacts 0.30 × 0.85 at 4.90 | KiCad VQFN-32 5 × 5 **EP 3.5 × 3.5** (contacts 0.25 × 0.8 at 4.90) | **fixed** (was EP 3.1) |
+| GW5AT MG132 land | UG983 figure 4-8: pad b = **0.25 mm**, 0.5 pitch | 0.25 mm pads; vias in them 0.25 / 0.15 | **fixed** (was 0.3 pads, 0.3 / 0.15 vias) |

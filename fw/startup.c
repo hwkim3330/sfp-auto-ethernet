@@ -28,5 +28,5 @@ void (*const vectors[16 + 32])(void) = {
     Default_Handler,            /* PendSV */
     SysTick_Handler,
     0, 0, 0, 0, 0, 0, 0,        /* IRQ 0-6 */
-    EXTI4_15_IRQHandler,        /* IRQ 7: TX_DISABLE (PA4, or PC14 on T1S) */
+    EXTI4_15_IRQHandler,        /* IRQ 7: TX_DISABLE (PA4, or PA6 on T1S) */
 };

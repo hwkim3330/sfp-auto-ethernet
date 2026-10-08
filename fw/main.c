@@ -29,9 +29,11 @@
  *   PA0 MDC   PA1 MDIO  (bit-banged; MDIO open drain, 2.2k to VDDIO on the board)
  *   (RJ45: PA0 MDIO, PA1 MDC, PA4 TX_FAULT, PA5 TX_DISABLE, PA6 RX_LOS)
  *   PA2 PHY_RST_N out   PA3 PHY_INT_N in
- *   PA4 TX_DISABLE in (pulled up on the board: high/open = disabled; PC14 on T1S)
+ *   PA4 TX_DISABLE in (pulled up on the board: high/open = disabled)
  *   PA5 RX_LOS out, open drain (high = no link)
- *   PA6 TX_FAULT out, open drain, held low (no fault; PC15 on T1S)
+ *   PA6 TX_FAULT out, open drain, held low (no fault)
+ *   (T1S: PB8 SCL, PA10 SDA (pin 17, PA12 remapped), PC15 RX_LOS,
+ *    PA4 TX_FAULT, PA6 TX_DISABLE - see hw/t1s/make_t1s.py)
  *
  * Register references: DP83TG720S-Q1 SNLS604G - BMSR (0x01) bit 2 link;
  * REGCR 0x0D / ADDAR 0x0E indirect access; PMA_PMD_CONTROL MMD1 0x0834
@@ -106,19 +108,27 @@ __attribute__((unused)) static void delay_ms(uint32_t n) { uint32_t t = ms; whil
 #define RX_LOS   5
 #define TX_FAULT 6
 #endif
-/* where TX_DISABLE and TX_FAULT are: PA4 / PA6, or on T1S PC14 / PC15
- * (pins 2/3, next to SDA: they share its route along the board's north edge) */
+/* where TX_DISABLE, TX_FAULT and RX_LOS are. On T1S the MCU's pins follow
+ * the SFP fingers' order along the board's two In2 buses: RX_LOS and SCL go
+ * along the north edge (PC15, pin 3; PB8, pin 1), SDA, TX_DISABLE and
+ * TX_FAULT along the south edge (PA10 on pin 17, PA6, PA4) */
 #if VARIANT_T1S
-#define TXDIS_PORT  GPIOC
-#define TXDIS_PIN   14
-#define TXF_PORT    GPIOC
-#define TXF_PIN     15
+#define TXDIS_PORT  GPIOA
+#define TXDIS_PIN   6
+#define TXF_PORT    GPIOA
+#define TXF_PIN     4
+#define RXLOS_PORT  GPIOC
+#define RXLOS_PIN   15
 #else
 #define TXDIS_PORT  GPIOA
 #define TXDIS_PIN   TX_DIS
 #define TXF_PORT    GPIOA
 #define TXF_PIN     TX_FAULT
+#define RXLOS_PORT  GPIOA
+#define RXLOS_PIN   RX_LOS
 #endif
+#define los_set() (RXLOS_PORT->BSRR = PIN(RXLOS_PIN))     /* released: loss of signal */
+#define los_clr() (RXLOS_PORT->BRR = PIN(RXLOS_PIN))
 #if VARIANT_T1S                /* hw/t1s/make_t1s.py MCU map */
 #define FPGA_LINK 7            /* PA7 (pin 14) in: SGMII up, from the FPGA */
 #define FPGA_DONE 11           /* PA11 (pin 16) in: configuration done (4.7k pull-up) */
@@ -645,8 +655,8 @@ int main(void)
     EXTI->RTSR1 |= PIN(TXDIS_PIN);
     EXTI->FTSR1 |= PIN(TXDIS_PIN);
     EXTI->IMR1 |= PIN(TXDIS_PIN);
-    pa_set(RX_LOS);
-    gpio_mode(GPIOA, RX_LOS, 1, 1, 0);           /* released = LOS (no link yet) */
+    los_set();
+    gpio_mode(RXLOS_PORT, RXLOS_PIN, 1, 1, 0);   /* released = LOS (no link yet) */
     TXF_PORT->BRR = PIN(TXF_PIN);
     gpio_mode(TXF_PORT, TXF_PIN, 1, 1, 0);       /* held low: no fault */
 #if VARIANT_T1S
@@ -655,10 +665,20 @@ int main(void)
     GPIOB->BSRR = PIN(FPGA_RECONF);
     gpio_mode(GPIOB, FPGA_RECONF, 1, 1, 0);      /* released */
 #endif
+#if VARIANT_T1S
+    /* PB8 SCL (pin 1, which PB7 shares: PB7 stays analog) and PA10 SDA (pin
+     * 17, PA12's pad remapped to PA10), both AF6 I2C1, open drain */
+    SYSCFG->CFGR1 |= SYSCFG_CFGR1_PA12_RMP;
+    gpio_mode(GPIOB, 8, 2, 1, 0);
+    GPIOB->AFR[1] = (GPIOB->AFR[1] & ~(0xFu << (4 * (8 - 8)))) | (6u << (4 * (8 - 8)));
+    gpio_mode(GPIOA, 10, 2, 1, 0);
+    GPIOA->AFR[1] = (GPIOA->AFR[1] & ~(0xFu << (4 * (10 - 8)))) | (6u << (4 * (10 - 8)));
+#else
     for (int p = 6; p <= 7; p++) {               /* PB6 SCL, PB7 SDA: AF6, open drain */
         gpio_mode(GPIOB, p, 2, 1, 0);
         GPIOB->AFR[0] = (GPIOB->AFR[0] & ~(0xFu << (4 * p))) | (6u << (4 * p));
     }
+#endif
     a0_init();
     i2c_init();
     NVIC_EnableIRQ(EXTI4_15_IRQn);               /* TX_DISABLE edges, from here on */
@@ -688,7 +708,7 @@ int main(void)
             reloads++;
         }
         phy_hold(txdis_high() || !done);
-        if (phy_held) { pa_set(RX_LOS); continue; }
+        if (phy_held) { los_set(); continue; }
         if (cfg_due) {                           /* released 70 ms ago? set the PHY up */
             if ((int32_t)(ms - cfg_due) < 0) continue;
             cfg_due = 0;
@@ -696,11 +716,11 @@ int main(void)
         }
         if (plca_changed()) plca_apply();
         if ((ms % 50u) < 5u) plca_watch();       /* every ~50 ms */
-        if (pa_get(FPGA_LINK)) pa_clr(RX_LOS); else pa_set(RX_LOS);
+        if (pa_get(FPGA_LINK)) los_clr(); else los_set();
         continue;
 #endif
         phy_hold(txdis_high());                  /* TX_DISABLE high/open: PHY in reset */
-        if (phy_held) { pa_set(RX_LOS); continue; }
+        if (phy_held) { los_set(); continue; }
         if (cfg_due) {                           /* released 70 ms ago? set the PHY up */
             if ((int32_t)(ms - cfg_due) < 0) continue;
             cfg_due = 0;
@@ -711,6 +731,6 @@ int main(void)
         if (pl2_wanted() != pl2_applied) rtl8221b_power_level(pl2_wanted());   /* the host wrote A2h 118 */
 #endif
         (void)mdio_read(PHYAD, 0x01);            /* BMSR link bit latches low: read twice */
-        if (mdio_read(PHYAD, 0x01) & 0x0004u) pa_clr(RX_LOS); else pa_set(RX_LOS);
+        if (mdio_read(PHYAD, 0x01) & 0x0004u) los_clr(); else los_set();
     }
 }

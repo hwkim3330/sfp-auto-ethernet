@@ -58,12 +58,13 @@ Schematic, PCB (4 layers, routed), fab outputs and firmware are all in place.
   | Pair | Layers | Vias P/N | Skew |
   |---|---|---|---|
   | SG_TX (SFP TD → PHY) | F | 0/0 | 0.44 mm |
-  | SG_RX (PHY → SFP RD) | F, B, F | 2/2, with GND vias beside | 1.08 mm |
+  | SG_RX (PHY → SFP RD) | F | 0/0 | 0.00 mm |
   | TRD (PHY → DC block) | F | 0/0 | 0.44 mm |
-  | MDI (CMC → H-MTD) | F | 0/0 | 0.00 mm |
+  | DCB (DC block → CMC) | F | 0/0 | 0.08 mm |
+  | MDI (CMC → H-MTD) | F | 0/0 | 2.25 mm |
 
-  1.08 mm is about 7 ps, against an 800 ps SGMII UI.
-- **SGMII polarity is inverted in the PHY, on purpose.** Laid straight, both lanes arrive swapped (P on the host's N). The firmware sets SGMII_CTRL_1 (MMD 0x1F, 0x0608) bits 7 and 8 (TX/RX polarity inversion), which exist on both the TG720 and the TC812 (`fw/main.c`, `phy_apply_config`). Without the MCU the link would not come up. **This is not verified on hardware.**
+  0.44 mm is about 3 ps, against an 800 ps SGMII UI.
+- **SGMII polarity: both lanes run straight, P to P** (since the SFP edge fix of 2026-10; before it the edge was mirrored and the firmware inverted both lanes in SGMII_CTRL_1 bits 7/8). The firmware now leaves those bits at their reset 0. **Not verified on hardware.**
 - **3.3 V inrush: TPS22918 load switch (U4).** The host's filtered 3.3 V → FB1/FB2 → VIN_RAW (1 µF) → U4 → +3V3 (10 µF). CT = 2.2 nF gives a ≈3.6 ms rise, so the 10 µF and the decaps load softly and the MSA's hot-plug limit holds by design. **Measure it on the first board.**
 - **Two BOMs**: `jlc/bom-tg720.csv` + `cpl-tg720.csv` (1000BASE-T1) and `jlc/bom-tc812.csv` + `cpl-tc812.csv` (100BASE-T1: U1 = C3225813, FB3 left off).
 - **H-MTD 1:1 print**: [fab/t1-1to1.pdf](fab/t1-1to1.pdf) (F.Cu + outline at 100 %). Print it without scaling and set the real connector on it before ordering.

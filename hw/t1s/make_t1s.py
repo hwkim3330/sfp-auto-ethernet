@@ -9,7 +9,8 @@ MAC in fabric (gw/), and MII to a LAN8670.
 
 Sources:
   Gowin GW5AT-15 (LCSC C54067362, MG132: 8 x 8 mm, 0.5 mm pitch, 14 x 14
-      grid with only the outer three rings populated)
+      grid with only the outer three rings populated; land 0.25 mm, UG983
+      figure 4-8)
       ball map: UG1224E.xlsx "Pin List MG132" -> gw5at15_mg132.csv (as is)
       rails: DS981 table 3-8; UG984 (schematic manual) 2.4 / table 2-3: rails
       at one voltage may share a regulator through a ferrite bead each
@@ -17,9 +18,12 @@ Sources:
       (UG984 5.2), the kit (DK_EDP_GW5ART-LV15MG132P) drives it from a 3225
       LVDS oscillator with no other termination
       configuration: UG720 - MSPI (MODE[1:0] = 11, internal pull-ups plus
-      4.7k), flash >= 64 Mbit (the retry image lives at 0x800000)
-  Microchip LAN8670 (C20901523, VQFN-32 5 x 5): DS60001573C pins table 3-1,
-      straps 3.5 (no internal resistors: 10k each), 25 MHz crystal 7.8,
+      4.7k: both balls on one 4.7k), flash >= 64 Mbit (the retry image lives
+      at 0x800000)
+  Microchip LAN8670 (C20901523, VQFN-32 5 x 5): DS60001573K pins table 3-1
+      (pin 1 INH and 9 GPIO0 open, 32 WAKE_IN to VSS when unused, 25 VDDAU),
+      exposed pad 3.4 nominal, land 3.5 (package C04-500), straps 3.5 (no
+      internal resistors: 10k each), 25 MHz crystal 7.8,
       MDI and BIN: AN1718 figure 1-3 (CMC, 2 x 100 nF, end-node termination)
   YXC OB2EL89CLIB112YLC-125M (C7425465): 125 MHz LVDS, 3225-6P; pins 1 OE,
       2 NC, 3 GND, 4 OUT+, 5 OUT-, 6 VDD; land 0.9 x 1.1 at 1.2 pitch, rows
@@ -34,9 +38,14 @@ the ring. Stack:  F signals | In1 GND | In2 signals | In3 +3V3 | In4 GND, with
 the 0.95 V core as an island under the FPGA and the buck | B signals. The SGMII
 pairs run on F over In1 and on B over In4's GND.
 
-SerDes polarity: both lanes are laid straight, which leaves RX inverted
-(TD+ lands on RXM) and TX as it comes; the gateware inverts the 10-bit words
-(gw/t1s_top.v, RX_INVERT), so no pair crosses itself.
+SFP edge: SFF-8419 figure 7-2 (pin 11 at the top seen from above, card edge
+on the left), so TD (pins 18/19) arrives at the bottom of the tab and RD
+(12/13) leaves at the top, while all four of the FPGA's lane balls sit at its
+top-left corner. RX therefore runs on top from the bottom fingers round the
+west side of the ball field into A1/A2 from above; TX comes out of B3/C3
+underneath to vias next to its caps. Both lanes keep their polarity, P to P:
+RX by the way it turns, TX by M passing under P's via and taking the outer
+one (gw/t1s_top.v inverts nothing).
 """
 import csv
 import os
@@ -53,6 +62,9 @@ TITLE = 'T1S SFP'
 SCH_TITLE = 'SFP 10BASE-T1S - GW5AT-15 + LAN8670'
 SHEET = '5e1f3a92-7b6c-4d8e-9f01-2a3b4c5d6e71'
 LAYERS = 6
+U4_AT = (8.7, -3.0)             # underneath, between SDA's and TX_DISABLE's In2 runs
+C36_NETS, C36_AT = {1: 'SS_CT', 2: 'GND'}, (10.0, -3.9)   # on top, below the JTAG pads
+C37_AT = (8.0, -4.1)            # on top, below the RX pair (0402: an 0603 would reach past the tab's width)
 TITLE_AT = (16.0, -3.5)          # under the ball field: the only 5 mm of the bottom with no pad or via
 
 P = []
@@ -73,22 +85,26 @@ EDGE = {1: 'GND', 2: 'TX_FAULT', 3: 'TX_DISABLE', 4: 'SDA', 5: 'SCL', 6: 'GND',
         14: 'GND', 15: 'VCCR', 16: 'VCCT', 17: 'GND', 18: 'TD_P', 19: 'TD_N', 20: 'GND'}
 part('J1', 'sfp:SFP_EDGE', 'SFP edge (INF-8074i)', 'sfp:SFP_Module_Edge', EDGE, (0, 0))
 
-# host rails, beads, soft-start load switch (as the T1 board)
-part('FB1', 'Device:FerriteBead_Small', 'BLM18KG601SH1', FB0603, {1: 'VCCT', 2: 'VIN_RAW'}, (7.6, 1.0), mpn='BLM18KG601SH1')   # VCCT straight in on top, under the SGMII RX pair
-part('FB2', 'Device:FerriteBead_Small', 'BLM18KG601SH1', FB0603, {1: 'VCCR', 2: 'VIN_RAW'}, (8.9, -4.9), mpn='BLM18KG601SH1')
-part('C1', 'Device:C_Small', '1uF', C0402, {1: 'VIN_RAW', 2: 'GND'}, (9.0, -4.4), side='B', rot=90)
-part('C2', 'Device:C_Small', '100nF', C0402, {1: 'VIN_RAW', 2: 'GND'}, (10.3, -4.4), side='B', rot=90)
+# host rails, beads, soft-start load switch (as the T1 board). The beads sit
+# on top between the fingers' VCCR (+0.2) and VCCT (-0.6) and the RX pair's
+# run; VIN_RAW drops through a via to the load switch underneath, which sits
+# between the slow lines' In2 runs (below)
+part('FB1', 'Device:FerriteBead_Small', 'BLM18KG601SH1', FB0603, {1: 'VCCT', 2: 'VIN_RAW'}, (7.4, -0.75), mpn='BLM18KG601SH1')
+part('FB2', 'Device:FerriteBead_Small', 'BLM18KG601SH1', FB0603, {1: 'VCCR', 2: 'VIN_RAW'}, (7.4, 0.9), mpn='BLM18KG601SH1')
+part('C1', 'Device:C_Small', '1uF', C0402, {1: 'VIN_RAW', 2: 'GND'}, (7.3, 1.1), side='B')
+part('C2', 'Device:C_Small', '100nF', C0402, {1: 'VIN_RAW', 2: 'GND'}, (9.2, 1.1), side='B')
 part('U4', 'sfp:TPS22918', 'TPS22918DBVR', 'Package_TO_SOT_SMD:SOT-23-6',
-     {1: 'VIN_RAW', 2: 'GND', 3: 'VIN_RAW', 4: 'SS_CT', 5: '+3V3', 6: '+3V3'}, (7.0, 2.6), side='B',
-     mpn='TPS22918DBVR')      # inside the tab's 9.2 mm, above the TX pair's path underneath
-part('C36', 'Device:C_Small', '2.2nF', C0402, {1: 'SS_CT', 2: 'GND'}, (9.5, 4.85), side='B')   # past U4, clear of the corridor under it
-part('C37', 'Device:C_Small', '10uF', C0603, {1: '+3V3', 2: 'GND'}, (6.2, -0.8), side='B')
+     {1: 'VIN_RAW', 2: 'GND', 3: 'VIN_RAW', 4: 'SS_CT', 5: '+3V3', 6: '+3V3'}, U4_AT, side='B', rot=90,
+     mpn='TPS22918DBVR')
+part('C36', 'Device:C_Small', '2.2nF', C0402, C36_NETS, C36_AT)
+part('C37', 'Device:C_Small', '10uF', C0402, {1: '+3V3', 2: 'GND'}, C37_AT, rot=180)
 
-# SGMII AC coupling in the module (MSA): TD -> FPGA RX, FPGA TX -> RD
-part('C3', 'Device:C_Small', '100nF', C0201, {1: 'TD_P', 2: 'SRX_M'}, (5.2, 2.2))   # straight: TD+ reaches RXM (inverted in gateware)
-part('C4', 'Device:C_Small', '100nF', C0201, {1: 'TD_N', 2: 'SRX_P'}, (5.2, 3.0))
-part('C5', 'Device:C_Small', '100nF', C0201, {1: 'RD_P', 2: 'STX_P'}, (5.2, -1.8))
-part('C6', 'Device:C_Small', '100nF', C0201, {1: 'RD_N', 2: 'STX_M'}, (5.2, -2.6))
+# SGMII AC coupling in the module (MSA): TD -> FPGA RX, FPGA TX -> RD, each
+# cap straight behind its finger, P to P
+part('C3', 'Device:C_Small', '100nF', C0201, {1: 'TD_P', 2: 'SRX_P'}, (5.2, -2.2))
+part('C4', 'Device:C_Small', '100nF', C0201, {1: 'TD_N', 2: 'SRX_M'}, (5.2, -3.0))
+part('C5', 'Device:C_Small', '100nF', C0201, {1: 'RD_P', 2: 'STX_P'}, (5.2, 1.8))
+part('C6', 'Device:C_Small', '100nF', C0201, {1: 'RD_N', 2: 'STX_M'}, (5.2, 2.6))
 
 # ---------------------------------------------------------------- FPGA
 U1_AT = (15.25, 0.0)
@@ -135,7 +151,9 @@ FPGA.update({
     'P14': 'CRS', 'P13': 'RXD0', 'P12': 'RXCLK', 'P11': 'RXD1', 'P10': 'RXDV', 'P9': 'RXD2', 'P8': 'RXD3',
     # MSPI configuration flash (bank 2)
     'L14': 'F_CLK', 'L13': 'F_CS_N', 'M13': 'F_MOSI', 'K14': 'F_MISO',
-    'N1': 'MODE1', 'M3': 'FPGA_RECONFIG_N',          # MODE0 (N2): its internal pull-up (MSPI = 11)
+    # MODE[1:0] = 11 (MSPI): both balls on one 4.7k pull-up (UG720 asks 4.7k;
+    # the internal pull-ups alone were the old design's bet on MODE0)
+    'N1': 'MODE', 'N2': 'MODE', 'M3': 'FPGA_RECONFIG_N',
     'L3': 'FPGA_DONE', 'M12': 'FPGA_READY',
     # CLKHOLD_N (K3) holds the flash's clock while it is low, and the ball is
     # pulled down during configuration (UG720, the pinout's term_during_config):
@@ -175,9 +193,9 @@ part('U2', 'sfp:GD25Q128_WSON8', 'GD25Q128EWIGR', 'Package_SON:WSON-8-1EP_6x5mm_
      (23.6, -2.6), side='B', rot=180, mpn='GD25Q128EWIGR')      # WP#/HOLD# tied high: x1 SPI only
 # straps and config pull-ups (UG984 3.5: 4.7k)
 # (R5 READY and R6 flash CS sit in the decap grid under the FPGA, below)
-# MODE1 beside its ball, TCK's pull-down beside its escape; DONE's and
+# MODE beside N1, TCK's pull-down beside its escape; DONE's and
 # RECONFIG_N's pull-ups sit at the MCU pins, the other end of those lines
-part('R1', 'Device:R_Small', '4.7k', R0201, {1: '+3V3', 2: 'MODE1'}, (10.7, -2.7), side='B')
+part('R1', 'Device:R_Small', '4.7k', R0201, {1: '+3V3', 2: 'MODE'}, (11.1, -3.55), side='B', rot=270)
 part('R7', 'Device:R_Small', '4.7k', R0201, {1: 'JTAG_TCK', 2: 'GND'}, (10.7, 0.25), side='B', rot=180)
 
 # ---------------------------------------------------------------- FPGA supplies
@@ -239,7 +257,7 @@ PHY = {1: None, 2: 'COL', 3: 'TXD3', 4: 'TXD2', 5: 'TXD1', 6: 'TXD0', 7: 'TXEN',
        17: 'RXCLK', 18: '+3V3', 19: 'RXD1', 20: 'RXDV', 21: 'RXER', 22: 'PHY_INT_N', 23: 'RXD2',
        24: 'RXD3', 25: '+3V3', 26: 'RBIAS', 27: 'XTI', 28: 'XTO', 29: '+3V3', 30: 'TRXN', 31: 'TRXP',
        32: 'GND', 33: 'GND'}
-part('U5', 'sfp:LAN8670', 'LAN8670C2-E/LMX', 'Package_DFN_QFN:VQFN-32-1EP_5x5mm_P0.5mm_EP3.1x3.1mm', PHY, PHY_AT,
+part('U5', 'sfp:LAN8670', 'LAN8670C2-E/LMX', 'Package_DFN_QFN:VQFN-32-1EP_5x5mm_P0.5mm_EP3.5x3.5mm', PHY, PHY_AT,
      mpn='LAN8670C2-E/LMX')
 # pins 30/31 carry the pair swapped: TRXP (31) is the outer lane to the upper
 # cap and TRXN (30) the inner to the lower, so the two never cross. 10BASE-T1S
@@ -279,23 +297,25 @@ part('J2', 'Connector_Generic:Conn_01x02', 'S2B-PH-K-S', 'Connector_JST:JST_PH_S
      {1: 'MDI_P', 2: 'MDI_N'}, (51.6, 1.0), rot=90, mpn='S2B-PH-K-S(LF)(SN)')
 
 # ---------------------------------------------------------------- MCU
-# the pin order follows the In2 buses (below): SDA, TX_DISABLE and TX_FAULT
-# come along the north edge to pins 1-3 (PC14 / PC15 for the two control
-# lines, not PA4 / PA6 as on the other boards; fw: VARIANT_T1S), the rest
-# along the south edge to the bottom row
-MCU = {1: 'SDA', 2: 'TX_DISABLE', 3: 'TX_FAULT', 4: '+3V3', 5: 'GND', 6: 'NRST', 7: 'MDC', 8: 'MDIO',
-       9: 'PHY_RST_N', 10: 'PHY_INT_N', 11: None, 12: 'RX_LOS', 13: None,
-       14: 'FPGA_LINK', 15: 'FPGA_RECONFIG_N', 16: 'FPGA_DONE', 17: None, 18: 'SWDIO', 19: 'SWCLK', 20: 'SCL'}
+# the pin order follows the In2 buses (below), which follow the fingers'
+# order (SFF-8419: RX_LOS +2.2, SCL -0.2, SDA -1.0, TX_DISABLE -1.8,
+# TX_FAULT -2.6, underneath): RX_LOS and SCL go along the north edge to pins
+# 3 / 1, SDA, TX_DISABLE and TX_FAULT along the south edge to the bottom row.
+# I2C1 on PB8 (pin 1, SCL, AF6) and PA10 (pin 17 with the PA12->PA10 remap,
+# SDA, AF6); RX_LOS on PC15, TX_FAULT PA4, TX_DISABLE PA6 (fw: VARIANT_T1S)
+MCU = {1: 'SCL', 2: None, 3: 'RX_LOS', 4: '+3V3', 5: 'GND', 6: 'NRST', 7: 'MDC', 8: 'MDIO',
+       9: 'PHY_RST_N', 10: 'PHY_INT_N', 11: 'TX_FAULT', 12: None, 13: 'TX_DISABLE',
+       14: 'FPGA_LINK', 15: 'FPGA_RECONFIG_N', 16: 'FPGA_DONE', 17: 'SDA', 18: 'SWDIO', 19: 'SWCLK', 20: None}
 part('U8', 'MCU_ST_STM32G0:STM32G031F_4-6-8_Px', 'STM32G031F6P6', 'Package_SO:TSSOP-20_4.4x6.5mm_P0.65mm', MCU,
      (39.6, 0.0), side='B', rot=90, mpn='STM32G031F6P6')
 part('C43', 'Device:C_Small', '100nF', C0402, {1: '+3V3', 2: 'GND'}, (37.6, 4.7), side='B')
 part('C44', 'Device:C_Small', '1uF', C0402, {1: '+3V3', 2: 'GND'}, (39.6, 4.7), side='B')
 part('C45', 'Device:C_Small', '100nF', C0402, {1: 'NRST', 2: 'GND'}, (41.6, 4.7), side='B')
-# pull-ups under their pins, past the vias the lines arrive through
-# TX_DISABLE's (the MSA's module pull-up) at the fingers' end, fed from U4's
-# output pin beside it; DONE's and RECONFIG_N's under their vias, fed by one
-# track to a +3V3 via past the south bus's end (rot 270: pad 2, the line, on top)
-part('R25', 'Device:R_Small', '10k', R0201, {1: '+3V3', 2: 'TX_DISABLE'}, (9.15, 1.9), side='B', rot=90)
+# pull-ups under their pins, past the vias the lines arrive through:
+# DONE's, RECONFIG_N's, FPGA_LINK's and TX_DISABLE's (the MSA's module
+# pull-up), fed by one track to a +3V3 via past the south bus's end (rot 270:
+# pad 2, the line, on top)
+part('R25', 'Device:R_Small', '10k', R0201, {1: '+3V3', 2: 'TX_DISABLE'}, (41.55, -4.65), side='B', rot=270)
 part('R4', 'Device:R_Small', '4.7k', R0201, {1: '+3V3', 2: 'FPGA_DONE'}, (39.2, -4.65), side='B', rot=270)
 part('R3', 'Device:R_Small', '4.7k', R0201, {1: '+3V3', 2: 'FPGA_RECONFIG_N'}, (40.0, -4.65), side='B', rot=270)
 # P1 is also SSPI_CS_N, pulled down while the FPGA configures; held low after
@@ -315,7 +335,7 @@ LCSC_BY_MPN = {
 }
 LCSC_BY_VALUE = {
     ('100nF', C0201): 'C76928', ('100nF', C0402): 'C1525', ('1uF', C0402): 'C52923',
-    ('4.7uF', C0402): 'C23733', ('10uF', C0603): 'C19702', ('2.2nF', C0402): 'C106861',
+    ('4.7uF', C0402): 'C23733', ('10uF', C0603): 'C19702', ('10uF', C0402): 'C15525', ('2.2nF', C0402): 'C106861',
     ('120pF', C0201): 'C161406', ('18pF', C0201): 'C62164', ('4.7k', R0201): 'C142008',
     ('10k', R0201): 'C106225', ('10k', R0402): 'C25744', ('57.6k 1%', R0201): 'C423476',
     ('100k 1%', R0201): 'C106224', ('12.4k 1%', R0402): 'C284314',
@@ -353,18 +373,20 @@ def _fpga_symbol():
 
 def _phy_symbol():
     L = [('2', 'COL', 'output'), ('3', 'TXD3', 'input'), ('4', 'TXD2', 'input'), ('5', 'TXD1', 'input'),
-         ('6', 'TXD0', 'input'), ('7', 'TXEN', 'input'), ('11', 'TXER', 'input'), ('12', 'TXCLK', 'output'),
-         ('', '', ''), ('17', 'RXCLK', 'output'), ('16', 'RXD0/PHYAD2', 'bidirectional'),
+         ('6', 'TXD0', 'input'), ('7', 'TXEN', 'input'), ('11', 'TXER/ACMA/LINK', 'input'), ('12', 'TXCLK/RXPI', 'output'),
+         ('', '', ''), ('17', 'RXCLK/SMCLK', 'output'), ('16', 'RXD0/PHYAD2', 'bidirectional'),
          ('19', 'RXD1/PHYAD3', 'bidirectional'), ('23', 'RXD2/MODE0', 'bidirectional'),
-         ('24', 'RXD3/MODE1', 'bidirectional'), ('20', 'RXDV/PHYAD1', 'bidirectional'),
+         ('24', 'RXD3/MODE1', 'bidirectional'), ('20', 'RXDV/CRSDV/PHYAD1', 'bidirectional'),
          ('21', 'RXER/PHYAD0', 'bidirectional'), ('15', 'CRS/PHYAD4', 'bidirectional'),
          ('', '', ''), ('13', 'MDC', 'input'), ('14', 'MDIO', 'bidirectional'),
          ('10', 'RESET_N', 'input'), ('22', 'IRQ_N', 'open_collector')]
-    R = [('8', 'VDDP', 'power_in'), ('18', 'VDDP', 'power_in'), ('25', 'VDDA', 'power_in'),
+    # DS60001573K table 3-1. INH (1) and GPIO0 (9) are left open, as the
+    # datasheet allows when unused; WAKE_IN (32) goes to VSS when unused
+    R = [('8', 'VDDP', 'power_in'), ('18', 'VDDP', 'power_in'), ('25', 'VDDAU', 'power_in'),
          ('29', 'VDDA', 'power_in'), ('', '', ''), ('30', 'TRXP', 'bidirectional'), ('31', 'TRXN', 'bidirectional'),
-         ('', '', ''), ('27', 'XTI', 'input'), ('28', 'XTO', 'output'), ('26', 'RBIAS', 'passive'),
-         ('', '', ''), ('1', 'DNC', 'no_connect'), ('9', 'DNC', 'no_connect'),
-         ('32', 'VSS', 'power_in'), ('33', 'EP', 'power_in')]
+         ('', '', ''), ('27', 'XTI/REFCLKIN', 'input'), ('28', 'XTO', 'output'), ('26', 'RBIAS', 'passive'),
+         ('', '', ''), ('1', 'INH', 'no_connect'), ('9', 'GPIO0', 'no_connect'),
+         ('32', 'WAKE_IN', 'input'), ('33', 'EP (VSS)', 'power_in')]
     return ('LAN8670', 'U', L, R, 25.4)
 
 
@@ -390,7 +412,8 @@ def FOOTPRINTS(io, smd, crt, tht, slot, npth):
     import pcbnew
     MB = sfpgen.MB
     # Gowin MBGA-132, 8 x 8 mm, 0.5 mm pitch, 14 x 14 grid, outer three rings:
-    # 0.3 mm NSMD pads (0.25 ball land + 0.05; a filled via fits inside)
+    # 0.25 mm pads, Gowin's recommended land (UG983 figure 4-8); the filled
+    # vias in them are 0.25 / 0.15 (MIN_VIA)
     fp = pcbnew.FOOTPRINT(None)
     fp.SetFPID(pcbnew.LIB_ID('sfp', 'Gowin_MBGA-132_8x8mm_P0.5mm'))
     for b in BALLS:
@@ -400,7 +423,7 @@ def FOOTPRINTS(io, smd, crt, tht, slot, npth):
         p.SetShape(pcbnew.PAD_SHAPE_CIRCLE)
         p.SetAttribute(pcbnew.PAD_ATTRIB_SMD)
         p.SetLayerSet(p.SMDMask())
-        p.SetSize(pcbnew.VECTOR2I(MB.MM(0.3), MB.MM(0.3)))
+        p.SetSize(pcbnew.VECTOR2I(MB.MM(0.25), MB.MM(0.25)))
         p.SetPosition(pcbnew.VECTOR2I(MB.MM((c - 7.5) * 0.5), MB.MM((r - 6.5) * 0.5)))
         p.SetPos0(p.GetPosition())
         fp.Add(p)
@@ -444,7 +467,7 @@ NETCLASSES = [
 CLASS_LAYERS = {'SGMII': ['F.Cu', 'B.Cu']}
 PAIRS = [('TD_P', 'TD_N'), ('SRX_P', 'SRX_M'), ('RD_P', 'RD_N'), ('STX_P', 'STX_M'),
          ('REFCLK_P', 'REFCLK_M'), ('MDI_P', 'MDI_N')]
-MIN_VIA = (0.3, 0.15)            # the via-in-pad under the BGA
+MIN_VIA = (0.25, 0.15)           # via-in-pad: fits the BGA's 0.25 lands (JLC: 0.15 hole, 0.25 pad)
 # via hole to copper: a line out between two ball vias passes their holes at
 # 0.229 mm; 0.2 is inside JLC's multilayer BGA fan-out rules (check the DFM)
 HOLE_CLEARANCE = 0.2
@@ -465,8 +488,7 @@ PLANE_DOGBONE = ('VCC_CORE', '+3V3')
 DP_W, DP_PITCH = 0.114, 0.266
 # the JTAG pads sit 1.2 mm apart, beside the ball field: their courtyards
 # are a probe's keep-out, and the pads keep 0.2 mm and more
-COURTYARD_OK = {'U1': ['TP10', 'TP11', 'TP12', 'TP13'], 'TP10': ['TP11', 'TP13'], 'TP12': ['TP13'],
-                'U4': ['R25']}             # an 0201 beside the SOT-23's pin 5, 0.25 mm off its pad
+COURTYARD_OK = {'U1': ['TP10', 'TP11', 'TP12', 'TP13'], 'TP10': ['TP11', 'TP13'], 'TP12': ['TP13']}
 HEIGHTS = {'U1': 1.35, 'U5': 1.0, 'X1': 1.2, 'U8': 1.2, 'U2': 0.8, 'J2': 6.0, 'L2': 2.5, 'U3': 1.0,
            'U6': 1.45, 'U7': 1.45, 'U4': 1.45}
 OVERHANG = ('J2',)
@@ -487,12 +509,15 @@ for b in BALLS:
     if needs_via(b['ball']):
         PREVIAS.append((FPGA[b['ball']], ball_xy(b['ball']), MIN_VIA))
 
-# SGMII RX (host TD -> FPGA lane 0 RX), on top: from the caps up above row A
-# and east, the lower line (TD+, C3's) down into A1 (RXM), the upper into A2
+# SGMII RX (host TD -> FPGA lane 0 RX), on top: the fingers are at the bottom
+# of the tab (TD+ -2.2, TD- -3.0), the lane at the FPGA's top-left corner. From
+# the caps east, then north up the ball field's west side (west of the JTAG
+# pads) and east again above row A: heading east at the end the P line is the
+# upper one, so the lower (M) drops into A1 (RXM) and P runs on into A2 (RXP)
 _a1, _a2 = ball_xy('A1'), ball_xy('A2')
-PREROUTES += _pair('SRX_P', 'SRX_M', 'F', [(5.52, 3.0), (5.9, 3.0)], [(5.52, 2.2), (5.9, 2.2)],
-                   [(6.4, 2.6), (6.8, 2.6), (8.15, 3.95), (_a1[0] - 0.2, 3.95)],
-                   [(_a2[0], 3.95 + 0.133), (_a2[0], _a2[1])], [(_a1[0], 3.95 - 0.133), (_a1[0], _a1[1])])
+PREROUTES += _pair('SRX_P', 'SRX_M', 'F', [(5.52, -2.2)], [(5.52, -3.0)],
+                   [(5.92, -2.6), (8.9, -2.6), (9.4, -2.1), (9.4, 3.4), (9.9, 3.9), (_a1[0] - 0.25, 3.9)],
+                   [(_a2[0], 3.9 + 0.133), (_a2[0], _a2[1])], [(_a1[0], 3.9 - 0.133), (_a1[0], _a1[1])])
 # refclk: A7/A8 up above row A, east to the caps and the oscillator's outputs
 _a7, _a8 = ball_xy('A7'), ball_xy('A8')
 PREROUTES += [('REFCLK_M', 'F', [_a7, (_a7[0], 4.4), (19.6, 4.4), (19.75, 4.55), (19.98, 4.55)], DP_W),
@@ -500,19 +525,23 @@ PREROUTES += [('REFCLK_M', 'F', [_a7, (_a7[0], 4.4), (19.6, 4.4), (19.75, 4.55),
               ('OSC_P', 'F', [(20.62, 4.55), (21.8, 4.55)], DP_W),
               ('OSC_N', 'F', [(20.62, 3.7), (21.3, 3.7), (21.45, 3.55), (21.8, 3.55)], DP_W)]
 # SGMII TX (FPGA -> host RD), underneath: out of B3 / C3's vias between their
-# neighbours' vias, then west and down to the caps at the fingers
+# neighbours' vias (P up into A2's site, M down into D2's), coupled west at
+# y 2.2 with P the upper line, to vias by the RD caps. RD+ (pin 13, +1.8) is
+# below RD- (pin 12, +2.6), so the order has to turn over once: P stops at its
+# via (8.3, 2.6) while M runs on underneath it to a via 1.2 mm further west;
+# on top P's line then passes under M's via to the lower cap. No pair crosses
+# itself and neither lane is inverted.
 _b3, _c3 = ball_xy('B3'), ball_xy('C3')
+STX_VIA = {'STX_P': (8.3, 2.6), 'STX_M': (7.1, 2.6)}
 PREROUTES += [('STX_P', 'B', [_b3, (_b3[0] - 0.5, _b3[1] + 0.5)], 0.1),     # 0.1 between the ball vias
               ('STX_M', 'B', [_c3, (_c3[0] - 0.5, _c3[1] - 0.5)], 0.1),
-              # then coupled: down the front of the FPGA (P west, M east), a staggered
-              # 45 degree turn, west to the caps, splitting into a via each
-              ('STX_P', 'B', [(_b3[0] - 0.5, _b3[1] + 0.5), (_b3[0] - 0.5, 3.55), (10.6, 3.55), (9.6, 2.55),
-                              (9.6, -1.667), (9.2, -2.067), (6.9, -2.067), (6.633, -1.8), (6.2, -1.8)], DP_W),
-              ('STX_M', 'B', [(_c3[0] - 0.5, _c3[1] - 0.5), (11.4, 1.75), (10.3, 1.75), (9.866, 1.316),
-                              (9.866, -1.8), (9.333, -2.333), (6.9, -2.333), (6.633, -2.6), (6.2, -2.6)], DP_W),
-              ('STX_P', 'F', [(6.2, -1.8), (5.52, -1.8)], DP_W),
-              ('STX_M', 'F', [(6.2, -2.6), (5.52, -2.6)], DP_W)]
-PREVIAS += [('STX_P', (6.2, -1.8)), ('STX_M', (6.2, -2.6)), ('GND', (7.0, -1.0)), ('GND', (7.0, -3.3))]
+              ('STX_P', 'B', [(_b3[0] - 0.5, _b3[1] + 0.5), (11.55, 3.25), (10.633, 2.333), (8.567, 2.333),
+                              STX_VIA['STX_P']], DP_W),
+              ('STX_M', 'B', [(_c3[0] - 0.5, _c3[1] - 0.5), (11.65, 1.75), (11.333, 2.067), (7.633, 2.067),
+                              STX_VIA['STX_M']], DP_W),
+              ('STX_P', 'F', [STX_VIA['STX_P'], (7.5, 1.8), (5.52, 1.8)], DP_W),
+              ('STX_M', 'F', [STX_VIA['STX_M'], (5.52, 2.6)], DP_W)]
+PREVIAS += [(n, xy) for n, xy in STX_VIA.items()] + [('GND', (7.7, 3.35)), ('GND', (8.5, 3.35))]
 
 # MII, on top. TX: the FPGA's right column straight across to the PHY's left
 # side, each line one pitch down on the way. RX: the bottom row down into
@@ -521,9 +550,9 @@ PREVIAS += [('STX_P', (6.2, -1.8)), ('STX_M', (6.2, -2.6)), ('GND', (7.0, -1.0))
 # lanes pass (right side 18/21/22, bottom 10/11/13/14) take a via in the pad.
 _MW = 0.1                       # 0.25 mm pitch lanes: 0.1 lines, 0.15 gaps
 _px = lambda pin: [p for p in _PHY_PADS if p[0] == pin][0][1:]
-_PHY_PADS = [(k, round(PHY_AT[0] - 2.438, 3), round(1.75 - 0.5 * (k - 1), 3)) for k in range(1, 9)] + \
-            [(k, round(PHY_AT[0] - 1.75 + 0.5 * (k - 9), 3), -2.438) for k in range(9, 17)] + \
-            [(k, round(PHY_AT[0] + 2.438, 3), round(-1.75 + 0.5 * (k - 17), 3)) for k in range(17, 25)]
+_PHY_PADS = [(k, round(PHY_AT[0] - 2.45, 3), round(1.75 - 0.5 * (k - 1), 3)) for k in range(1, 9)] + \
+            [(k, round(PHY_AT[0] - 1.75 + 0.5 * (k - 9), 3), -2.45) for k in range(9, 17)] + \
+            [(k, round(PHY_AT[0] + 2.45, 3), round(-1.75 + 0.5 * (k - 17), 3)) for k in range(17, 25)]
 for ball, pin in (('C14', 2), ('D14', 3), ('E14', 4), ('F14', 5), ('G14', 6), ('H14', 7)):
     bx, by = ball_xy(ball)
     px, py = _px(pin)
@@ -566,15 +595,19 @@ for net, path, tp in _JT:
     PREROUTES.append((net, 'F', top, _BW))
 PREROUTES.append(('JTAG_TCK', 'B', [(11.4, 0.25), (11.02, 0.25)], _BW))
 # DONE, RECONFIG_N and the 1.2 V rail (M7) straight down out of the field on
-# In2 (rows N and P carry no vias), where the south bus takes them (below)
-PREROUTES += [('FPGA_DONE', 'In2', [_bxy('L3'), _bxy('M2'), (12.5, -2.9)], _BW),
+# In2 (rows N and P carry no vias but N2's, MODE0), where the south bus takes
+# them (below); DONE goes round N2's via through N1's site (a pad on top only)
+PREROUTES += [('FPGA_DONE', 'In2', [_bxy('L3'), _bxy('M2'), _bxy('N1'), (_bxy('N1')[0], -3.25)], _BW),
               ('FPGA_RECONFIG_N', 'In2', [_bxy('M3'), (13.0, -2.9)], _BW),
               ('V1P2', 'In2', [_bxy('M7'), (15.0, -2.9)], _BW)]
-# MODE1 (N1) and FPGA_LINK (P1) are outer-ring balls, on top only
-PREROUTES += [('MODE1', 'F', [_bxy('N1'), (11.45, -2.75)], _BW),
-              ('MODE1', 'B', [(11.45, -2.75), (11.02, -2.7)], _BW),
+R1_PAD = {'MODE': (11.1, -3.23), '+3V3': (11.1, -3.87)}      # R1, rot 90 underneath
+# MODE1 (N1) and FPGA_LINK (P1) are outer-ring balls, on top only; MODE0 (N2)
+# has its via in the pad and joins MODE1's via underneath, through N1's site
+PREROUTES += [('MODE', 'F', [_bxy('N1'), (11.45, -2.75)], _BW),
+              ('MODE', 'B', [(11.45, -2.75), (11.1, -3.1), R1_PAD['MODE']], _BW),
+              ('MODE', 'B', [_bxy('N2'), (11.45, -2.75)], _BW),
               ('FPGA_LINK', 'F', [_bxy('P1'), (12.25, -3.5), (12.25, -4.45)], _BW)]   # past P2's pad, down to its bus lane
-PREVIAS += [('MODE1', (11.45, -2.75), _DV), ('FPGA_LINK', (12.25, -4.45), _DV)]
+PREVIAS += [('MODE', (11.45, -2.75), _DV), ('FPGA_LINK', (12.25, -4.45), _DV)]
 # FPGA_READY (M12) to its pull-up R5 in the grid, underneath between L12 and M11
 PREROUTES.append(('FPGA_READY', 'B', [_bxy('M12'), (17.25, -2.0), (17.0, -1.75), (16.62, -1.37)], _BW))
 # the grid caps of the small rails take a via in their pad
@@ -585,52 +618,58 @@ PREVIAS += [('VDDHAQ', (15.98, -0.45), MIN_VIA), ('V1P2', (13.88, -1.35), MIN_VI
 PREVIAS += [('RXD3', (34.0, 1.75), _DV), ('RXD2', (34.0, 1.25), _DV), ('RXDV', (34.0, -0.25), _DV),
             ('RXD1', (34.0, -0.75), _DV),
             # CRS, RXD0 (bottom side) and TXEN (left side): a via in the pad, as pins 10-14
-            ('CRS', (32.25, -2.648), MIN_VIA), ('RXD0', (32.75, -2.648), MIN_VIA), ('TXEN', (28.352, -1.25), MIN_VIA)]
+            ('CRS', (32.25, -2.66), MIN_VIA), ('RXD0', (32.75, -2.66), MIN_VIA), ('TXEN', (28.34, -1.25), MIN_VIA)]
 PREROUTES += [('RXD3', 'B', [(34.0, 1.75), (34.25, 2.0), (34.6, 2.28)], _BW),
               ('RXD2', 'B', [(34.0, 1.25), (34.6, 1.32)], _BW),
               ('RXDV', 'B', [(34.0, -0.25), (34.6, -0.18)], _BW),
               ('RXD1', 'B', [(34.0, -0.75), (34.1, -0.9), (34.1, -1.3), (34.35, -1.63), (34.6, -1.63)], _BW),
-              ('CRS', 'B', [(32.25, -2.648), (32.85, -3.25), (32.85, -3.43)], _BW),
-              ('RXD0', 'B', [(32.75, -2.648), (33.3, -3.2), (35.2, -3.2), (35.5, -3.43)], _BW),
-              ('TXEN', 'B', [(28.352, -1.25), (28.6, -1.5), (28.6, -2.08)], _BW)]
+              ('CRS', 'B', [(32.25, -2.66), (32.85, -3.25), (32.85, -3.43)], _BW),
+              ('RXD0', 'B', [(32.75, -2.66), (33.3, -3.2), (35.2, -3.2), (35.5, -3.43)], _BW),
+              ('TXEN', 'B', [(28.34, -1.25), (28.6, -1.5), (28.6, -2.08)], _BW)]
 # XTI (pin 27): a via in the pad, then underneath between the crystal's pads 3 and 4
-PREVIAS += [('XTI', (31.75, 2.75), MIN_VIA), ('XTO', (31.25, 2.648), MIN_VIA)]
+PREVIAS += [('XTI', (31.75, 2.75), MIN_VIA), ('XTO', (31.25, 2.66), MIN_VIA)]
 PREROUTES += [('XTI', 'B', [(31.75, 2.75), (32.0, 3.0), (32.0, 3.1)], _BW),
-              ('XTO', 'B', [(31.25, 2.648), (31.35, 2.8), (31.35, 4.0), (31.0, 4.3)], _BW)]
+              ('XTO', 'B', [(31.25, 2.66), (31.35, 2.8), (31.35, 4.0), (31.0, 4.3)], _BW)]
 
 # the MCU's lines to the fingers and the FPGA: a via beside each pin (bottom
-# row under its pad, SDA over pin 1) and one beside each finger
-_MCU_VIA = {'SCL': 36.675, 'FPGA_DONE': 39.275, 'FPGA_RECONFIG_N': 39.925, 'FPGA_LINK': 40.575,
-            'RX_LOS': 41.875}
+# row under its pad, the top row's over theirs) and one beside each finger
+_MCU_VIA = {'SDA': 38.625, 'FPGA_DONE': 39.275, 'FPGA_RECONFIG_N': 39.925, 'FPGA_LINK': 40.575,
+            'TX_DISABLE': 41.225, 'TX_FAULT': 42.525}
 for net, x in _MCU_VIA.items():
     PREVIAS.append((net, (x, -4.0), _DV))
     PREROUTES.append((net, 'B', [(x, -3.3), (x, -4.0)], _BW))
-# and the three pull-ups from the pins' inner ends
-PREROUTES += [('+3V3', 'B', [(39.2, -4.97), (39.2, -5.15), (40.0, -5.15), (40.75, -5.15), (42.4, -5.15), (42.6, -4.95)], 0.15),
+# and the four pull-ups from the pins' inner ends
+PREROUTES += [('+3V3', 'B', [(39.2, -4.97), (39.2, -5.15), (40.0, -5.15), (40.75, -5.15), (41.55, -5.15), (42.4, -5.15),
+                             (42.6, -4.95)], 0.15),
               ('+3V3', 'B', [(40.0, -4.97), (40.0, -5.15)], 0.15),
               ('+3V3', 'B', [(40.75, -4.97), (40.75, -5.15)], 0.15),
-              ('+3V3', 'B', [(9.15, 2.22), (8.6, 2.6)], 0.15),          # R25 from U4's output
-              ('TX_DISABLE', 'B', [(9.2, 1.3), (9.15, 1.58)], _BW)]
+              ('+3V3', 'B', [(41.55, -4.97), (41.55, -5.15)], 0.15),
+              ('TX_DISABLE', 'B', [(41.225, -4.0), (41.55, -4.33)], _BW)]
 PREVIAS.append(('+3V3', (42.6, -4.95), _DV))
-# the top row's three: vias under the MCU (the MDI caps fill the top above
-# pins 1-3); TX_DISABLE's pull-up R25 below its via
-for net, x in (('SDA', 36.675), ('TX_DISABLE', 37.325), ('TX_FAULT', 37.975)):
+# the top row's two: vias under the MCU (the MDI caps fill the top above
+# pins 1-3)
+for net, x in (('SCL', 36.675), ('RX_LOS', 37.975)):
     PREVIAS.append((net, (x, 1.2), _DV))
     PREROUTES.append((net, 'B', [(x, 2.5), (x, 1.2)], _BW))
 
-# the fingers: the host pairs straight in to their caps on top, VCCT straight
-# to FB1, VCCR down past the TX caps to FB2. TX_FAULT and RX_LOS drop through
-# vias right behind their fingers (x 4.2, between the pairs); TX_DISABLE, SDA
-# and SCL run underneath, below U4, to vias past it (x 9.2)
-PREROUTES += [('TD_P', 'F', [(3.6, 2.2), (4.88, 2.2)], DP_W), ('TD_N', 'F', [(3.6, 3.0), (4.88, 3.0)], DP_W),
-              ('RD_P', 'F', [(3.6, -1.8), (4.88, -1.8)], DP_W), ('RD_N', 'F', [(3.6, -2.6), (4.88, -2.6)], DP_W),
-              ('VCCT', 'F', [(3.6, 0.6), (6.4, 0.6), (6.8, 1.0)], 0.3),
-              ('VCCR', 'F', [(3.6, -0.2), (4.8, -0.2), (5.3, -0.6), (5.8, -0.6), (8.1, -2.9), (8.1, -4.6)], 0.3)]
-_EDGE_VIA = {'TX_FAULT': [(3.6, 2.6), (4.2, 2.6)], 'RX_LOS': [(3.6, -2.2), (4.2, -2.2)],
-             'TX_DISABLE': [(3.6, 1.8), (4.0, 1.85), (4.95, 1.85), (4.99, 1.8), (4.99, 1.2), (5.1, 1.15),
-                            (8.9, 1.15), (9.2, 1.3)],
-             'SDA': [(3.6, 1.0), (3.9, 0.9), (8.9, 0.9), (9.2, 0.75)],
-             'SCL': [(3.6, 0.2), (4.6, 0.2), (4.8, 0.4), (8.9, 0.4), (9.2, 0.2)]}
+# the fingers (SFF-8419 figure 7-2): the host pairs straight in to their caps
+# on top, VCCT (-0.6) and VCCR (+0.2) straight to the beads, which join on
+# top and drop VIN_RAW to the load switch underneath. The slow lines leave
+# their fingers underneath to vias as close as the pairs and the ground vias
+# (x 4.55, sfpgen.preroute_edge_gnd) let them, then run on In2: RX_LOS between
+# the RD lines' run to its cap, TX_FAULT between the TD lines', SCL between
+# the beads, SDA and TX_DISABLE below FB1
+PREROUTES += [('TD_P', 'F', [(3.6, -2.2), (4.88, -2.2)], DP_W), ('TD_N', 'F', [(3.6, -3.0), (4.88, -3.0)], DP_W),
+              ('RD_P', 'F', [(3.6, 1.8), (4.88, 1.8)], DP_W), ('RD_N', 'F', [(3.6, 2.6), (4.88, 2.6)], DP_W),
+              ('VCCT', 'F', [(3.6, -0.6), (5.3, -0.6), (5.45, -0.75), (6.61, -0.75)], 0.3),
+              ('VCCR', 'F', [(3.6, 0.2), (5.2, 0.2), (5.9, 0.9), (6.61, 0.9)], 0.3),
+              ('VIN_RAW', 'F', [(8.45, -0.75), (8.45, 0.9)], 0.3)]
+PREVIAS.append(('VIN_RAW', (8.45, 0.075), _DV))
+_EDGE_VIA = {'RX_LOS': [(3.6, 2.2), (6.1, 2.2)],
+             'SCL': [(3.6, -0.2), (7.1, -0.2), (7.4, 0.075)],
+             'SDA': [(3.6, -1.0), (4.0, -0.9), (6.4, -0.9), (6.9, -1.4), (6.9, -1.7)],
+             'TX_DISABLE': [(3.6, -1.8), (4.0, -1.85), (5.95, -1.85), (6.1, -1.75)],
+             'TX_FAULT': [(3.6, -2.6), (4.2, -2.6)]}
 for net, path in _EDGE_VIA.items():
     PREVIAS.append((net, path[-1], _DV))
     PREROUTES.append((net, 'B', path, _BW))
@@ -641,21 +680,20 @@ PREROUTES += [('VDDHAQ', 'B', [(45.6, 2.45), (46.3, 2.45)], 0.2),
 # the local links Freerouting left open around them
 PREVIAS += [('VCC_CORE', (15.812, 4.85), MIN_VIA), ('VCC_CORE', (11.213, 4.85), MIN_VIA),   # in FB3/FB4's core pads
             ('VCC_CORE', (25.45, 4.95), _DV),                                             # buck output, beside C12
-            ('+3V3', (30.75, 2.648), MIN_VIA), ('+3V3', (32.75, 2.648), MIN_VIA),        # PHY pins 29 / 25
-            ('+3V3', (39.05, 4.0), _DV),                                                  # MCU VDD and its decaps
-            ('+3V3', (10.38, -3.3), _DV),                                                 # R1 (MODE1)
+            ('+3V3', (30.75, 2.66), MIN_VIA), ('+3V3', (32.75, 2.66), MIN_VIA),        # PHY pins 29 / 25
+            ('+3V3', (11.1, -4.35), _DV),                                                 # R1 (MODE)
             ('+3V3', (24.2, 1.7), _DV)]                                                   # the buck's VIN, between U3 and R8/C14
 PREROUTES += [('VDDAQ', 'B', [(17.388, 4.6), (17.5, 4.3), (17.5, 3.25)], 0.15),         # FB3 to ball A12
               ('VDDTQ', 'B', [(12.787, 4.6), (13.5, 3.9), (13.5, 2.75)], 0.15),         # FB4 to ball B4
               ('VDDTQ', 'B', [(13.225, 4.95), (13.75, 4.95)], 0.15),                    # and C59
               ('VCC_CORE', 'B', [(23.125, 4.9), (23.4, 5.075), (24.3, 5.075)], 0.2),   # L1 to C12
               ('VCC_CORE', 'B', [(25.075, 5.0), (25.45, 4.95)], 0.2),
-              ('+3V3', 'B', [(30.75, 2.648), (30.3, 2.35), (30.02, 2.3)], 0.15),        # pin 29 to C32
-              ('+3V3', 'B', [(32.75, 2.648), (32.77, 2.3)], 0.15),                      # pin 25 to C33
-              ('+3V3', 'B', [(38.625, 3.4), (38.625, 3.85), (38.85, 4.0), (39.05, 4.0), (39.12, 4.5)], 0.15),
+              ('+3V3', 'B', [(30.75, 2.66), (30.3, 2.35), (30.02, 2.3)], 0.15),        # pin 29 to C32
+              ('+3V3', 'B', [(32.75, 2.66), (32.77, 2.3)], 0.15),                      # pin 25 to C33
+              ('+3V3', 'B', [(38.625, 3.4), (38.625, 3.85), (38.85, 4.0), (39.12, 4.5)], 0.15),   # its via: plane_dogbones
               ('+3V3', 'B', [(38.85, 4.0), (37.5, 4.0), (37.12, 4.4)], 0.15),            # C43
               ('+3V3', 'B', [(15.42, -4.44), (15.42, -4.2), (16.0, -3.0), (16.0, -2.25)], 0.15),   # C17 to ball M9
-              ('+3V3', 'B', [(10.38, -2.9), (10.38, -3.3)], 0.15),
+              ('+3V3', 'B', [R1_PAD['+3V3'], (11.1, -4.35)], 0.15),
               ('+3V3', 'B', [(23.525, 1.45), (24.0, 1.45), (24.2, 1.7)], 0.15),         # U3 VIN
               # the feedback: out of pin 2 west, round under U3 and east to R8
               ('BUCK_FB', 'B', [(21.35, 1.45), (21.0, 1.45), (21.0, 0.4), (25.5, 0.4), (25.72, 0.62),
@@ -665,13 +703,17 @@ PREROUTES += [('VDDAQ', 'B', [(17.388, 4.6), (17.5, 4.3), (17.5, 3.25)], 0.15), 
 # this board before its dogbones went in (8-way, 0.025 mm grid, 0.15 mm
 # clearance), with each line held to its lane along the south edge so the
 # lanes stack in the order the MCU's pins take them: V1P2, RECONFIG_N, DONE,
-# SCL above the pins' via row, FPGA_LINK and RX_LOS below it. Along the north
-# edge SDA, TX_DISABLE and TX_FAULT; VDDHAQ leaves the ball field through row
-# C and runs under the MCU; MISO crosses over the flash.
+# SDA above the pins' via row, FPGA_LINK, TX_DISABLE and TX_FAULT below it.
+# Along the north edge SCL and RX_LOS; VDDHAQ leaves the ball field through
+# row C and runs under the MCU; MISO crosses over the flash. Since the SFP
+# edge fix (2026-10) the west ends are laid by hand from the fingers' vias:
+# the fingers' order (RX_LOS, SCL | SDA, TX_DISABLE, TX_FAULT, top to bottom)
+# is the lanes' order, so nothing crosses
 IN2_BUS = [
-    ('SDA', 0.1, [(9.2, 0.75), (9.675, 1.225), (9.675, 2.775), (10.525, 3.625), (35.175, 3.625), (36.675, 2.125), (36.675, 1.2)]),
-    ('TX_DISABLE', 0.1, [(9.2, 1.3), (9.2, 2.675), (10.425, 3.9), (35.275, 3.9), (37.325, 1.85), (37.325, 1.2)]),
-    ('TX_FAULT', 0.1, [(4.2, 2.6), (8.275, 2.6), (9.825, 4.15), (35.4, 4.15), (37.975, 1.575), (37.975, 1.2)]),
+    ('SCL', 0.1, [(7.4, 0.075), (8.7, 1.375), (9.2, 1.375), (9.2, 2.3), (10.525, 3.625), (35.175, 3.625),
+                  (36.675, 2.125), (36.675, 1.2)]),
+    ('RX_LOS', 0.1, [(6.1, 2.2), (6.5, 2.6), (6.5, 3.6), (7.05, 4.15), (35.4, 4.15), (37.975, 1.575),
+                     (37.975, 1.2)]),
     ('VDDHAQ', 0.15, [(17.0, 2.25), (16.6, 1.85), (15.975, 1.85), (15.4, 1.85), (15.0, 2.25)]),
     ('VDDHAQ', 0.15, [(15.975, 1.85), (15.98, -0.45)]),
     ('VDDHAQ', 0.15, [(17.0, 2.25), (35.05, 2.25), (36.5, 0.8), (43.95, 0.8), (45.6, 2.45)]),
@@ -680,10 +722,13 @@ IN2_BUS = [
     ('V1P2', 0.15, [(15.0, -1.975), (14.375, -1.35), (13.88, -1.35)]),
     ('V1P2', 0.15, [(15.0, -2.9), (15.15, -3.05), (44.3, -3.05), (45.6, -4.35)]),
     ('FPGA_RECONFIG_N', 0.1, [(13.0, -2.9), (13.425, -3.325), (39.325, -3.325), (39.925, -3.925), (39.925, -4.0)]),
-    ('FPGA_DONE', 0.1, [(12.5, -2.9), (13.2, -3.6), (38.95, -3.6), (39.275, -3.925), (39.275, -4.0)]),
-    ('SCL', 0.1, [(9.2, 0.2), (12.225, -2.825), (12.225, -3.45), (12.65, -3.875), (36.55, -3.875), (36.675, -4.0)]),
+    ('FPGA_DONE', 0.1, [(12.0, -3.25), (12.35, -3.6), (38.95, -3.6), (39.275, -3.925), (39.275, -4.0)]),
+    # SDA between the JTAG and MODE vias, then under DONE's start
+    ('SDA', 0.1, [(6.9, -1.7), (10.4, -1.7), (10.9, -2.2), (10.9, -2.9), (11.875, -3.875), (38.5, -3.875),
+                  (38.625, -4.0)]),
     ('FPGA_LINK', 0.1, [(12.25, -4.45), (12.25, -4.45), (40.2, -4.425), (40.575, -4.05), (40.575, -4.0)]),
-    ('RX_LOS', 0.1, [(4.2, -2.2), (5.175, -2.2), (7.85, -4.875), (41.025, -4.875), (41.875, -4.0), (41.875, -4.0)]),
+    ('TX_DISABLE', 0.1, [(6.1, -1.75), (9.225, -4.875), (40.4, -4.875), (41.225, -4.05), (41.225, -4.0)]),
+    ('TX_FAULT', 0.1, [(4.2, -2.6), (5.3, -2.6), (7.825, -5.125), (41.65, -5.125), (42.525, -4.25), (42.525, -4.0)]),
 ]
 for net, w, path in IN2_BUS:
     PREROUTES.append((net, 'In2', path, w))
@@ -703,16 +748,11 @@ PREVIAS += [('F_MISO', (27.05, -1.72), _DV), ('+3V3', (27.0, -2.55), _DV)]
 # the PHY's exposed pad: 2 x 2 thermal vias to the GND planes
 PREVIAS += [('GND', (round(PHY_AT[0] + dx, 3), dy)) for dx in (-0.7, 0.7) for dy in (-0.7, 0.7)]
 
-# the one link Freerouting left open in the kept session (t1s.ses): C14's and
-# R8's core pads, into the In4 island through a via of their own (a GND track
-# from C12 to U3 walls them off from L1). Valid with that .ses only
 # AN1718: no copper under the CMC on any layer, and no ground flood round
 # the MDI parts on their layer
 NO_POUR = [(39.1, 1.75, 43.1, 4.85, ('F', 'In1', 'In2', 'In3', 'In4', 'B')),
            (35.5, 0.73, 47.8, 5.3, ('F',))]
 
-POST_ROUTES = [('VCC_CORE', 'B', [(25.08, 1.0), (25.08, 1.9), (25.08, 2.1), (24.665, 2.65)], 0.2)]
-POST_VIAS = [('VCC_CORE', (24.665, 2.7), MIN_VIA)]      # between X1's pin 1 (on top) and C9's +3V3 via
 
 IN2_GND = False                   # this board's inner layers are set by PLANES
 
