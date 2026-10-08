@@ -10,6 +10,8 @@ So an FPGA sits between the two:
 
 Schematic, 6-layer PCB (routed), fab outputs and a JLC panel are in place; the order sheet is [ORDER.md](ORDER.md). Nothing has been built.
 
+**Re-laid 2026-10-08 on the corrected SFP edge** (SFF-8419 figure 7-2; until then the fingers were drawn mirrored, which would have put VccT on a ground contact). Do not order before the Gowin transceiver IP, synthesis and timing exist (below).
+
 | Top | Bottom |
 |---|---|
 | ![](fab/t1s-top.png) | ![](fab/t1s-bottom.png) |
@@ -19,12 +21,13 @@ Schematic, 6-layer PCB (routed), fab outputs and a JLC panel are in place; the o
 | | Result | How it was checked |
 |---|---|---|
 | Schematic | **ERC 0 errors** ([erc.rpt](erc.rpt)); 2 warnings, both "symbol differs from the library copy" (the two LDOs) | eeschema's own ERC (`run_erc.sh`) |
-| Placement | 91 parts, no overlaps; housing height limits met | `make_t1s.py` |
+| Placement | 92 parts, no overlaps; housing height limits met | `make_t1s.py` |
+| SFP edge | **all 20 fingers where SFF-8419 figure 7-2 puts them, with the right nets** | `tools/compliance.py` (positions written out independently of the generator) |
 | Routing | **DRC 0 violations, 0 unconnected** ([drc.rpt](drc.rpt)) | hand-laid pairs, escapes and In2 buses, Freerouting 1.9.0 for the rest ([t1s.ses](t1s.ses), rebuilt with `--reuse-ses`), then KiCad DRC |
 | KiCad 9 | **DRC 0 errors, 0 unconnected, schematic parity clean, ERC 0 errors** ([kicad9-drc.rpt](kicad9-drc.rpt), [kicad9-erc.rpt](kicad9-erc.rpt)) | `sh ../check_kicad9.sh t1s`. Only warnings are "differs from the library copy" |
 | Fab | Gerbers + drill ([fab/t1s-gerbers.zip](fab/t1s-gerbers.zip)), [BOM](fab/t1s-bom.csv), [CPL](fab/t1s-cpl.csv), [1:1 print](fab/t1s-1to1.pdf) | `export_t1s.py` |
 | Panel | 5 boards, 70.1 × 81.1 mm, **DRC 0 errors, 0 unconnected** with the board's rules ([jlc/panel-drc.rpt](jlc/panel-drc.rpt)) | `panel_t1s.py` (KiKit) |
-| Gateware | `tb_bridge`, `tb_top` pass | Icarus Verilog, CI |
+| Gateware | `tb_bridge`, `tb_top` pass (`tb_top` with both lanes straight; an RX-inverting instance must fail) | Icarus Verilog, CI |
 | Firmware | builds, 0 warnings | `make VARIANT=t1s`, CI |
 
 ## Parts
@@ -48,27 +51,29 @@ Schematic, 6-layer PCB (routed), fab outputs and a JLC panel are in place; the o
 
   | Layer | Use |
   |---|---|
-  | F | FPGA balls, SGMII RX and the reference clock, MII, the MDI network, JTAG pads |
+  | F | FPGA balls, SGMII RX and the reference clock, MII, the beads, the MDI network, JTAG pads |
   | In1 | GND |
   | In2 | signals: the long buses (below), the ball field's escapes |
   | In3 | +3V3 plane |
   | In4 | GND, with the 0.95 V core as an island under the FPGA and the buck |
-  | B | the TX pair, decaps, flash, buck, PHY straps, MCU, LDOs, test pads |
+  | B | the TX pair, decaps, load switch, flash, buck, PHY straps, MCU, LDOs, test pads |
 
-- **Why six:** 0.5 mm ball pitch leaves no room for a track between balls. So every used ball inside the outer ring has a **via in its pad** (0.3 / 0.15 mm, filled and capped), and five supply rails sit interleaved around the ring. On six layers JLC fills and caps via-in-pad at no extra charge, and +3V3 and the core rail become planes the router doesn't have to route.
+- **Why six:** 0.5 mm ball pitch leaves no room for a track between balls. So every used ball inside the outer ring has a **via in its pad** (0.25 / 0.15 mm in Gowin's 0.25 mm land, UG983 figure 4-8; filled and capped), and five supply rails sit interleaved around the ring. On six layers JLC fills and caps via-in-pad at no extra charge, and +3V3 and the core rail become planes the router doesn't have to route.
 - **The core island is on In4, not In2.** On In2 it covered the ball field, so the small rails (VDDHAQ, V1P2) and the inner-ring signals had no way out. Under B only the field's stubs and decaps sit on it; the TX pair crosses it only on its last 0.75 mm into the balls.
-- **Two In2 buses, laid by hand** (`IN2_BUS` in `make_t1s.py`, found once by a maze search over the board before its dogbones went in):
-  - along the north edge, SDA, TX_DISABLE and TX_FAULT from the fingers to MCU pins 1-3;
-  - along the south edge, from the ball field and the fingers to the MCU's bottom row, one lane each, stacked in the order the pins take them: V1P2 (to its LDO), RECONFIG_N, DONE, SCL above the pins' via row, FPGA_LINK and RX_LOS below it;
+- **Two In2 buses, laid by hand** (`IN2_BUS` in `make_t1s.py`; the long runs were found once by a maze search over the board before its dogbones went in, the west ends re-laid by hand in 2026-10). The slow fingers underneath read RX_LOS, SCL | SDA, TX_DISABLE, TX_FAULT from top to bottom, and the buses keep that order, so nothing crosses:
+  - along the north edge, RX_LOS and SCL from the fingers to MCU pins 3 and 1;
+  - along the south edge, from the ball field and the fingers to the MCU's bottom row, one lane each, stacked in the order the pins take them: V1P2 (to its LDO), RECONFIG_N, DONE, SDA above the pins' via row, FPGA_LINK, TX_DISABLE and TX_FAULT below it;
   - VDDHAQ leaves the ball field through row C and runs under the MCU to its LDO; MISO crosses over the flash.
-  The MCU's pins follow the buses: TX_DISABLE / TX_FAULT are on PC14 / PC15 here (PA4 / PA6 on the other boards).
+  The MCU's pins follow the buses: I²C1 on PB8 (SCL, pin 1) and PA10 (SDA, pin 17, PA12's pad remapped), RX_LOS on PC15, TX_FAULT on PA4, TX_DISABLE on PA6 (`fw`, `VARIANT_T1S`).
 - **Around the ball field:** JTAG leaves west on In2 to four pads on top beside the FPGA; the flash is turned 180° so CLK and MOSI reach it underneath; CRS, RXD0 and TXEN reach their straps through vias in the PHY's pads.
-- **Configuration pins, from Gowin's pinout and UG720** (see [../../docs/REFERENCES.md](../../docs/REFERENCES.md)): CLKHOLD_N (K3) is pulled down during configuration and would hold the flash clock, so it is tied to +3V3; P1 doubles as SSPI_CS_N and is pulled up (R26) so the FPGA cannot select slave SPI after loading.
+- **Configuration pins, from Gowin's pinout and UG720** (see [../../docs/REFERENCES.md](../../docs/REFERENCES.md)): CLKHOLD_N (K3) is pulled down during configuration and would hold the flash clock, so it is tied to +3V3; P1 doubles as SSPI_CS_N and is pulled up (R26) so the FPGA cannot select slave SPI after loading; MODE0 (N2) and MODE1 (N1) share one 4.7 kΩ pull-up (R1) for MSPI.
 - **MDI network as AN1718 Rev D:** 100 nF 100 V series caps, 2 × 49.9 Ω end-node termination (0.75 W 1206, the closest stocked to AN1718's 1 W), 100 nF 100 V ‖ 100 kΩ to ground, ACT1210E-241 CMC; no copper under the CMC on any layer and no ground flood round the network on top.
-- **SGMII pairs** (0.114 / 0.152 mm, coupled):
-  - RX on F over In1.
-  - TX on B over In4. It leaves the ball field through its two via-in-pads, with 0.1 mm necks between the neighbouring ball vias.
-- **Polarity:** both pairs are laid straight. That leaves RX inverted (TD+ lands on RXM), and the gateware inverts the words (`gw/t1s_top.v`, `RX_INVERT`; `tb_top` checks it). The reference clock is also inverted, so the two lanes to the oscillator don't cross. That changes nothing.
+- **SGMII pairs** (0.114 / 0.152 mm, coupled; [lengths.txt](lengths.txt)):
+  - The fingers put TD (host → module) at the bottom of the tab and RD at the top, while all of lane 0's balls sit at the FPGA's top-left corner.
+  - RX on F over In1: from its caps east, north up the ball field's west side (west of the JTAG pads), east above row A and down into A1 / A2. 13.8 / 13.0 mm, no vias.
+  - TX on B over In4: out of B3 / C3's via-in-pads with 0.1 mm necks between the neighbouring ball vias, west to two vias by the RD caps, then on top to the caps. 8.5 / 8.0 mm, 2 / 2 vias, GND vias beside them.
+- **Polarity: both lanes P to P, nothing inverted.** RX keeps its order by the way it turns. On TX, RD+ (pin 13) sits below RD− (pin 12), so the order has to turn over once: P stops at its via and M runs on underneath it to a via 1.2 mm further west; on top P's line then passes under M's via to the lower cap. No pair crosses itself. (Until 2026-10 the mirrored edge left RX inverted and the gateware undid it with `RX_INVERT`.) The reference clock is laid inverted so its two lines to the oscillator don't cross; for a clock that changes nothing.
+- **LAN8670 land:** KiCad's VQFN-32 5 × 5 with a 3.5 × 3.5 exposed pad, the centre pad of Microchip's recommended land (package C04-500; EP 3.4 nominal). Symbol pin names follow DS60001573K (INH and GPIO0 left open, WAKE_IN on GND, as the datasheet says for unused pins).
 
 ## Regenerating
 
@@ -88,11 +93,10 @@ python3 panel_t1s.py           # 5-board panel + JLC files -> jlc/
   - Synthesis and timing have not been run.
 - **Refclk choice:** 125 MHz for 1.25 Gb/s is the usual choice, but it has not been checked in Gowin's IP generator.
 - **MIPI rails:** Gowin does not say whether they may stay unpowered, so they are powered (VDD12M 1.2 V, VDDAM on the core rail, VDDXM on 3.3 V).
-- **LAN8670 land:** the exposed pad uses KiCad's VQFN-32 5 × 5 land with a 3.1 mm EP. Check it against the LMX package drawing before ordering.
 - **Firmware** (`fw/`, `VARIANT=t1s`) builds but has never run: FPGA DONE / RECONFIG_N handling, the LAN8670's AN1699 set-up and PLCA over MDIO, RX_LOS from `FPGA_LINK` ([../../fw/README.md](../../fw/README.md)).
 - **MDI polarity:** the pair leaves the PHY swapped (pins 30/31) so it does not cross itself on the way to its caps. 10BASE-T1S is DME coded, which is polarity-insensitive; check it on a real segment.
 - **Fab limits:**
-  - via-in-pad 0.15 mm drill (72 of them: the ball field, a few PHY pads);
+  - via-in-pad 0.15 mm drill, 0.25 mm pad (74 of them: the ball field, a few PHY pads);
   - 0.1 mm lines between ball vias;
   - 0.2 mm hole-to-copper.
 

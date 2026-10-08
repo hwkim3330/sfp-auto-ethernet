@@ -57,11 +57,11 @@ Skew from the routed lengths (`lengths.txt`) at the solver's delay for each lane
 | Pair | Interface | Geometry (mm) | Rate | UI | Length P / N | Skew | % of UI | Vias | Loss at Nyquist | |
 |---|---|---|---:|---:|---:|---:|---:|---:|---:|---|
 | TD_P / TD_N | SGMII, host to module | pair 0.114 / 0.152 | 1250 MBd | 800 ps | 2.33 / 2.33 mm | 0.0 ps | 0.0% | 0/0 | 0.02 dB | ✓ |
-| SRX_P / SRX_M | SGMII | pair 0.114 / 0.152 | 1250 MBd | 800 ps | 8.44 / 7.67 mm | 4.4 ps | 0.6% | 0/0 | 0.07 dB | ✓ |
+| SRX_P / SRX_M | SGMII | pair 0.114 / 0.152 | 1250 MBd | 800 ps | 13.76 / 12.99 mm | 4.4 ps | 0.6% | 0/0 | 0.12 dB | ✓ |
 | RD_P / RD_N | SGMII, module to host | pair 0.114 / 0.152 | 1250 MBd | 800 ps | 2.33 / 2.33 mm | 0.0 ps | 0.0% | 0/0 | 0.02 dB | ✓ |
-| STX_P / STX_M | SGMII | pair 0.114 / 0.152 | 1250 MBd | 800 ps | 12.89 / 11.31 mm | 9.1 ps | 1.1% | 2/2 | 0.11 dB | ✓ |
+| STX_P / STX_M | SGMII | pair 0.114 / 0.152 | 1250 MBd | 800 ps | 8.51 / 8.04 mm | 2.7 ps | 0.3% | 2/2 | 0.07 dB | ✓ |
 | REFCLK_P / REFCLK_M | 125 MHz LVDS reference | pair 0.114 / 0.152 | 250 MBd | 4000 ps | 5.07 / 6.19 mm | 6.5 ps | 0.2% | 0/0 | 0.02 dB | ✓ |
-| MDI_P / MDI_N | 10BASE-T1S MDI (DME) | 2 × line 0.2 (Z0 44.8) | 12.5 MBd | 80000 ps | 14.88 / 10.62 mm | 25.9 ps | 0.0% | 1/1 | 0.01 dB | ✓ |
+| MDI_P / MDI_N | 10BASE-T1S MDI (DME) | 2 × line 0.2 (Z0 44.8) | 12.5 MBd | 80000 ps | 10.38 / 22.89 mm | 76.1 ps | 0.1% | 1/1 | 0.01 dB | ✓ |
 
 **Every pair is inside the budget, with the same via count on both lines.** The longest SerDes run loses well under 1 dB; SFF-8431 leaves the module several dB.
 
@@ -75,7 +75,7 @@ Measured from each board's J1 footprint: pad width 0.6 ± 0.05 mm, 0.8 mm pitch,
 |---|---|---:|
 | T1 | ✓ all 20 pads | 9.20 mm |
 | RJ45 | ✓ all 20 pads | 9.20 mm |
-| T1S | ✗ pin 20 at y 3.80, wants -3.8; pin 11 at y -3.40, wants 3.4; pin 1 at y 3.40, wants -3.4; pin 10 at y -3.80, wants 3.8 | 9.20 mm |
+| T1S | ✓ all 20 pads | 9.20 mm |
 
 Pin 6 (MOD_DEF0) is grounded in the module but mates as a signal, so it starts at 1.3 mm. Board thickness over the fingers is the stackup's 1.0 mm (MSA: 1.0 ± 0.1). JLC plates ENIG, not the MSA's 0.38 µm hard gold: fine for tens of insertions.
 

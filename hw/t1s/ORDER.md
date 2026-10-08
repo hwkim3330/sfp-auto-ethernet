@@ -1,11 +1,13 @@
 # T1S SFP order sheet (JLCPCB)
 
+> **Do not order yet:** the Gowin transceiver IP, synthesis, timing and a bitstream do not exist ([README.md](README.md#what-is-not-verified)). The board itself was re-laid on the corrected SFP edge on 2026-10-08 and is clean (DRC, KiCad 9, panel).
+
 Upload the files in `jlc/` as they are (`python3 panel_t1s.py` makes them).
 
 | File | What it is |
 |---|---|
 | `jlc/t1s-panel-gerbers.zip` | 5-board panel, **70.1 × 81.1 mm**. Gerbers (6 copper layers, masks, silks, paste, outline) + drill |
-| `jlc/bom-t1s.csv`, `jlc/cpl-t1s.csv` | BOM 31 lines, CPL **405 placements** (110 top, 295 bottom; designators `R4_1…R4_5`). The JST connector J2 is in both (through-hole, JLC fits it) |
+| `jlc/bom-t1s.csv`, `jlc/cpl-t1s.csv` | BOM 31 lines, CPL **410 placements** (120 top, 290 bottom; designators `R4_1…R4_5`). The JST connector J2 is in both (through-hole, JLC fits it) |
 | `jlc/panel-drc.rpt` | Panel DRC with the board's own rules: **0 errors, 0 unconnected**. All findings are warnings ("library not in this project" for the placed footprints and KiKit's mouse-bite holes) |
 | `jlc/panel-top.png` | Panel preview. The gold fingers sit on the left edge |
 
@@ -23,7 +25,7 @@ The tabs are placed by hand (`TABS` in `panel_t1s.py`), on the stretches of edge
 | Stackup | **JLC06101H-3313** | the SGMII pairs are 0.114 / 0.152 mm on 3313 (≈ 100 Ω differential) |
 | Impedance control | **yes** | |
 | Via covering | **epoxy filled and capped (POFV)** | every used ball inside the outer ring has a via in its pad |
-| Min via | **0.15 drill / 0.3 pad** (72 vias, in BGA and PHY pads); the rest 0.2 / 0.35 and 0.25 / 0.45 | the 0.15 mm drill is JLC's smallest and costs extra |
+| Min via | **0.15 drill / 0.25 pad** (74 vias, in BGA and PHY pads: Gowin's 0.25 mm BGA land); the rest 0.2 / 0.35 and 0.25 / 0.45 | the 0.15 mm drill is JLC's smallest and costs extra |
 | Min track / space | 0.1 / 0.1 mm (between the ball vias) | |
 | Surface finish | **ENIG** | gold fingers, and the 0.5 mm BGA |
 | Gold fingers | **yes**, bevel **45°**, **the panel's left edge** | |
