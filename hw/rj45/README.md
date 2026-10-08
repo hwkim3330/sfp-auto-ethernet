@@ -14,7 +14,7 @@ Schematic, 6-layer PCB (routed), fab outputs and a JLC panel are all in place.
 | | Result | How it was checked |
 |---|---|---|
 | Schematic | **ERC 0 errors, 0 warnings** ([erc.rpt](erc.rpt)) | eeschema's own ERC (`run_erc.sh`) |
-| Placement | 67 footprints, no overlaps; housing height limits met | `make_rj45.py` |
+| Placement | 70 footprints, no overlaps; housing height limits met | `make_rj45.py` |
 | Routing | **DRC 0 violations, 0 unconnected** ([drc.rpt](drc.rpt)) | hand-laid pairs and buses, Freerouting 1.9.0 for the rest, then KiCad DRC |
 | KiCad 9 | **DRC 0 errors, 0 unconnected, schematic parity clean, ERC 0 errors** ([kicad9-drc.rpt](kicad9-drc.rpt), [kicad9-erc.rpt](kicad9-erc.rpt)) | `sh ../check_kicad9.sh rj45`: the official KiCad 9 image. Only warnings are "differs from the library copy" |
 | Fab | Gerbers + drill ([fab/rj45-gerbers.zip](fab/rj45-gerbers.zip)), [BOM](fab/rj45-bom.csv), [CPL](fab/rj45-cpl.csv), [1:1 print](fab/rj45-1to1.pdf) | `export_rj45.py` |
@@ -54,6 +54,7 @@ Parts come to about $11 a board.
   - SerDes to the host. U1 sits on top, turned 90°. Its pins 37–41 read HSON, HSOP, HSIP, HSIN top to bottom, the order of the SFP edge's RD−, RD+, TD+, TD− (SFF-8419 Figure 7-2). Both pairs run straight, P to P, on top, with no via.
     (Until 2026-10 the edge was drawn mirrored and U1 sat underneath for the same reason; `make_rj45.py` turns that group over.)
   - The four MDI pairs run on top under the magnetics' body and straight into its chip-side pads, in port order: port 0 on channel 1 (jack 1/2) … port 3 on channel 4. CFG_OPT1 is pulled down, so there is no MDI swap.
+- **PHY address straps:** the RTL8221B has no internal pulls on its CONFIG pins (datasheet 7.18: an external pull-high or pull-low is required). LED0/1/2 carry PHYAD[2:0]: R19-R21, 4.7 kΩ to ground, give 000, which the PHY treats as address 1 (Table 16 note 2), the address the firmware uses. Three 0201s right above pins 33-35 on top; C16 moved underneath its via and C17 0.3 mm west to make room.
   - Line pairs 0, 1 and 3 run on top in lanes 0.8 mm apart.
   - Line pair 2 (jack pins 4/5) drops to the bottom under its pads. Pair 3/6 straddles 4/5 on the jack, so one of those two pairs has to leave the top side.
 - **The MCU sits under the jack.** It is the only place with room. Its ten slow lines run on In2, laid by hand from end to end:

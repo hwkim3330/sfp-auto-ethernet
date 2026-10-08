@@ -1,4 +1,4 @@
-ERC report (2026-10-07T05:58:13+0000, Encoding UTF8)
+ERC report (2026-10-08T11:08:13+0000, Encoding UTF8)
 Report includes: Errors, Warnings, Exclusions
 
 ***** Sheet /
@@ -52,7 +52,7 @@ Report includes: Errors, Warnings, Exclusions
     @(46.99 mm, 182.88 mm): Symbol #PWR053 [+3V3]
 [lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
     ; warning
-    @(196.85 mm, 30.48 mm): Symbol #PWR083 [GND]
+    @(196.85 mm, 30.48 mm): Symbol #PWR086 [GND]
 [lib_symbol_mismatch]: Symbol 'TPS62823DLC' doesn't match copy in library 'Regulator_Switching'
     ; warning
     @(59.69 mm, 190.50 mm): Symbol U3 [TPS62823DLC]
@@ -127,7 +127,7 @@ Report includes: Errors, Warnings, Exclusions
     @(85.09 mm, 290.83 mm): Symbol #PWR049 [+3V3]
 [lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
     ; warning
-    @(62.23 mm, 300.99 mm): Symbol #PWR045 [GND]
+    @(130.81 mm, 278.13 mm): Symbol #PWR034 [GND]
 [lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
     ; warning
     @(85.09 mm, 300.99 mm): Symbol #PWR050 [GND]
@@ -164,6 +164,12 @@ Report includes: Errors, Warnings, Exclusions
 [lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
     ; warning
     @(199.39 mm, 278.13 mm): Symbol #PWR037 [GND]
+[lib_symbol_mismatch]: Symbol 'R_Small' doesn't match copy in library 'Device'
+    ; warning
+    @(39.37 mm, 341.63 mm): Symbol R20 [R_Small]
+[lib_symbol_mismatch]: Symbol 'R_Small' doesn't match copy in library 'Device'
+    ; warning
+    @(62.23 mm, 341.63 mm): Symbol R19 [R_Small]
 [lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
     ; warning
     @(176.53 mm, 300.99 mm): Symbol #PWR057 [GND]
@@ -176,6 +182,9 @@ Report includes: Errors, Warnings, Exclusions
 [lib_symbol_mismatch]: Symbol 'R_Small' doesn't match copy in library 'Device'
     ; warning
     @(222.25 mm, 273.05 mm): Symbol R9 [R_Small]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(62.23 mm, 346.71 mm): Symbol #PWR078 [GND]
 [lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
     ; warning
     @(222.25 mm, 278.13 mm): Symbol #PWR038 [GND]
@@ -275,5 +284,11 @@ Report includes: Errors, Warnings, Exclusions
 [lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
     ; warning
     @(359.41 mm, 300.99 mm): Symbol #PWR063 [GND]
+[lib_symbol_mismatch]: Symbol 'R_Small' doesn't match copy in library 'Device'
+    ; warning
+    @(359.41 mm, 318.77 mm): Symbol R21 [R_Small]
+[lib_symbol_mismatch]: Symbol 'GND' doesn't match copy in library 'power'
+    ; warning
+    @(359.41 mm, 323.85 mm): Symbol #PWR076 [GND]
 
- ** ERC messages: 91  Errors 0  Warnings 91
+ ** ERC messages: 96  Errors 0  Warnings 96

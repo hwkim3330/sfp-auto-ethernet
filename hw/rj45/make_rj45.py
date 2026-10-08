@@ -103,7 +103,7 @@ PHY = {1: 'PHY_RST_N', 2: 'MDC', 3: 'MDIO', 4: 'V0P95', 5: '+3V3', 6: None, 7: '
        8: 'AVDD33', 9: None, 10: 'XI', 11: 'AVDD09', 12: 'RSET', 13: 'MDI0_P', 14: 'MDI0_N',
        15: 'AVDD33', 16: 'AVDD09', 17: 'MDI1_P', 18: 'MDI1_N', 19: 'AVDD33', 20: 'MDI2_P',
        21: 'MDI2_N', 22: 'AVDD09', 23: 'MDI3_P', 24: 'MDI3_N', 25: None, 26: None, 27: None,
-       28: 'V0P95', 29: 'CFG0', 30: 'CFG1', 31: '+3V3', 32: None, 33: None, 34: None, 35: None,
+       28: 'V0P95', 29: 'CFG0', 30: 'CFG1', 31: '+3V3', 32: None, 33: 'LED0', 34: 'LED1', 35: 'LED2',
        36: 'V0P95', 37: 'HSO_N', 38: 'HSO_P', 39: 'GND', 40: 'HSI_P', 41: 'HSI_N', 42: '+3V3',
        43: 'V0P95', 44: None, 45: None, 46: 'BUCK_EN', 47: None, 48: 'PHY_INT_N', 49: 'GND'}
 U1_AT = (19.5, 0.0)
@@ -148,7 +148,7 @@ for ref, pin in (('C11', 15), ('C12', 16), ('C13', 19), ('C14', 22)):
     part(ref, 'Device:C_Small', '100nF', C0201, {1: net, 2: 'GND'}, (RCAP_X, ty))
 part('R9', 'Device:R_Small', '2.49k 1%', R0201, {1: 'RSET', 2: 'GND'}, (22.85, 3.95), side='B')
 part('R10', 'Device:R_Small', '1.5k', R0201, {1: '+3V3', 2: 'MDIO'}, (54.2, -4.5), side='B')   # at the MCU end: U1's corner needs the room
-part('R11', 'Device:R_Small', '4.7k', R0201, {1: '+3V3', 2: 'PHY_INT_N'}, (15.2, 2.9), side='B')
+part('R11', 'Device:R_Small', '4.7k', R0201, {1: '+3V3', 2: 'PHY_INT_N'}, (15.2, -3.1), side='B')   # under INT's In2 via
 # the straps are DC: out below the caps, the router takes CFG0/CFG1 between C16 and C15
 part('R12', 'Device:R_Small', '4.7k', R0201, {1: 'CFG0', 2: 'GND'}, (21.9, -5.2), side='B')
 part('R13', 'Device:R_Small', '4.7k', R0201, {1: 'GND', 2: 'CFG1'}, (18.2, -5.3), side='B')   # CFG_OPT1 down: no MDI swap
@@ -235,7 +235,8 @@ for i, (net, xy) in enumerate([('+3V3', (53.0, 3.0)), ('SWDIO', (53.0, 1.0)), ('
                                ('NRST', (53.0, -3.0)), ('GND', (53.0, 5.0))]):
     part(f'TP{i + 1}', 'Connector:TestPoint', net, TP, {1: net}, xy, side='B')
 
-COURTYARD_OK = {'U1': [r for r, *_ in DECAP] + ['R9', 'C5', 'C6'], 'U4': ['C45', 'C44']}
+COURTYARD_OK = {'U1': [r for r, *_ in DECAP] + ['R9', 'C5', 'C6', 'R19', 'R20', 'R21'], 'U4': ['C45', 'C44'],
+                'R19': ['R20', 'C16'], 'R20': ['R21', 'R13'], 'R21': ['C17', 'R13'], 'R13': ['R19']}
 # outside the cage the board widens for the jack's shield tabs; 1.5 mm past
 # the cage front (44.3), not 0.3 (design review: cage tolerance, bezel)
 NOSE = (45.8, 17.0)
@@ -633,6 +634,24 @@ def u1_top(n):
     return (x, -y)
 
 
+# PHY address straps on the LED pins (datasheet 7.18: "To set the CONFIG
+# pins, an external pull-high or pull-low via resistor is required"). All
+# three down: PHYAD[2:0] = 000, which Table 16 note 2 forces to address 1,
+# the address the firmware uses. Three 0201s stand right above pins 35/34/33
+# on top; to make the room, C16 (pin 31's +3V3 decap) goes underneath its
+# via and C17 (pin 36) moves 0.3 mm west. Their far ends join R13's ground pad.
+for _ref, _net, _x in (('R21', 'LED2', 17.6), ('R20', 'LED1', 18.15), ('R19', 'LED0', 18.7)):
+    part(_ref, 'Device:R_Small', '4.7k', R0201, {1: _net, 2: 'GND'}, (_x, 4.1), rot=90)
+for _p in P:
+    if _p['ref'] == 'C16':
+        _p.update(at=(19.3, 3.15), side='B', rot=90)
+    elif _p['ref'] == 'C17':
+        _p.update(at=(17.0, 4.25))
+# their generic pin-to-decap stubs (laid for the old spots) go
+PREROUTES = [it for it in PREROUTES
+             if not (it[1] == 'F' and it[2][0] in ((19.3, 2.95), (17.3, 2.95)) and it[0] in ('+3V3', 'V0P95'))]
+
+
 # SerDes, PHY -> host (RD), on top: from the caps by U1 (C5/C6, HSOP/HSON
 # side towards U1) west above the centreline to fingers 13 (RD+, y 1.8) and
 # 12 (RD-, 2.6). Heading west the left line is RD_P, the lower one.
@@ -691,6 +710,16 @@ PREROUTES += [('BUCK_SW', 'B', [(12.525, 1.55), (11.8, 1.55), (11.8, 0.1), (11.2
 # C18 / C19's ground ends (pins 42 / 43) sit in a pour pocket on top: a via
 # between In2's SCL and SDA (0.16 mm to each)
 PREVIAS += [('GND', (14.1, -0.6), MIN_VIA)]
+# the strap resistors' pins and far ends, and the moved decaps (see u1_top above)
+PREROUTES += [('LED2', 'F', [u1_top(35), (17.7, 3.65)], _BW),
+              ('LED1', 'F', [u1_top(34), (18.1, 3.65)], _BW),
+              ('LED0', 'F', [u1_top(33), (18.5, 3.3), (18.6, 3.45), (18.6, 3.65)], _BW),
+              ('GND', 'F', [(17.6, 4.42), (18.7, 4.42)], 0.15),
+              ('GND', 'F', [(17.88, 4.42), (17.88, 5.15)], 0.15),
+              ('+3V3', 'F', [u1_top(31), (19.3, 3.7)], 0.2),
+              ('+3V3', 'B', [(19.3, 3.7), (19.3, 3.47)], 0.2),
+              ('V0P95', 'F', [u1_top(36), (17.3, 3.3), (17.05, 3.55), (17.0, 3.75)], 0.2)]
+PREVIAS += [('+3V3', (19.3, 3.7), MIN_VIA)]
 # INT (pin 48, U1's west side) out to a via for its In2 run
 PREROUTES += [('PHY_INT_N', 'F', [u1_top(48), (15.95, -2.2), (15.55, -2.45)], _BW)]
 PREVIAS += [('PHY_INT_N', (15.55, -2.45), _DV)]
@@ -720,6 +749,23 @@ IN2_BUS += [
 for _net, _w, _path in IN2_BUS:
     PREROUTES.append((_net, 'In2', _path, _w))
 
+
+# INT's pull-up R11 sits right under the line's In2 via, with +3V3 from the
+# plane via beside it
+PREROUTES += [('PHY_INT_N', 'B', [(15.52, -3.1), (15.55, -2.45)], _BW),
+              ('+3V3', 'B', [(14.88, -3.1), (14.876, -2.583)], 0.2)]
+# the links Freerouting left open in the kept session (rj45.ses), laid
+# before routing so the repairs never see them open: VCCR from its finger over
+# the RX pair to FB2 through In2, and R4's feedback end, under R4/C35's crossed
+# pads, to the feedback line through In2 (checked clear of that session's
+# wires; a new route would route round them)
+PREVIAS += [('VCCR', (7.8, 0.2), _DV), ('VCCR', (7.8, -3.6), _DV),
+            ('BUCK_FB', (8.62, 1.45), _DV), ('BUCK_FB', (10.497, 0.939), _DV)]
+PREROUTES += [('VCCR', 'F', [(3.6, 0.2), (7.8, 0.2)], 0.2), ('VCCR', 'In2', [(7.8, 0.2), (7.8, -3.6)], 0.2),
+              ('VCCR', 'F', [(7.8, -3.6), (8.112, -3.43)], 0.2),
+              ('BUCK_FB', 'B', [(8.88, 1.6), (8.62, 1.45)], _BW),
+              ('BUCK_FB', 'In2', [(8.62, 1.45), (10.497, 0.939)], _BW),
+              ('BUCK_FB', 'B', [(10.497, 0.939), (10.925, 0.9)], _BW)]
 
 if __name__ == '__main__':
     sys.exit(sfpgen.run(sys.modules[__name__]))

@@ -5,7 +5,7 @@ Upload the files in `jlc/` as they are (`python3 panel_rj45.py` makes them).
 | File | What it is |
 |---|---|
 | `jlc/rj45-panel-gerbers.zip` | 5-board panel, **71.5 × 107.1 mm**. Gerbers (6 copper layers, masks, silks, paste, outline) + drill |
-| `jlc/bom-rj45.csv`, `jlc/cpl-rj45.csv` | BOM 25 lines, CPL **305 placements** (115 top, 190 bottom; designators `R4_1…R4_5`). The jack J2 is in both (through-hole, JLC fits it) |
+| `jlc/bom-rj45.csv`, `jlc/cpl-rj45.csv` | BOM 25 lines, CPL **320 placements** (125 top, 195 bottom; designators `R4_1…R4_5`). The jack J2 is in both (through-hole, JLC fits it) |
 | `jlc/panel-drc.rpt` | Panel DRC with the board's own rules: **0 errors, 0 unconnected**. All 161 findings are warnings ("library not in this project" for the placed footprints and KiKit's mouse-bite holes); they don't reach the gerbers |
 | `jlc/panel-top.png` | Panel preview. The gold fingers sit on the left edge |
 

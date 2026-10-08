@@ -1005,7 +1005,7 @@ def drop_duplicate_plane_vias(board):
     the copy broke clearance to its neighbours). A router via of a plane net
     whose centre lies inside a locked via of the same net goes; its tracks
     still end inside the locked one."""
-    planes = {n for _, n in getattr(D, 'PLANES', [])} | set(getattr(D, 'PLANE_DOGBONE', ()))
+    planes = {n for _, n in getattr(D, 'PLANES', [])} | set(getattr(D, 'PLANE_DOGBONE', ())) | {'GND'}   # GND: the In1/In4 planes
     vias = [t for t in board.GetTracks() if t.GetClass() == 'PCB_VIA']
     locked = [v for v in vias if v.IsLocked() and v.GetNetname() in planes]
     drop = []
@@ -1018,6 +1018,17 @@ def drop_duplicate_plane_vias(board):
                     (w.GetPosition() - p).EuclideanNorm() < w.GetWidth() / 2:
                 drop.append(v)
                 break
+    # and of two locked vias of one net on top of each other (a plane dogbone
+    # placed beside a hand-laid via inside its own pad: RJ45 TP1), the later
+    kept = []
+    for v in vias:
+        if v in drop or not v.IsLocked() or v.GetNetname() not in planes:
+            continue
+        if any(w.GetNetname() == v.GetNetname() and (w.GetPosition() - v.GetPosition()).EuclideanNorm() < w.GetWidth() / 2
+               for w in kept):
+            drop.append(v)
+        else:
+            kept.append(v)
     for v in drop:
         board.Remove(v)
     if drop:
@@ -1217,14 +1228,30 @@ def plane_dogbones(board):
             if placed:
                 continue
             # no room for a via (a pad at the edge, say): a short trace to a pad
-            # of the same net on the same part, or to one of the net's vias
+            # of the same net on the same part, or to one of the net's vias -
+            # unless a hand-laid track already leaves the pad (the RJ45's X1
+            # pin 1: a second, pad-centre to pad-centre copy of its stub ran
+            # into the edge strip, and DRC's count let it through)
             here = pad.GetPosition()
+            # what the pad already reaches through hand-laid copper on its layer
+            segs = [(t.GetStart(), t.GetEnd()) for t in board.GetTracks()
+                    if t.GetClass() == 'PCB_TRACK' and t.GetNetname() == pad.GetNetname() and t.IsOnLayer(layer)]
+            reach = [p_ for a_, b_ in segs for p_ in (a_, b_) if pad.HitTest(a_) or pad.HitTest(b_)]
+            grew = True
+            while grew:
+                grew = False
+                for a_, b_ in segs:
+                    if (a_ in reach) != (b_ in reach):
+                        reach.append(b_ if a_ in reach else a_); grew = True
             targets = [q.GetPosition() for q in f.Pads() if q.GetNetname() == pad.GetNetname() and q.GetNumber() != pad.GetNumber()]
             targets += [v.GetPosition() for v in vias if v.GetNetname() == pad.GetNetname()]
             targets = sorted(targets, key=lambda t: (t.x - here.x) ** 2 + (t.y - here.y) ** 2)
             for t in targets:
                 if math.hypot(pcbnew.ToMM(t.x - here.x), pcbnew.ToMM(t.y - here.y)) > 2.5:
                     break
+                tgt = [q for q in f.Pads() if q.GetNetname() == pad.GetNetname() and q.HitTest(t)]
+                if t in reach or any(q.HitTest(r_) for q in tgt for r_ in reach):
+                    continue                         # already joined to it
                 tr = pcbnew.PCB_TRACK(board)
                 tr.SetStart(here); tr.SetEnd(t)
                 tr.SetWidth(MB.MM(0.2)); tr.SetLayer(layer); tr.SetNet(net); tr.SetLocked(True)
